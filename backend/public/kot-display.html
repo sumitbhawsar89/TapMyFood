@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KOT Display — Kitchen</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #0f0f0f;
+    --panel:   #161616;
+    --border:  #2a2a2a;
+    --text:    #f0f0f0;
+    --muted:   #666;
+    --new:     #ff4d00;
+    --cooking: #f59e0b;
+    --ready:   #22c55e;
+    --bar:     #818cf8;
+    --mono:    'Space Mono', monospace;
+    --display: 'Barlow Condensed', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--display);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo { font-size: 22px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--new); }
+  .restaurant-name { font-size: 16px; color: var(--muted); font-weight: 400; letter-spacing: 1px; }
+  .clock { font-family: var(--mono); font-size: 20px; color: var(--text); letter-spacing: 2px; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+
+  /* Filter tabs */
+  .filters { display: flex; gap: 6px; }
+  .filter-btn {
+    padding: 6px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn.active { background: var(--new); border-color: var(--new); color: white; }
+  .filter-btn.bar.active { background: var(--bar); border-color: var(--bar); }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 0;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat {
+    flex: 1;
+    padding: 10px 20px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .stat:last-child { border-right: none; }
+  .stat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .stat-dot.new    { background: var(--new);    box-shadow: 0 0 8px var(--new); }
+  .stat-dot.cooking{ background: var(--cooking); box-shadow: 0 0 8px var(--cooking); }
+  .stat-dot.ready  { background: var(--ready);  box-shadow: 0 0 8px var(--ready); }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-count { font-family: var(--mono); font-size: 22px; font-weight: 700; margin-left: auto; }
+  .stat-count.new    { color: var(--new); }
+  .stat-count.cooking{ color: var(--cooking); }
+  .stat-count.ready  { color: var(--ready); }
+
+  /* ── GRID ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    padding: 20px 24px;
+  }
+
+  /* ── KOT CARD ── */
+  .kot-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: slideIn 0.3s ease;
+  }
+  .kot-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .kot-card.status-new    { border-top: 3px solid var(--new); }
+  .kot-card.status-cooking{ border-top: 3px solid var(--cooking); }
+  .kot-card.status-ready  { border-top: 3px solid var(--ready); }
+  .kot-card.status-new .card-header    { background: rgba(255,77,0,0.08); }
+  .kot-card.status-cooking .card-header{ background: rgba(245,158,11,0.08); }
+  .kot-card.status-ready .card-header  { background: rgba(34,197,94,0.08); }
+
+  .card-header {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .kot-number {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .table-badge {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+  }
+  .kot-type-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+  .kot-type-badge.kitchen { color: var(--new); border-color: var(--new); background: rgba(255,77,0,0.1); }
+  .kot-type-badge.bar     { color: var(--bar); border-color: var(--bar); background: rgba(129,140,248,0.1); }
+  .timer {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .timer.urgent { color: var(--new); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .card-items { padding: 12px 16px; flex: 1; }
+  .kot-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    gap: 8px;
+  }
+  .kot-item:last-child { border-bottom: none; }
+  .item-qty {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--new);
+    min-width: 28px;
+    flex-shrink: 0;
+  }
+  .item-name { font-size: 16px; font-weight: 600; flex: 1; line-height: 1.3; }
+  .item-note {
+    font-size: 11px;
+    color: var(--cooking);
+    font-family: var(--mono);
+    margin-top: 2px;
+    letter-spacing: 0.3px;
+  }
+
+  .card-footer {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+  }
+  .action-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .action-btn:active { transform: scale(0.97); }
+  .btn-start   { background: var(--new);    color: white; }
+  .btn-ready   { background: var(--cooking); color: black; }
+  .btn-done    { background: var(--ready);  color: black; }
+  .btn-recall  { background: transparent; border: 1px solid var(--border); color: var(--muted); flex: 0; padding: 10px 14px; }
+  .btn-start:hover  { background: #ff6a2f; }
+  .btn-ready:hover  { background: #fbbf24; }
+  .btn-done:hover   { background: #4ade80; }
+
+  .mode-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.06);
+    color: var(--muted);
+  }
+
+  /* ── EMPTY ── */
+  .empty {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.4; }
+  .empty-title { font-size: 22px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  .empty-sub { font-family: var(--mono); font-size: 13px; color: #444; }
+
+  /* ── PING indicator ── */
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ready);
+    box-shadow: 0 0 6px var(--ready);
+    animation: ping 2s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes ping {
+    0%,100% { box-shadow: 0 0 6px var(--ready); }
+    50%      { box-shadow: 0 0 14px var(--ready), 0 0 28px var(--ready); }
+  }
+  .live-label { font-size: 11px; color: var(--ready); font-family: var(--mono); letter-spacing: 1px; }
+
+  /* Sound toggle */
+  .sound-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .sound-btn.on { border-color: var(--ready); color: var(--ready); }
+
+  /* Login overlay */
+  .login-overlay {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999;
+  }
+  .login-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 40px;
+    width: 360px;
+    text-align: center;
+  }
+  .login-logo { font-size: 28px; font-weight: 800; letter-spacing: 3px; color: var(--new); margin-bottom: 6px; }
+  .login-sub  { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 32px; letter-spacing: 1px; }
+  .login-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 14px 16px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 22px;
+    letter-spacing: 4px;
+    text-align: center;
+    outline: none;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+  .login-input:focus { border-color: var(--new); }
+  .login-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--new);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .login-btn:hover { background: #ff6a2f; }
+  .login-err { color: var(--new); font-family: var(--mono); font-size: 12px; margin-top: 10px; min-height: 18px; }
+
+  /* Notification toast */
+  .notif {
+    position: fixed; top: 80px; right: 24px;
+    background: var(--new);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 1px;
+    transform: translateX(120%);
+    transition: transform 0.3s;
+    z-index: 500;
+    max-width: 300px;
+  }
+  .notif.show { transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">KOT</div>
+    <div class="login-sub">KITCHEN ORDER TERMINAL</div>
+    <input class="login-input" id="loginPhone" type="tel" placeholder="9999999999"
+      maxlength="10" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Enter Kitchen</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="logo">KOT</div>
+      <div class="restaurant-name" id="restName">—</div>
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all"    onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn"        data-filter="new"    onclick="setFilter('new',this)">New</button>
+      <button class="filter-btn"        data-filter="cooking" onclick="setFilter('cooking',this)">Cooking</button>
+      <button class="filter-btn"        data-filter="ready"  onclick="setFilter('ready',this)">Ready</button>
+      <button class="filter-btn bar"    data-filter="bar"    onclick="setFilter('bar',this)">Bar</button>
+    </div>
+  </div>
+  <div class="header-right">
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="live-dot"></div>
+      <span class="live-label">LIVE</span>
+    </div>
+    <button class="sound-btn on" id="soundBtn" title="Toggle sound" onclick="toggleSound()">🔊</button>
+    <div class="clock" id="clock">00:00:00</div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-dot new"></div>
+    <span class="stat-label">New</span>
+    <span class="stat-count new" id="countNew">0</span>
+  </div>
+  <div class="stat">
+    <div class="stat-dot cooking"></div>
+    <span class="stat-label">Cooking</span>
+    <span class="stat-count cooking" id="countCooking">0</span>
+  </div>
+  <div class="stat">
+    <div class="stat-dot ready"></div>
+    <span class="stat-label">Ready</span>
+    <span class="stat-count ready" id="countReady">0</span>
+  </div>
+  <div class="stat" style="border-right:none">
+    <span class="stat-label" style="margin-left:auto;margin-right:8px" id="lastUpdate">Waiting for orders…</span>
+  </div>
+</div>
+
+<!-- KOT Grid -->
+<div class="grid" id="kotGrid">
+  <div class="empty">
+    <div class="empty-icon">👨‍🍳</div>
+    <div class="empty-title">Kitchen Ready</div>
+    <div class="empty-sub">Waiting for orders…</div>
+  </div>
+</div>
+
+<!-- Notification -->
+<div class="notif" id="notif"></div>
+
+<script>
+const API    = '';
+let token    = localStorage.getItem('kot_token') || '';
+let restaurantId = localStorage.getItem('kot_restaurant_id') || '';
+let restName = localStorage.getItem('kot_rest_name') || '';
+let kots     = [];
+let filter   = 'all';
+let soundOn  = true;
+let pollTimer= null;
+let kotTimers= {};
+let knownIds = new Set();
+
+// ── CLOCK ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-IN', { hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── LOGIN ──
+async function doLogin() {
+  const phone = document.getElementById('loginPhone').value.trim();
+  if (phone.length < 10) { document.getElementById('loginErr').textContent = 'Enter valid phone'; return; }
+  try {
+    const res  = await fetch(API + '/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone })
+    });
+    const data = await res.json();
+    if (!res.ok) { document.getElementById('loginErr').textContent = data.error || 'Login failed'; return; }
+    token        = data.token;
+    restaurantId = data.restaurant.id;
+    restName     = data.restaurant.name;
+    localStorage.setItem('kot_token', token);
+    localStorage.setItem('kot_restaurant_id', restaurantId);
+    localStorage.setItem('kot_rest_name', restName);
+    startKitchen();
+  } catch(e) {
+    document.getElementById('loginErr').textContent = 'Connection error';
+  }
+}
+
+function startKitchen() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('restName').textContent = restName;
+  fetchKOTs();
+  pollTimer = setInterval(fetchKOTs, 8000); // poll every 8s
+}
+
+// Auto-login if token saved
+if (token && restaurantId) {
+  document.getElementById('restName').textContent = restName;
+  document.getElementById('loginOverlay').style.display = 'none';
+  fetchKOTs();
+  pollTimer = setInterval(fetchKOTs, 8000);
+}
+
+// ── FETCH KOTs ──
+async function fetchKOTs() {
+  try {
+    const res  = await fetch(API + '/api/kots?restaurant_id=' + restaurantId + '&status=new,cooking,ready', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (res.status === 401) { logout(); return; }
+    const data = await res.json();
+    const newKots = data.kots || [];
+
+    // Detect truly new KOTs (not seen before)
+    const newIds = newKots.filter(k => !knownIds.has(k.id) && k.status === 'new');
+    if (newIds.length > 0 && knownIds.size > 0) {
+      playBell();
+      showNotif(newIds.length + ' new order' + (newIds.length > 1 ? 's' : '') + ' received!');
+    }
+    newKots.forEach(k => knownIds.add(k.id));
+
+    kots = newKots;
+    renderGrid();
+    updateStats();
+    document.getElementById('lastUpdate').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-IN', { hour12: true });
+  } catch(e) {
+    console.error('Fetch KOTs error:', e);
+  }
+}
+
+// ── RENDER ──
+function setFilter(f, el) {
+  filter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderGrid();
+}
+
+function renderGrid() {
+  const grid = document.getElementById('kotGrid');
+  let filtered = kots;
+
+  if (filter === 'bar')     filtered = kots.filter(k => k.kot_type === 'bar');
+  else if (filter !== 'all') filtered = kots.filter(k => k.status === filter && k.kot_type !== 'bar');
+  else filtered = kots; // all
+
+  if (!filtered.length) {
+    grid.innerHTML =
+      '<div class="empty">' +
+      '<div class="empty-icon">👨‍🍳</div>' +
+      '<div class="empty-title">' + (filter === 'all' ? 'All Clear' : 'No ' + filter + ' orders') + '</div>' +
+      '<div class="empty-sub">Waiting for orders…</div>' +
+      '</div>';
+    return;
+  }
+
+  // Sort: new first, then cooking, then ready; by time ascending
+  const order = { new: 0, cooking: 1, ready: 2 };
+  filtered.sort((a,b) => order[a.status] - order[b.status] || new Date(a.created_at) - new Date(b.created_at));
+
+  grid.innerHTML = filtered.map(k => renderCard(k)).join('');
+
+  // Start/update timers
+  filtered.forEach(k => startTimer(k));
+}
+
+function renderCard(k) {
+  const items = typeof k.items === 'string' ? JSON.parse(k.items) : (k.items || []);
+  const isBar = k.kot_type === 'bar';
+  const tableLabel = k.table_number ? 'Table ' + k.table_number : (k.mode === 'delivery' ? '🛵 Delivery' : '🎫 Takeaway');
+
+  const itemsHtml = items.map(i =>
+    '<div class="kot-item">' +
+    '<div class="item-qty">×' + i.quantity + '</div>' +
+    '<div>' +
+    '<div class="item-name">' + i.name + '</div>' +
+    (i.notes ? '<div class="item-note">⚠ ' + i.notes + '</div>' : '') +
+    '</div>' +
+    '</div>'
+  ).join('');
+
+  const footerBtns = k.status === 'new'
+    ? '<button class="action-btn btn-start" onclick="updateStatus(\'' + k.id + '\',\'cooking\')">▶ Start Cooking</button>' +
+      '<button class="action-btn btn-recall" onclick="updateStatus(\'' + k.id + '\',\'done\')" title="Skip to done">✓</button>'
+    : k.status === 'cooking'
+    ? '<button class="action-btn btn-ready" onclick="updateStatus(\'' + k.id + '\',\'ready\')">✔ Mark Ready</button>' +
+      '<button class="action-btn btn-recall" onclick="updateStatus(\'' + k.id + '\',\'new\')" title="Recall to new">↩</button>'
+    : '<button class="action-btn btn-done" onclick="updateStatus(\'' + k.id + '\',\'done\')">✓ Delivered</button>' +
+      '<button class="action-btn btn-recall" onclick="updateStatus(\'' + k.id + '\',\'cooking\')" title="Recall">↩</button>';
+
+  return '<div class="kot-card status-' + k.status + '" id="kot_' + k.id + '">' +
+    '<div class="card-header">' +
+    '<div class="card-meta">' +
+    '<span class="kot-number">#' + (k.kot_number || k.id.slice(-4).toUpperCase()) + '</span>' +
+    '<span class="table-badge">' + tableLabel + '</span>' +
+    '<span class="kot-type-badge ' + (isBar ? 'bar' : 'kitchen') + '">' + (isBar ? 'BAR' : 'KITCHEN') + '</span>' +
+    '</div>' +
+    '<span class="timer" id="timer_' + k.id + '">0:00</span>' +
+    '</div>' +
+    '<div class="card-items">' + itemsHtml + '</div>' +
+    '<div class="card-footer">' + footerBtns + '</div>' +
+    '</div>';
+}
+
+// ── TIMER ──
+function startTimer(k) {
+  if (k.status === 'ready' || k.status === 'done') return;
+  const el = document.getElementById('timer_' + k.id);
+  if (!el) return;
+  if (kotTimers[k.id]) return; // already running
+
+  kotTimers[k.id] = setInterval(function() {
+    const el2 = document.getElementById('timer_' + k.id);
+    if (!el2) { clearInterval(kotTimers[k.id]); delete kotTimers[k.id]; return; }
+    const secs = Math.floor((Date.now() - new Date(k.created_at)) / 1000);
+    const mins = Math.floor(secs / 60);
+    const s    = secs % 60;
+    el2.textContent = mins + ':' + String(s).padStart(2, '0');
+    if (mins >= 15) el2.classList.add('urgent');
+  }, 1000);
+}
+
+// ── UPDATE STATUS ──
+async function updateStatus(kotId, newStatus) {
+  const card = document.getElementById('kot_' + kotId);
+  if (card) card.style.opacity = '0.5';
+
+  try {
+    const res = await fetch(API + '/api/kots/' + kotId + '/status', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ status: newStatus })
+    });
+    if (!res.ok) throw new Error('Failed');
+
+    if (newStatus === 'done') {
+      // Remove from list
+      kots = kots.filter(k => k.id !== kotId);
+      clearInterval(kotTimers[kotId]);
+      delete kotTimers[kotId];
+    } else {
+      const k = kots.find(k => k.id === kotId);
+      if (k) k.status = newStatus;
+    }
+    renderGrid();
+    updateStats();
+    if (newStatus === 'ready') showNotif('Order ready for pickup!');
+  } catch(e) {
+    if (card) card.style.opacity = '1';
+    showNotif('Error updating status');
+  }
+}
+
+// ── STATS ──
+function updateStats() {
+  const kitchen = kots.filter(k => k.kot_type !== 'bar');
+  document.getElementById('countNew').textContent    = kitchen.filter(k => k.status === 'new').length;
+  document.getElementById('countCooking').textContent= kitchen.filter(k => k.status === 'cooking').length;
+  document.getElementById('countReady').textContent  = kitchen.filter(k => k.status === 'ready').length;
+}
+
+// ── SOUND ──
+function playBell() {
+  if (!soundOn) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.15, 0.3].forEach(function(delay) {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.4, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.4);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.4);
+    });
+  } catch(e) {}
+}
+function toggleSound() {
+  soundOn = !soundOn;
+  const btn = document.getElementById('soundBtn');
+  btn.textContent = soundOn ? '🔊' : '🔇';
+  btn.classList.toggle('on', soundOn);
+}
+
+// ── NOTIF ──
+function showNotif(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function() { el.classList.remove('show'); }, 3000);
+}
+
+// ── LOGOUT ──
+function logout() {
+  localStorage.removeItem('kot_token');
+  localStorage.removeItem('kot_restaurant_id');
+  localStorage.removeItem('kot_rest_name');
+  location.reload();
+}
+</script>
+</body>
+</html>
+

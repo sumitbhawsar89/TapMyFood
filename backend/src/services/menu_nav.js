@@ -1,0 +1,324 @@
+// ══════════════════════════════════════════════════════════
+// OrderBuddy — Menu Navigation
+// Strategy: Type-a-number ordering
+// Pagination: 2 items + nav when more pages, 3 items on last page
+// ══════════════════════════════════════════════════════════
+
+const db       = require('../database/db');
+const whatsapp = require('./whatsapp');
+
+// In-memory caches — no DB metadata column needed
+const menuNumberCache    = new Map(); // sessionId → {1: item, 2: item, ...}  (item list)
+const categoryNumberCache = new Map(); // sessionId → {1: cat, 2: cat, ...}  (category list)
+const pendingItemCache   = new Map(); // sessionId → {id, name, price}
+const clearCaches = () => {
+  menuNumberCache.clear();
+  categoryNumberCache.clear();
+  pendingItemCache.clear();
+};
+setInterval(clearCaches, 2 * 60 * 60 * 1000);
+
+// ─────────────────────────────────────────────────────────
+// UTIL: Safe button title — strip emoji, max 20 chars, unique
+// ─────────────────────────────────────────────────────────
+function safeTitle(text) {
+  const stripped = text
+    .replace(/\p{Emoji}/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return stripped.length > 20 ? stripped.substring(0, 19) + '\u2026' : stripped;
+}
+
+function makeUniqueButtons(buttons) {
+  const seen = new Set();
+  return buttons.map((btn, idx) => {
+    let title = safeTitle(btn.title);
+    if (seen.has(title)) {
+      title = safeTitle(`${idx + 1} ${btn.title}`);
+    }
+    seen.add(title);
+    return { id: btn.id, title };
+  });
+}
+
+// ─────────────────────────────────────────────────────────
+// SEND CATEGORY MENU
+// Shows ALL categories as numbered text
+// Buttons: 2 per page + "More" nav, last page gets 3
+// ─────────────────────────────────────────────────────────
+async function sendCategoryMenu(from, restaurantId, session, page) {
+  const sessionId = session?.id || session;
+
+  const categories = await db.queryAll(
+    `SELECT c.id, c.name, COUNT(mi.id) AS item_count
+     FROM menu_categories c
+     JOIN menu_items mi ON mi.category_id = c.id
+     WHERE c.restaurant_id = $1
+       AND c.is_active = true
+       AND mi.is_available = true
+     GROUP BY c.id, c.name, c.sort_order
+     HAVING COUNT(mi.id) > 0
+     ORDER BY c.sort_order ASC NULLS LAST, c.name ASC`,
+    [restaurantId]
+  );
+
+  if (!categories || categories.length === 0) {
+    await whatsapp.sendMessage(from, 'Menu is being updated. Please try again shortly!');
+    return;
+  }
+
+  // Store category number map so customer can type "3" or "drinks"
+  const catNumberMap = {};
+  categories.forEach((c, i) => {
+    catNumberMap[String(i + 1)] = { id: c.id, name: c.name };
+  });
+  categoryNumberCache.set(sessionId, catNumberMap);
+
+  // Build full numbered list as header text
+  let headerText = '*Our Menu* 🍽️\n\n';
+  categories.forEach((c, i) => {
+    headerText += `${i + 1}. ${c.name} _(${c.item_count} items)_\n`;
+  });
+  headerText += '\n👇 Tap any category:';
+
+  // Send header message first
+  await whatsapp.sendMessage(from, headerText.substring(0, 1024));
+  await new Promise(r => setTimeout(r, 300));
+
+  // Send categories in bursts of 3 buttons per message
+  const chunks = [];
+  for (let i = 0; i < categories.length; i += 3) {
+    chunks.push(categories.slice(i, i + 3));
+  }
+
+  for (let ci = 0; ci < chunks.length; ci++) {
+    const chunk = chunks[ci];
+    const isLast = ci === chunks.length - 1;
+
+    const rawButtons = chunk.map(c => ({
+      id:    `cat_${c.id}`,
+      title: c.name,
+    }));
+
+    // On last chunk, if only 1-2 categories, fill remaining with cart/order buttons
+    if (isLast && rawButtons.length < 3) {
+      if (rawButtons.length <= 2) {
+        rawButtons.push({ id: 'view_cart', title: '🛒 View Cart' });
+      }
+    }
+
+    const buttons = makeUniqueButtons(rawButtons).slice(0, 3);
+    const label = chunks.length > 1
+      ? `Categories ${ci * 3 + 1}–${Math.min(ci * 3 + 3, categories.length)}`
+      : 'Choose a category:';
+
+    await whatsapp.sendInteractiveButtons(from, label, buttons);
+
+    // Small delay between messages so they arrive in order
+    if (!isLast) await new Promise(r => setTimeout(r, 400));
+  }
+}
+
+
+async function sendCategoryItems(from, restaurantId, categoryId, sessionId) {
+  const [category, items] = await Promise.all([
+    db.queryOne('SELECT id, name FROM menu_categories WHERE id = $1', [categoryId]),
+    db.queryAll(
+      `SELECT id, name, price, description
+       FROM menu_items
+       WHERE category_id = $1 AND restaurant_id = $2 AND is_available = true
+       ORDER BY sort_order ASC NULLS LAST, name ASC`,
+      [categoryId, restaurantId]
+    )
+  ]);
+
+  if (!items || items.length === 0) {
+    await whatsapp.sendMessage(from, 'No items available right now.');
+    return;
+  }
+
+  const catName = category ? category.name : 'Menu';
+
+  let bodyText = `*${catName}*\n\n`;
+  items.forEach((item, i) => {
+    bodyText += `*${i + 1}.* ${item.name} — Rs.${item.price}\n`;
+    if (item.description) {
+      bodyText += `    _${item.description.substring(0, 55)}_\n`;
+    }
+  });
+  bodyText += `\n*Type a number to add*\nExample: type _1_ to add ${items[0].name}`;
+
+  // Store number map in module cache (fast, no DB column needed)
+  const numberMap = {};
+  items.forEach((item, i) => {
+    numberMap[String(i + 1)] = { id: item.id, name: item.name, price: item.price };
+  });
+  menuNumberCache.set(sessionId, numberMap);
+
+  await whatsapp.sendInteractiveButtons(from, bodyText.substring(0, 1024), [
+    { id: 'show_menu',     title: 'Back to Menu'  },
+    { id: 'confirm_order', title: 'Place Order'   },
+    { id: 'view_cart',     title: 'View Cart'     },
+  ]);
+}
+
+// ─────────────────────────────────────────────────────────
+// RESOLVE MENU NUMBER — customer typed "2" → item
+// ─────────────────────────────────────────────────────────
+// Resolve typed number/name from CATEGORY list screen
+// e.g. customer sees categories 1-9 and types "8" or "drinks"
+async function resolveCategoryNumber(message, session) {
+  const msg = message.trim();
+  const sessionId = session?.id || session;
+
+  // Try number match first
+  const numMatch = msg.match(/^[#]?(\d{1,2})\.?$/) ||
+                   msg.match(/^(?:item|no|number|#)\s*(\d{1,2})$/i);
+  if (numMatch) {
+    const map = categoryNumberCache.get(sessionId);
+    if (map && map[numMatch[1]]) return map[numMatch[1]]; // { id, name }
+  }
+
+  // Try name match from the stored category map
+  const map = categoryNumberCache.get(sessionId);
+  if (!map) return null;
+
+  const normMsg = msg.toLowerCase().replace(/\p{Emoji}/gu, '').replace(/\s+/g, ' ').trim();
+  for (const cat of Object.values(map)) {
+    const catNorm = cat.name.toLowerCase().replace(/\p{Emoji}/gu, '').replace(/\s+/g, ' ').trim();
+    if (catNorm === normMsg) return cat;
+    if (catNorm.includes(normMsg) || normMsg.includes(catNorm)) return cat;
+  }
+  return null;
+}
+
+async function resolveMenuNumber(message, session) {
+  const msg = message.trim();
+  const sessionId = session?.id || session;
+  const map = menuNumberCache.get(sessionId);
+  if (!map) return null;
+
+  // 1. Try number match: "1", "2.", "#3", "item 2", "no 3"
+  const numMatch = msg.match(/^[#]?(\d{1,2})\.?$/) ||
+                   msg.match(/^(?:item|no|number|#)\s*(\d{1,2})$/i);
+  if (numMatch) {
+    const num = numMatch[1];
+    if (map[num]) return map[num];
+  }
+
+  // 2. Try item name match — customer typed "cold coffee" or "cheesy nuggets"
+  const normMsg = msg.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  if (normMsg.length < 2) return null;
+
+  const items = Object.values(map);
+
+  // Exact match
+  for (const item of items) {
+    const normName = item.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+    if (normName === normMsg) return item;
+  }
+  // Starts with
+  for (const item of items) {
+    const normName = item.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+    if (normName.startsWith(normMsg) || normMsg.startsWith(normName)) return item;
+  }
+  // Contains (min 3 chars)
+  if (normMsg.length >= 3) {
+    for (const item of items) {
+      const normName = item.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+      if (normName.includes(normMsg) || normMsg.includes(normName)) return item;
+    }
+  }
+  // Word overlap (any word matches)
+  const msgWords = normMsg.split(' ').filter(w => w.length > 2);
+  for (const item of items) {
+    const normName = item.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+    const nameWords = normName.split(' ').filter(w => w.length > 2);
+    if (msgWords.some(w => nameWords.some(nw => nw.includes(w) || w.includes(nw)))) {
+      return item;
+    }
+  }
+
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────
+// FUZZY CATEGORY NAME RESOLVER
+// "hara bhara" → finds "हराभरा 🥗" category
+// ─────────────────────────────────────────────────────────
+async function resolveCategoryName(message, restaurantId) {
+  const msg = message.toLowerCase().trim();
+  if (msg.length < 2) return null;
+
+  const categories = await db.queryAll(
+    `SELECT id, name FROM menu_categories
+     WHERE restaurant_id = $1 AND is_active = true
+     ORDER BY sort_order ASC NULLS LAST`,
+    [restaurantId]
+  );
+  if (!categories || categories.length === 0) return null;
+
+  const normalize = (s) => s.replace(/\p{Emoji}/gu, '').replace(/\s+/g, ' ').toLowerCase().trim();
+  const normMsg = normalize(msg);
+
+  // 1. Exact match
+  for (const cat of categories) {
+    if (normalize(cat.name) === normMsg) return cat;
+  }
+  // 2. Starts-with (min 3 chars)
+  if (normMsg.length >= 3) {
+    for (const cat of categories) {
+      if (normalize(cat.name).startsWith(normMsg)) return cat;
+    }
+  }
+  // 3. Category starts with what user typed
+  for (const cat of categories) {
+    const catNorm = normalize(cat.name);
+    if (catNorm.length >= 4 && normMsg.startsWith(catNorm.substring(0, 4))) return cat;
+  }
+  // 4. Contains (min 4 chars)
+  for (const cat of categories) {
+    const catNorm = normalize(cat.name);
+    if (normMsg.length >= 4 && catNorm.includes(normMsg)) return cat;
+    if (catNorm.length >= 4 && normMsg.includes(catNorm)) return cat;
+  }
+  // 5. Word overlap
+  const msgWords = normMsg.split(/\s+/).filter(w => w.length > 2);
+  for (const cat of categories) {
+    const catWords = normalize(cat.name).split(/\s+/).filter(w => w.length > 2);
+    const overlap  = msgWords.filter(w => catWords.some(cw => cw.includes(w) || w.includes(cw)));
+    if (overlap.length > 0) return cat;
+  }
+
+  return null;
+}
+
+function getMenuNumberMap(sessionId) {
+  return menuNumberCache.get(sessionId) || null;
+}
+
+function setPendingItem(sessionId, item) {
+  pendingItemCache.set(sessionId, item);
+}
+
+function getPendingItem(sessionId) {
+  return pendingItemCache.get(sessionId) || null;
+}
+
+function clearSession(sessionId) {
+  menuNumberCache.delete(sessionId);
+  pendingItemCache.delete(sessionId);
+}
+
+module.exports = {
+  sendCategoryMenu,
+  sendCategoryItems,
+  resolveMenuNumber,
+  resolveCategoryNumber,
+  resolveCategoryName,
+  getMenuNumberMap,
+  getCategoryNumberMap: (sid) => categoryNumberCache.get(sid) || null,
+  setPendingItem,
+  getPendingItem,
+  clearSession,
+};

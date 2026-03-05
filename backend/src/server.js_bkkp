@@ -1,0 +1,145 @@
+require('dotenv').config();
+
+const Fastify = require('fastify');
+const path    = require('path');
+
+const webhookRoutes   = require('./routes/webhook');
+const paymentRoutes   = require('./routes/payment');
+const dashboardRoutes = require('./routes/dashboard');
+
+const app = Fastify({ logger: true });
+
+// ─────────────────────────────────────────────
+// Plugins
+// ─────────────────────────────────────────────
+app.register(require('@fastify/cors'), {
+  origin: true,   // allow all origins for dashboard
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+});
+
+app.register(require('@fastify/formbody'));
+app.register(require('@fastify/static'), {
+  root:   path.join(__dirname, '../public'),
+  prefix: '/',
+});
+
+// ─────────────────────────────────────────────
+// Dashboard HTML (owner panel)
+// ─────────────────────────────────────────────
+app.get('/dashboard', async (req, reply) => {
+  return reply.sendFile('dashboard.html');
+});
+
+// ─────────────────────────────────────────────
+// API Routes
+// ─────────────────────────────────────────────
+
+// Health check
+app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+
+// Order UI page — served at /order/:sessionId
+app.get('/order/:sessionId', async (req, reply) => {
+  reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+  reply.header('Pragma', 'no-cache');
+  return reply.sendFile('order-ui.html');
+});
+
+// Dashboard API (auth + all owner endpoints)
+app.register(dashboardRoutes, { prefix: '/api' });
+
+// Order UI API (web menu + cart sync)
+try {
+  const orderUIRoutes = require('./routes/order-ui');
+  app.register(orderUIRoutes, { prefix: '/api/order-ui' });
+  console.log('✅ Order UI routes loaded');
+} catch(e) {
+  console.warn('⚠️  Order UI routes not loaded:', e.message);
+}
+
+// WhatsApp webhook (Meta)
+app.get('/webhook/whatsapp',  webhookRoutes.verifyWebhook);
+app.post('/webhook/whatsapp', webhookRoutes.receiveMessage);
+
+// Payment routes (Easebuzz)
+app.post('/payment/create',   paymentRoutes.createPayment);
+app.post('/payment/webhook',  paymentRoutes.paymentWebhook);
+app.get('/payment/success',   paymentRoutes.paymentSuccess);
+app.get('/payment/failure',   paymentRoutes.paymentFailure);
+
+// ─────────────────────────────────────────────
+// Order status update (called by restaurant staff)
+// ─────────────────────────────────────────────
+app.post('/order/status', async (req, reply) => {
+  const { orderId, status, restaurantId } = req.body;
+
+  const db         = require('./database/db');
+  const whatsapp   = require('./services/whatsapp');
+  const { notificationQueue } = require('./queue/setup');
+
+  const validStatuses = ['confirmed', 'preparing', 'ready', 'out_for_delivery', 'completed'];
+  if (!validStatuses.includes(status)) {
+    return reply.status(400).send({ error: 'Invalid status' });
+  }
+
+  const order = await db.queryOne(
+    'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+    [status, orderId]
+  );
+
+  if (!order) return reply.status(404).send({ error: 'Order not found' });
+
+  const session = await db.queryOne(
+    'SELECT s.*, r.name as restaurant_name FROM sessions s JOIN restaurants r ON r.id = s.restaurant_id WHERE s.id = $1',
+    [order.session_id]
+  );
+
+  let notificationMsg = null;
+  const n = whatsapp.notifications;
+
+  switch (status) {
+    case 'confirmed':       notificationMsg = n.orderConfirmed(session.restaurant_name); break;
+    case 'preparing':       notificationMsg = n.orderPreparing(session.restaurant_name); break;
+    case 'ready':
+      if (session.mode === 'takeaway' || session.mode === 'delivery') {
+        notificationMsg = n.takeawayReady(session.restaurant_name);
+      }
+      break;
+    case 'out_for_delivery': notificationMsg = n.outForDelivery(); break;
+    case 'completed':
+      if (session.mode === 'takeaway')  notificationMsg = n.takeawayHandedOver();
+      else if (session.mode === 'delivery') notificationMsg = n.delivered(session.restaurant_name);
+      break;
+  }
+
+  if (notificationMsg && session.customer_phone) {
+    await notificationQueue.add(`status-${status}`, {
+      to: session.customer_phone, message: notificationMsg, type: 'text',
+    });
+  }
+
+  return reply.send({ success: true, order });
+});
+
+// ─────────────────────────────────────────────
+// Menu for frontend
+// ─────────────────────────────────────────────
+app.get('/menu/:slug', async (req, reply) => {
+  const menuSvc    = require('./services/menu');
+  const restaurant = await menuSvc.getRestaurantBySlug(req.params.slug);
+  if (!restaurant) return reply.status(404).send({ error: 'Restaurant not found' });
+  const { categories, items } = await menuSvc.getRestaurantData(restaurant.id);
+  return reply.send({ restaurant, categories, items });
+});
+
+// ─────────────────────────────────────────────
+// Start server
+// ─────────────────────────────────────────────
+const PORT = process.env.PORT || 3001;
+
+app.listen({ port: PORT, host: '0.0.0.0' }, (err, address) => {
+  if (err) { console.error('❌ Server failed to start:', err); process.exit(1); }
+  console.log(`✅ Server running at ${address}`);
+  console.log(`🖥️  Dashboard:  ${address}/dashboard`);
+  console.log(`📡 Webhook:    ${address}/webhook/whatsapp`);
+});
+

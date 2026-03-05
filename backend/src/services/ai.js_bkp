@@ -1,0 +1,112 @@
+require('dotenv').config();
+const Anthropic = require('@anthropic-ai/sdk');
+const db        = require('../database/db');
+const cartSvc   = require('./cart');
+const menuSvc   = require('./menu');
+
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+async function processMessage(session, message) {
+  const { restaurant, categories, items, blockedItems } = await menuSvc.getRestaurantData(session.restaurant_id);
+  const systemPrompt = await menuSvc.buildSystemPrompt(restaurant, categories, items, blockedItems, session);
+
+  let history = [];
+  if (session.chat_history) {
+    if (Array.isArray(session.chat_history)) {
+      history = session.chat_history;
+    } else if (typeof session.chat_history === 'string' && session.chat_history.length > 2) {
+      try { history = JSON.parse(session.chat_history); } catch(e) { history = []; }
+    }
+  }
+
+  // Keep only simple text messages — strip tool blocks that break the API
+  const cleanHistory = history
+    .filter(m => m && m.role && typeof m.content === 'string' && m.content.length > 0)
+    .slice(-10);
+
+  const messages = [...cleanHistory, { role: 'user', content: message }];
+
+  const response = await client.messages.create({
+    model:      'claude-sonnet-4-20250514',
+    max_tokens: 512,
+    system:     systemPrompt,
+    messages,
+    tools:      menuSvc.AI_TOOLS,
+  });
+
+  let finalReply   = '';
+  let cartModified = false;
+  const toolResults = [];
+
+  for (const block of response.content) {
+    if (block.type === 'text') finalReply += block.text;
+    if (block.type === 'tool_use') {
+      const toolResult = await executeTool(block.name, block.input, session);
+      toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: toolResult.message });
+      if (block.name === 'add_to_cart' || block.name === 'remove_from_cart') cartModified = true;
+    }
+  }
+
+  if (toolResults.length > 0) {
+    const followUp = await client.messages.create({
+      model:      'claude-sonnet-4-20250514',
+      max_tokens: 512,
+      system:     systemPrompt,
+      messages: [
+        ...messages,
+        { role: 'assistant', content: response.content },
+        { role: 'user',      content: toolResults },
+      ],
+    });
+    finalReply = followUp.content.find(b => b.type === 'text')?.text || finalReply;
+  }
+
+  // Save only clean text history
+  const newHistory = [
+    ...cleanHistory,
+    { role: 'user',      content: message    },
+    { role: 'assistant', content: finalReply },
+  ];
+
+  await db.query(
+    'UPDATE sessions SET chat_history = $1, updated_at = NOW() WHERE id = $2',
+    [JSON.stringify(newHistory), session.id]
+  );
+
+  return { reply: finalReply, cartModified };
+}
+
+async function executeTool(toolName, input, session) {
+  console.log(`🔧 Tool called: ${toolName}`, input);
+  switch (toolName) {
+    case 'add_to_cart': {
+      const result = await cartSvc.addToCart(
+        session.id, session.restaurant_id,
+        input.item_id, input.quantity || 1, input.notes || null
+      );
+      return result.success
+        ? { message: `Added ${result.item.name} to cart. Price: ₹${result.item.price}` }
+        : { message: result.error || 'Could not add item' };
+    }
+    case 'remove_from_cart': {
+      const result = await cartSvc.removeFromCart(session.id, input.item_id);
+      return result.success ? { message: 'Item removed' } : { message: result.error };
+    }
+    case 'view_cart': {
+      const cart = await cartSvc.getCart(session.id);
+      if (cart.items.length === 0) return { message: 'Cart is empty' };
+      let text = 'Cart:\n';
+      for (const item of cart.items) text += `• ${item.name} x${item.quantity} = ₹${item.subtotal}\n`;
+      return { message: text + `Total: ₹${cart.subtotal}` };
+    }
+    case 'show_order_summary':
+    case 'place_order':
+    case 'call_for_bill':
+      return { message: 'Order confirmation handled by system' };
+    default:
+      return { message: `Unknown tool: ${toolName}` };
+  }
+}
+
+module.exports = { processMessage };
+

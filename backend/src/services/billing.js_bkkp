@@ -1,0 +1,253 @@
+const db = require('../database/db');
+
+const ALCOHOL_VAT = {
+  MH: 0.25, KA: 0.20, DL: 0.25, TN: 0.37,
+  GJ: 0.15, RJ: 0.35, UP: 0.30, WB: 0.28,
+  AP: 0.32, TS: 0.30, KL: 0.25, MP: 0.32,
+};
+
+const GST_RATES = {
+  non_ac:             0.05,
+  ac_without_liquor:  0.05,
+  ac_with_liquor:     0.18,
+};
+
+// ─────────────────────────────────────────────
+// Calculate taxes
+// ─────────────────────────────────────────────
+function calculateTaxes(items, restaurant) {
+  const gstRate    = GST_RATES[restaurant.restaurant_type] || 0.05;
+  const alcoholVat = ALCOHOL_VAT[restaurant.state_code]   || 0.25;
+
+  let foodSubtotal = 0, softDrinkSubtotal = 0, alcoholSubtotal = 0, waterSubtotal = 0;
+
+  for (const item of items) {
+    switch (item.tax_category) {
+      case 'food':           foodSubtotal      += item.subtotal; break;
+      case 'soft_drink':     softDrinkSubtotal += item.subtotal; break;
+      case 'alcohol':        alcoholSubtotal   += item.subtotal; break;
+      case 'packaged_water': waterSubtotal     += item.subtotal; break;
+      default:               foodSubtotal      += item.subtotal;
+    }
+  }
+
+  const foodGST      = foodSubtotal * gstRate;
+  const softDrinkGST = softDrinkSubtotal * 0.18;
+  const waterGST     = waterSubtotal * 0.18;
+  const totalGST     = foodGST + softDrinkGST + waterGST;
+  // Round total FIRST, then split equally — prevents ₹1 double-rounding error
+  const totalGSTRounded = Math.round(totalGST);
+  const cgst = Math.floor(totalGSTRounded / 2);
+  const sgst = totalGSTRounded - cgst; // remainder goes to sgst to avoid ₹1 drift
+  const vat          = Math.round(alcoholSubtotal * alcoholVat);
+  const subtotal     = foodSubtotal + softDrinkSubtotal + alcoholSubtotal + waterSubtotal;
+  const totalTax     = cgst + sgst + vat;
+
+  return {
+    food_subtotal:        foodSubtotal,
+    bar_subtotal:         alcoholSubtotal,
+    soft_drink_subtotal:  softDrinkSubtotal,
+    subtotal, cgst, sgst, vat,
+    total_tax: totalTax,
+    gst_rate:  gstRate * 100,
+    vat_rate:  alcoholVat * 100,
+  };
+}
+
+// ─────────────────────────────────────────────
+// Apply active offers to get discount info
+// ─────────────────────────────────────────────
+async function applyOffers(restaurantId, subtotal, sessionId) {
+  const { getActiveOffers } = require('./menu');
+  const offers = await getActiveOffers(restaurantId);
+
+  let offerDiscount   = 0;
+  let freeItemId      = null;
+  let freeItemName    = null;
+  let appliedOffers   = [];
+
+  // Find best offer combination by actual ₹ value
+  // Group: percent-only offers vs offers that include a free item
+  const percentOnlyOffers = offers.filter(o =>
+    (o.offer_type === 'percent_off' || o.offer_type === 'happy_hour') && !o.free_item_id
+  );
+  const comboOffers = offers.filter(o => o.free_item_id); // offers with free item (may also have %)
+  const freeOnlyOffers = offers.filter(o => o.offer_type === 'item_free' && !o.discount_percent);
+
+  // Calculate value of best percent-only offer
+  let bestPercentOffer  = null;
+  let bestPercentValue  = 0;
+  for (const o of percentOnlyOffers) {
+    const val = Math.round(subtotal * (o.discount_percent / 100));
+    if (val > bestPercentValue) { bestPercentValue = val; bestPercentOffer = o; }
+  }
+
+  // Calculate value of each combo offer (% savings + free item price)
+  let bestComboOffer  = null;
+  let bestComboValue  = 0;
+  for (const o of comboOffers) {
+    const pctVal  = Math.round(subtotal * ((o.discount_percent || 0) / 100));
+    const itemVal = o.free_item_price || 0;
+    const total   = pctVal + itemVal;
+    if (total > bestComboValue && subtotal >= (o.min_order_amount || 0)) {
+      bestComboValue = total; bestComboOffer = o;
+    }
+  }
+
+  // Pick whichever gives customer more value
+  if (bestComboOffer && bestComboValue > bestPercentValue) {
+    // Combo offer wins
+    const disc = Math.round(subtotal * ((bestComboOffer.discount_percent || 0) / 100));
+    if (disc > 0) { offerDiscount += disc; appliedOffers.push(`${bestComboOffer.title} (-₹${disc})`); }
+    freeItemId   = bestComboOffer.free_item_id;
+    freeItemName = bestComboOffer.free_item_name;
+    appliedOffers.push(`Free ${bestComboOffer.free_item_name} 🎁`);
+  } else if (bestPercentOffer) {
+    // Percent-only offer wins
+    offerDiscount += bestPercentValue;
+    appliedOffers.push(`${bestPercentOffer.title} (-₹${bestPercentValue})`);
+    // Still check if any standalone free item offer qualifies
+    for (const o of freeOnlyOffers) {
+      if (subtotal >= (o.min_order_amount || 0)) {
+        freeItemId   = o.free_item_id;
+        freeItemName = o.free_item_name;
+        appliedOffers.push(`Free ${o.free_item_name} 🎁`);
+        break;
+      }
+    }
+  } else {
+    // Only free item offers
+    for (const o of freeOnlyOffers) {
+      if (subtotal >= (o.min_order_amount || 0)) {
+        freeItemId   = o.free_item_id;
+        freeItemName = o.free_item_name;
+        appliedOffers.push(`Free ${o.free_item_name} 🎁`);
+        break;
+      }
+    }
+  }
+
+  // (free item logic handled above in best-offer selection)
+
+  return { offerDiscount, freeItemId, freeItemName, appliedOffers };
+}
+
+// ─────────────────────────────────────────────
+// Generate bill number
+// ─────────────────────────────────────────────
+async function generateBillNumber(restaurantId, prefix) {
+  const fy     = getFinancialYear();
+  const result = await db.queryOne(
+    `UPDATE restaurants SET bill_sequence = bill_sequence + 1
+     WHERE id = $1 RETURNING bill_sequence`,
+    [restaurantId]
+  );
+  const seq = String(result.bill_sequence).padStart(5, '0');
+  return `${prefix}-${fy}-${seq}`;
+}
+
+function getFinancialYear() {
+  const now   = new Date();
+  const year  = now.getFullYear();
+  const month = now.getMonth() + 1;
+  if (month >= 4) {
+    return `${String(year).slice(2)}${String(year + 1).slice(2)}`;
+  } else {
+    return `${String(year - 1).slice(2)}${String(year).slice(2)}`;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Generate bill — applies offers automatically
+// ─────────────────────────────────────────────
+async function generateBill(session) {
+  const restaurant = await db.queryOne(
+    'SELECT * FROM restaurants WHERE id = $1',
+    [session.restaurant_id]
+  );
+
+  const order = await db.queryOne(
+    "SELECT * FROM orders WHERE session_id = $1 ORDER BY created_at DESC LIMIT 1",
+    [session.id]
+  );
+  if (!order) throw new Error('No order found for this session');
+
+  const items = await db.queryAll(
+    'SELECT * FROM order_items WHERE order_id = $1',
+    [order.id]
+  );
+
+  // Calculate base taxes
+  const taxes = calculateTaxes(items, restaurant);
+
+  // Apply session discount (Zomato/Swiggy)
+  const sessionDiscountPct    = session.discount_pct || 0;
+  const sessionDiscountAmount = Math.round(taxes.subtotal * sessionDiscountPct / 100);
+
+  // Apply active offers
+  const { offerDiscount, freeItemId, freeItemName, appliedOffers } =
+    await applyOffers(session.restaurant_id, taxes.subtotal, session.id);
+
+  const totalDiscount = sessionDiscountAmount + offerDiscount;
+
+  // Delivery fee — free above min order threshold
+  let deliveryFee = 0;
+  if (session.mode === 'delivery') {
+    const baseDeliveryFee      = restaurant.delivery_fee      || 0;
+    const freeDeliveryAbove    = restaurant.free_delivery_above || 0;
+    const subtotalAfterDiscount = taxes.subtotal - totalDiscount;
+    if (freeDeliveryAbove > 0 && subtotalAfterDiscount >= freeDeliveryAbove) {
+      deliveryFee = 0; // free delivery threshold reached
+    } else {
+      deliveryFee = baseDeliveryFee;
+    }
+  }
+
+  // Platform fee
+  const platformFee = 3;
+
+  const grandTotal = taxes.subtotal + taxes.total_tax - totalDiscount + deliveryFee + platformFee;
+
+  // Generate bill number
+  const billNumber = await generateBillNumber(restaurant.id, restaurant.bill_prefix);
+
+  // Save bill
+  const bill = await db.queryOne(
+    `INSERT INTO bills
+      (order_id, session_id, restaurant_id, bill_number,
+       food_subtotal, bar_subtotal, soft_drink_subtotal, subtotal,
+       cgst, sgst, vat, total_tax,
+       discount_pct, discount_amount, delivery_fee, platform_fee, grand_total, status)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'unpaid')
+     RETURNING *`,
+    [
+      order.id, session.id, restaurant.id, billNumber,
+      taxes.food_subtotal, taxes.bar_subtotal, taxes.soft_drink_subtotal, taxes.subtotal,
+      taxes.cgst, taxes.sgst, taxes.vat, taxes.total_tax,
+      sessionDiscountPct, totalDiscount, deliveryFee, platformFee, grandTotal
+    ]
+  );
+
+  // Attach offer info to bill object for confirmation message
+  bill.appliedOffers    = appliedOffers;
+  bill.freeItemName     = freeItemName;
+  bill.deliveryFee      = deliveryFee;
+  bill.freeDelivery     = (session.mode === 'delivery' && deliveryFee === 0 && (restaurant.delivery_fee || 0) > 0);
+
+  console.log(`🧾 Bill: ${billNumber} | Subtotal: ₹${taxes.subtotal} | Offers: ${appliedOffers.join(', ') || 'none'} | Total: ₹${grandTotal}`);
+  return bill;
+}
+
+// ─────────────────────────────────────────────
+// Mark bill as paid
+// ─────────────────────────────────────────────
+async function markBillPaid(razorpayOrderId, razorpayPaymentId, paymentMethod = 'upi') {
+  const bill = await db.queryOne(
+    `UPDATE bills SET status = 'paid', razorpay_payment_id = $1, payment_method = $2, paid_at = NOW()
+     WHERE razorpay_order_id = $3 RETURNING *`,
+    [razorpayPaymentId, paymentMethod, razorpayOrderId]
+  );
+  return bill;
+}
+
+module.exports = { generateBill, markBillPaid, calculateTaxes };

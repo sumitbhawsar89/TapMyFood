@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:    #1a1207;
+    --cream:  #fdf6e9;
+    --amber:  #f59e0b;
+    --orange: #ea580c;
+    --green:  #16a34a;
+    --red:    #dc2626;
+    --muted:  #9b8b72;
+    --card:   #ffffff;
+    --border: #ede8df;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; max-width: 480px; margin: 0 auto; padding-bottom: 160px; }
+  .header { background: var(--ink); color: white; padding: 20px 20px 16px; position: sticky; top: 0; z-index: 100; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .restaurant-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+  .mode-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; background: var(--amber); color: var(--ink); text-transform: uppercase; letter-spacing: 0.5px; }
+  .mode-badge.dine { background: #22c55e; }
+  .mode-badge.takeaway { background: #a78bfa; color: white; }
+  .search-wrap { position: relative; }
+  .search-input { width: 100%; background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 10px 16px 10px 38px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: white; outline: none; transition: border-color 0.2s; }
+  .search-input::placeholder { color: rgba(255,255,255,0.45); }
+  .search-input:focus { border-color: var(--amber); }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.5; font-size: 15px; }
+  .cat-tabs { display: flex; gap: 8px; padding: 14px 20px; overflow-x: auto; scrollbar-width: none; background: white; border-bottom: 1px solid var(--border); }
+  .cat-tabs::-webkit-scrollbar { display: none; }
+  .cat-tab { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; background: var(--cream); border: 1.5px solid var(--border); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .cat-tab.active { background: var(--ink); color: white; border-color: var(--ink); }
+  .menu-section { padding: 0 16px; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; padding: 18px 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .item-card { background: var(--card); border-radius: var(--radius); border: 1.5px solid var(--border); padding: 14px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start; transition: border-color 0.2s; }
+  .item-card.in-cart { border-color: var(--orange); }
+  .item-info { flex: 1; min-width: 0; }
+  .item-name { font-weight: 600; font-size: 15px; margin-bottom: 3px; }
+  .item-desc { font-size: 12px; color: var(--muted); margin-bottom: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .item-footer { display: flex; align-items: center; justify-content: space-between; }
+  .item-price { font-weight: 700; font-size: 16px; color: var(--orange); }
+  .veg-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle; }
+  .veg-dot.veg { background: var(--green); }
+  .veg-dot.nonveg { background: var(--red); }
+  .qty-control { display: flex; align-items: center; gap: 8px; }
+  .qty-btn { width: 28px; height: 28px; border-radius: 50%; border: none; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; background: var(--orange); color: white; }
+  .qty-btn:active { transform: scale(0.9); }
+  .qty-num { font-weight: 700; font-size: 15px; min-width: 20px; text-align: center; }
+  .add-btn { padding: 6px 16px; border-radius: 20px; border: 1.5px solid var(--orange); background: white; color: var(--orange); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .add-btn:active { background: var(--orange); color: white; }
+  .item-img { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; flex-shrink: 0; background: var(--cream); }
+  .empty-state { text-align: center; padding: 60px 24px; color: var(--muted); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+  .cart-pill { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 14px 28px; border-radius: 50px; font-weight: 600; font-size: 15px; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.25); display: none; align-items: center; gap: 12px; z-index: 90; transition: all 0.3s; white-space: nowrap; }
+  .cart-pill.visible { display: flex; }
+  .cart-pill-count { background: var(--orange); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+  .drawer-overlay.open { opacity: 1; pointer-events: all; }
+  .cart-drawer { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; z-index: 201; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); max-height: 85vh; overflow-y: auto; padding: 24px 20px 32px; }
+  .cart-drawer.open { transform: translateX(-50%) translateY(0); }
+  .drawer-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .drawer-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; margin-bottom: 16px; }
+  .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .cart-item-name { font-size: 14px; font-weight: 500; }
+  .cart-item-price { font-size: 14px; color: var(--muted); }
+  .cart-item-qty { display: flex; align-items: center; gap: 8px; }
+  .cart-total-row { display: flex; justify-content: space-between; padding: 14px 0 4px; font-weight: 700; font-size: 16px; }
+  .place-order-btn { width: 100%; padding: 16px; background: var(--orange); color: white; border: none; border-radius: 14px; font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 12px; transition: all 0.2s; }
+  .place-order-btn:active { transform: scale(0.99); background: var(--orange); }
+  .place-order-btn.loading { opacity: 0.7; pointer-events: none; }
+  .place-order-btn:disabled { cursor: not-allowed; }
+  .ai-fab { position: fixed; bottom: 24px; right: 20px; width: 54px; height: 54px; border-radius: 50%; background: var(--ink); color: white; border: none; font-size: 22px; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.25); z-index: 89; display: flex; align-items: center; justify-content: center; }
+  .ai-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 300; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .ai-overlay.open { opacity: 1; pointer-events: all; }
+  .ai-panel { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; z-index: 301; transition: transform 0.3s; height: 70vh; display: flex; flex-direction: column; padding: 20px 16px 16px; }
+  .ai-panel.open { transform: translateX(-50%) translateY(0); }
+  .ai-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .ai-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; }
+  .ai-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted); }
+  .ai-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 8px; }
+  .ai-msg { max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
+  .ai-msg.bot { background: var(--cream); border: 1px solid var(--border); align-self: flex-start; border-radius: 4px 16px 16px 16px; }
+  .ai-msg.user { background: var(--ink); color: white; align-self: flex-end; border-radius: 16px 4px 16px 16px; }
+  .ai-input-row { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .ai-input { flex: 1; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 14px; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; }
+  .ai-input:focus { border-color: var(--orange); }
+  .ai-send { background: var(--orange); color: white; border: none; border-radius: 10px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
+  .typing-dots { display: flex; gap: 4px; padding: 4px 0; }
+  .typing-dots span { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: bounce 1.2s infinite; }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+  .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: white; padding: 10px 20px; border-radius: 50px; font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .address-section { display: none; padding: 12px 0 8px; }
+  .address-label { font-size: 12px; font-weight: 600; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+  .past-addr-chip { padding: 8px 12px; background: #f5f5f5; border-radius: 8px; margin-bottom: 4px; font-size: 13px; cursor: pointer; border: 1.5px solid transparent; transition: all .15s; }
+  .past-addr-chip.selected { border-color: var(--orange); background: #fff5ef; }
+  .address-textarea { width: 100%; min-height: 72px; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit; resize: none; background: #faf8f5; box-sizing: border-box; outline: none; }
+  .address-hint { font-size: 11px; color: #e53e3e; margin-top: 4px; display: none; }
+
+  @keyframes pulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.06); box-shadow: 0 0 0 8px rgba(234,88,12,0.2); }
+    100% { transform: scale(1); }
+  }
+
+  /* Order confirmation modal */
+  .confirm-modal { position:fixed;inset:0;z-index:450;display:none; }
+  .confirm-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.55); }
+  .confirm-panel { position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box;max-height:90vh;overflow-y:auto; }
+  .confirm-title { font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px; }
+  .confirm-subtitle { font-size:13px;color:#9b8b72;margin-bottom:16px; }
+  .confirm-items { border:1.5px solid #ede8df;border-radius:12px;overflow:hidden;margin-bottom:16px; }
+  .confirm-item { display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #f5f0e8;font-size:14px; }
+  .confirm-item:last-child { border-bottom:none; }
+  .confirm-item-name { font-weight:600;flex:1; }
+  .confirm-item-note { font-size:11px;color:#9b8b72;margin-top:2px; }
+  .confirm-item-price { color:#ea580c;font-weight:700;margin-left:12px;white-space:nowrap; }
+  .confirm-total { display:flex;justify-content:space-between;font-weight:800;font-size:16px;padding:12px 0;border-top:2px solid #1a1207;margin-top:4px; }
+  .confirm-addr { font-size:12px;color:#9b8b72;background:#f9f6f0;border-radius:8px;padding:10px 12px;margin-bottom:16px; }
+  .confirm-btns { display:flex;gap:10px; }
+  .confirm-edit-btn { flex:1;padding:14px;border:1.5px solid #ede8df;border-radius:12px;background:white;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72; }
+  .confirm-place-btn { flex:2;padding:14px;background:#ea580c;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer; }
+
+  /* Notes modal */
+  .notes-modal { position:fixed;inset:0;z-index:460;display:none; }
+  .notes-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.5); }
+  .notes-panel { position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box; }
+  .notes-title { font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:4px; }
+  .notes-item-name { font-size:13px;color:#9b8b72;margin-bottom:14px; }
+  .notes-textarea { width:100%;border:1.5px solid #ede8df;border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-size:14px;resize:none;outline:none;box-sizing:border-box;height:100px; }
+  .notes-textarea:focus { border-color:#ea580c; }
+  .notes-hints { display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px; }
+  .notes-hint-chip { border:1.5px solid #ede8df;border-radius:20px;padding:6px 12px;font-size:12px;cursor:pointer;background:white;transition:all 0.15s; }
+  .notes-hint-chip:active { border-color:#ea580c;color:#ea580c; }
+  .notes-save-btn { width:100%;padding:14px;background:#1a1207;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer; }
+
+  /* Language selector */
+  .lang-btn { background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 5px 10px; font-size: 13px; color: white; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s; }
+  .lang-btn:active { background: rgba(255,255,255,0.25); }
+  .lang-drawer { position: fixed; inset: 0; z-index: 500; display: none; }
+  .lang-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
+  .lang-panel { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; padding: 24px 20px 32px; box-sizing: border-box; }
+  .lang-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; margin-bottom: 16px; text-align: center; }
+  .lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .lang-option { padding: 14px 12px; border: 2px solid #ede8df; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; transition: all 0.15s; background: white; }
+  .lang-option:active { transform: scale(0.97); }
+  .lang-option.selected { border-color: #ea580c; background: #fff7f0; color: #ea580c; }
+  .lang-option .flag { font-size: 22px; }
+  .lang-option .label { display: flex; flex-direction: column; }
+  .lang-option .native { font-size: 12px; color: #9b8b72; font-weight: 400; margin-top: 1px; }
+  .lang-option.selected .native { color: #ea580c; opacity: 0.7; }
+  .popular-chip {
+    flex-shrink: 0;
+    background: white;
+    border: 1.5px solid #ede8df;
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 120px;
+    max-width: 150px;
+  }
+  .popular-chip:active { border-color: #ea580c; transform: scale(0.97); }
+  .popular-chip-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .popular-chip-price { font-size: 12px; color: #ea580c; font-weight: 700; margin-top: 2px; }
+  .popular-chip-add { font-size: 11px; color: #9b8b72; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <span class="restaurant-name" id="restName">Loading…</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="lang-btn" onclick="openLangDrawer()" id="langBtn">🌐 EN</button>
+      <span class="mode-badge" id="modeBadge">—</span>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="searchInput" placeholder="Search menu…" autocomplete="off">
+  </div>
+</div>
+
+<div class="cat-tabs" id="catTabs"></div>
+<div id="popularSection" style="display:none;padding:14px 16px 0">
+  <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;
+              color:#9b8b72;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+    🔥 Popular
+  </div>
+  <div id="popularItems" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none"></div>
+</div>
+<div class="menu-section" id="menuContent">
+  <div class="empty-state"><div class="icon">🍔</div><p>Loading menu…</p></div>
+</div>
+
+<div class="cart-pill" id="cartPill" onclick="openCart()">
+  <div class="cart-pill-count" id="cartCount">0</div>
+  <span id="cartPillText">View Cart</span>
+  <span id="cartPillTotal"></span>
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeCart()"></div>
+<div class="cart-drawer" id="cartDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-title">🛒 Your Cart</div>
+  <div id="cartItems"></div>
+  <div class="cart-total-row" id="cartTotalRow" style="display:none">
+    <span>Total</span><span id="cartTotal">₹0</span>
+  </div>
+
+  <!-- Delivery address -->
+  <div class="address-section" id="addressSection">
+    <div class="address-label">📍 Delivery Address</div>
+    <div id="pastAddresses"></div>
+    <textarea class="address-textarea" id="deliveryAddress"
+      placeholder="Enter your full delivery address…"
+      oninput="onAddressInput()"
+      onblur="if(this.value.trim())this.style.borderColor='#22c55e';else this.style.borderColor='var(--border)'"></textarea>
+    <div class="address-hint" id="addressHint">⚠️ Please enter delivery address</div>
+  </div>
+
+  <button class="place-order-btn" id="placeOrderBtn" onclick="startUpsell()">Place Order →</button>
+</div>
+
+<!-- Order Confirmation Modal -->
+<div class="confirm-modal" id="confirmModal">
+  <div class="confirm-overlay" onclick="closeConfirm()"></div>
+  <div class="confirm-panel">
+    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
+    <div class="confirm-title">✅ Confirm Order</div>
+    <div class="confirm-subtitle" id="confirmSubtitle">Review your order before placing</div>
+    <div class="confirm-items" id="confirmItems"></div>
+    <div class="confirm-total"><span>Total</span><span id="confirmTotal">₹0</span></div>
+    <div class="confirm-addr" id="confirmAddr" style="display:none"></div>
+    <div class="confirm-btns" style="flex-direction:column;gap:10px">
+      <button class="confirm-place-btn" id="confirmPlaceBtn" onclick="confirmAndPlace()">✅ Place Order →</button>
+      <div style="display:flex;gap:10px">
+        <button class="confirm-edit-btn" style="flex:1" onclick="closeConfirmOpenCart()">✏️ Edit Cart</button>
+        <button class="confirm-edit-btn" style="flex:1" onclick="closeConfirm()">+ Add More</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notes Modal -->
+<div class="notes-modal" id="notesModal">
+  <div class="notes-overlay" onclick="closeNotes()"></div>
+  <div class="notes-panel">
+    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
+    <div class="notes-title">📝 Special Instructions</div>
+    <div class="notes-item-name" id="notesItemName"></div>
+    <textarea class="notes-textarea" id="notesTextarea" placeholder="e.g. Extra spicy, no onions, less oil…"></textarea>
+    <div class="notes-hints">
+      <button class="notes-hint-chip" onclick="addNoteHint('Extra spicy')">🌶️ Extra spicy</button>
+      <button class="notes-hint-chip" onclick="addNoteHint('No onions')">🧅 No onions</button>
+      <button class="notes-hint-chip" onclick="addNoteHint('Less oil')">Less oil</button>
+      <button class="notes-hint-chip" onclick="addNoteHint('No garlic')">No garlic</button>
+      <button class="notes-hint-chip" onclick="addNoteHint('Well done')">Well done</button>
+      <button class="notes-hint-chip" onclick="addNoteHint('Extra sauce')">Extra sauce</button>
+    </div>
+    <button class="notes-save-btn" onclick="saveNotes()">Save</button>
+  </div>
+</div>
+
+<!-- Language Drawer -->
+<div class="lang-drawer" id="langDrawer">
+  <div class="lang-overlay" onclick="closeLangDrawer()"></div>
+  <div class="lang-panel">
+    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
+    <div class="lang-title">🌐 Choose Language</div>
+    <div class="lang-grid" id="langGrid">
+      <!-- populated by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- Upsell Modal -->
+<div id="upsellOverlay" style="
+  position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;
+  opacity:0;pointer-events:none;transition:opacity 0.25s"></div>
+<div id="upsellModal" style="
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);
+  width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;
+  z-index:401;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  padding:24px 20px 32px;box-sizing:border-box">
+  <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
+  <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px">🔥 Wait — you might like this!</div>
+  <div id="upsellMsg" style="font-size:14px;color:#9b8b72;margin-bottom:16px;line-height:1.5">Finding the perfect add-on…</div>
+
+  <!-- Suggested item card -->
+  <div id="upsellItem" style="display:none;background:#fdf6e9;border:1.5px solid #f59e0b;border-radius:14px;padding:16px;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div id="upsellItemName" style="font-weight:700;font-size:16px;margin-bottom:3px"></div>
+        <div id="upsellItemPrice" style="color:#ea580c;font-weight:700;font-size:14px"></div>
+      </div>
+      <button onclick="addUpsellItem()" style="
+        background:#ea580c;color:white;border:none;border-radius:20px;
+        padding:10px 20px;font-weight:700;font-size:14px;cursor:pointer;
+        white-space:nowrap;flex-shrink:0">
+        ＋ Add
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div id="upsellLoading" style="text-align:center;padding:16px;color:#9b8b72;font-size:13px">
+    <div style="margin-bottom:6px">🤔</div>Checking what pairs well…
+  </div>
+
+  <!-- Action buttons -->
+  <div style="display:flex;gap:10px;margin-top:8px">
+    <button onclick="skipUpsell()" style="
+      flex:1;padding:14px;border:1.5px solid #ede8df;border-radius:12px;
+      background:white;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72">
+      Skip
+    </button>
+    <button onclick="confirmAfterUpsell()" style="
+      flex:2;padding:14px;background:#1a1207;border:none;border-radius:12px;
+      color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer">
+      Place Order →
+    </button>
+  </div>
+</div>
+
+<button class="ai-fab" id="aiFab" onclick="toggleAI()">🤖</button>
+
+<div class="ai-overlay" id="aiOverlay" onclick="closeAI()"></div>
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-header">
+    <span class="ai-title">Buddy 🍔</span>
+    <button class="ai-close" onclick="closeAI()">✕</button>
+  </div>
+  <div class="ai-messages" id="aiMessages"></div>
+  <div class="ai-input-row">
+    <input class="ai-input" id="aiInput" placeholder="Ask me anything…" autocomplete="off"
+      onkeydown="if(event.key==='Enter')sendAIMsg()">
+    <button class="ai-send" id="chatSendBtn" onclick="sendAIMsg()">Send</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SESSION_ID = (location.pathname.split('/order/')[1] || '').split('?')[0];
+const API_BASE   = '';
+
+let restaurant = null;
+let categories = [];
+let allItems   = [];
+let cart       = {};
+let aiHistory  = [];
+let saveTimer  = null;
+let sessionMode = 'delivery';
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+async function init() {
+  if (!SESSION_ID) {
+    document.getElementById('menuContent').innerHTML =
+      '<div class="empty-state"><div class="icon">🔗</div><p>Invalid link. Please scan the QR code again.</p></div>';
+    return;
+  }
+
+  try {
+    const [sessionRes, menuRes] = await Promise.all([
+      fetch(API_BASE + '/api/order-ui/session/' + SESSION_ID),
+      fetch(API_BASE + '/api/order-ui/menu/' + SESSION_ID)
+    ]);
+
+    if (!sessionRes.ok) throw new Error('Session not found');
+    const sessionData = await sessionRes.json();
+
+    if (['closed', 'paid', 'delivered'].includes(sessionData.status)) {
+      document.getElementById('menuContent').innerHTML =
+        '<div class="empty-state" style="padding:60px 24px">' +
+        '<div class="icon">🔗</div>' +
+        '<h3 style="font-family:Syne,sans-serif;font-size:18px;margin-bottom:8px">Link Expired</h3>' +
+        '<p>This order session has ended.</p>' +
+        '<p>Please <strong>scan the QR code again</strong> to start a new order.</p>' +
+        '</div>';
+      document.getElementById('catTabs').style.display = 'none';
+      document.getElementById('restName').textContent = sessionData.restaurant_name || 'Restaurant';
+      return;
+    }
+
+    const menuData = await menuRes.json();
+    restaurant = menuData.restaurant;
+    categories = menuData.categories;
+    allItems   = menuData.items;
+
+    document.getElementById('restName').textContent = restaurant.name;
+    document.title = 'Order — ' + restaurant.name;
+
+    sessionMode = sessionData.mode || 'delivery';
+    const modeEl = document.getElementById('modeBadge');
+    if (sessionMode === 'dine_in') {
+      modeEl.textContent = 'Table ' + (sessionData.table_number || '—');
+      modeEl.className = 'mode-badge dine';
+    } else if (sessionMode === 'takeaway') {
+      modeEl.textContent = 'Takeaway';
+      modeEl.className = 'mode-badge takeaway';
+    } else {
+      modeEl.textContent = 'Delivery';
+      modeEl.className = 'mode-badge';
+      document.getElementById('addressSection').style.display = 'block';
+      document.getElementById('placeOrderBtn').disabled = true;
+      document.getElementById('placeOrderBtn').style.opacity = '0.5';
+      loadPastAddresses();
+    }
+
+    // If already ordered (takeaway/delivery) — lock UI
+    if (sessionData.status === 'ordered' && sessionMode !== 'dine_in') {
+      const cartRes2  = await fetch(API_BASE + '/api/order-ui/cart/' + SESSION_ID);
+      const cartData2 = await cartRes2.json();
+      if (cartData2.items) {
+        cartData2.items.forEach(function(item) {
+          cart[item.menu_item_id] = { qty: item.quantity, notes: item.notes || '', name: item.name, price: item.price };
+        });
+      }
+      buildCategoryTabs();
+      renderMenu();
+      renderPopular();
+      updateCartUI();
+      lockUI('');
+      addAIMessage('bot', 'Your order has been placed! You will receive a WhatsApp confirmation shortly. 🎉');
+      return;
+    }
+
+    const cartRes = await fetch(API_BASE + '/api/order-ui/cart/' + SESSION_ID);
+    const cartData = await cartRes.json();
+    if (cartData.items) {
+      cartData.items.forEach(function(item) {
+        cart[item.menu_item_id] = { qty: item.quantity, notes: item.notes || '', name: item.name, price: item.price };
+      });
+    }
+
+    buildCategoryTabs();
+    renderMenu();
+    renderPopular();
+    updateCartUI();
+
+    addAIMessage('bot', 'Hi! I\'m Buddy 🍔 I can help you pick something great from ' + restaurant.name + '. What are you in the mood for?');
+
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+      renderMenu(e.target.value.toLowerCase().trim());
+    });
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('menuContent').innerHTML =
+      '<div class="empty-state"><div class="icon">😕</div><p>Could not load menu. Please try again.</p></div>';
+  }
+}
+
+// ══════════════════════════════════════════════
+// CATEGORY TABS
+// ══════════════════════════════════════════════
+function buildCategoryTabs() {
+  const tabs = document.getElementById('catTabs');
+  tabs.innerHTML = categories.map(function(cat, i) {
+    return '<div class="cat-tab' + (i === 0 ? ' active' : '') + '" data-cat="' + cat.id + '" onclick="selectCat(\'' + cat.id + '\',this)">' + cat.name + '</div>';
+  }).join('');
+  activeCat = categories[0] ? categories[0].id : null;
+}
+
+var activeCat = null;
+function selectCat(catId, el) {
+  document.querySelectorAll('.cat-tab').forEach(function(t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  activeCat = catId;
+  renderMenu();
+}
+
+// ══════════════════════════════════════════════
+// RENDER MENU
+// ══════════════════════════════════════════════
+function renderMenu(search) {
+  const container = document.getElementById('menuContent');
+  let items = allItems;
+  if (search) {
+    items = items.filter(function(i) { return i.name.toLowerCase().includes(search) || (i.description || '').toLowerCase().includes(search); });
+  } else if (activeCat) {
+    items = items.filter(function(i) { return i.category_id === activeCat; });
+  }
+
+  if (!items.length) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>No items found</p></div>';
+    return;
+  }
+
+  container.innerHTML = items.map(function(item) {
+    var inCart = cart[item.id];
+    var vegDot = item.is_veg !== null
+      ? '<span class="veg-dot ' + (item.is_veg ? 'veg' : 'nonveg') + '"></span>'
+      : '';
+    var imgHtml = item.image_url
+      ? '<img class="item-img" src="' + item.image_url + '" alt="' + item.name + '" onerror="this.style.display=\'none\'">'
+      : '';
+    var qtyHtml = inCart
+      ? '<div class="qty-control">' +
+        '<button class="qty-btn minus" onclick="changeQty(\'' + item.id + '\',\'' + item.name.replace(/'/g, "\\'") + '\',' + item.price + ',-1)">−</button>' +
+        '<span class="qty-num" id="qty_' + item.id + '">' + inCart.qty + '</span>' +
+        '<button class="qty-btn plus" onclick="changeQty(\'' + item.id + '\',\'' + item.name.replace(/'/g, "\\'") + '\',' + item.price + ',1)">+</button>' +
+        '</div>'
+      : '<button class="add-btn" id="addbtn_' + item.id + '" onclick="addItem(\'' + item.id + '\',\'' + item.name.replace(/'/g, "\\'") + '\',' + item.price + ')">Add</button>';
+
+    return '<div class="item-card' + (inCart ? ' in-cart' : '') + '" id="card_' + item.id + '">' +
+      '<div class="item-info">' +
+      '<div class="item-name">' + vegDot + item.name + '</div>' +
+      (item.description ? '<div class="item-desc">' + item.description + '</div>' : '') +
+      '<div class="item-footer">' +
+      '<span class="item-price">₹' + item.price + '</span>' +
+      qtyHtml +
+      '</div></div>' +
+      imgHtml +
+      '</div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// CART OPERATIONS
+// ══════════════════════════════════════════════
+function addItem(itemId, name, price) {
+  var newQty = cart[itemId] ? cart[itemId].qty + 1 : 1;
+  cart[itemId] = { qty: newQty, notes: cart[itemId] ? cart[itemId].notes : '', name: name, price: price };
+  renderMenu();
+  updateCartUI();
+  syncCartItem(itemId, newQty);
+  showToast('✅ ' + name + ' added!');
+}
+
+function changeQty(itemId, name, price, delta) {
+  var cur = cart[itemId] ? cart[itemId].qty : 0;
+  var newQty = cur + delta;
+  if (newQty <= 0) {
+    delete cart[itemId];
+  } else {
+    cart[itemId] = { qty: newQty, notes: cart[itemId] ? cart[itemId].notes : '', name: name, price: price };
+  }
+  var qEl = document.getElementById('qty_' + itemId);
+  if (qEl) qEl.textContent = newQty > 0 ? newQty : 0;
+  var card = document.getElementById('card_' + itemId);
+  if (card) {
+    if (newQty <= 0) card.classList.remove('in-cart');
+    else card.classList.add('in-cart');
+  }
+  updateCartUI();
+  syncCartItem(itemId, newQty < 0 ? 0 : newQty);
+}
+
+function updateCartUI() {
+  var items = Object.entries(cart);
+  var count = items.reduce(function(s, e) { return s + e[1].qty; }, 0);
+  var total = items.reduce(function(s, e) { return s + e[1].price * e[1].qty; }, 0);
+  var pill  = document.getElementById('cartPill');
+  document.getElementById('cartCount').textContent = count;
+  document.getElementById('cartPillText').textContent = count === 1 ? '1 item' : count + ' items';
+  document.getElementById('cartPillTotal').textContent = count > 0 ? ' — ₹' + total : '';
+  if (count > 0) pill.classList.add('visible'); else pill.classList.remove('visible');
+}
+
+function scheduleSave() {
+  // Disabled — all writes now go through syncCartItem per-item
+  // Kept for compatibility but does nothing
+}
+
+async function syncCartItem(itemId, qty) {
+  if (!SESSION_ID) return;
+  var item = cart[itemId];
+  try {
+    var res = await fetch(API_BASE + '/api/order-ui/cart-item/' + SESSION_ID, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        menu_item_id: itemId,
+        quantity: qty || 0,
+        name:  item ? item.name  : '',
+        price: item ? item.price : 0,
+        notes: item ? item.notes : null
+      })
+    });
+    if (res.status === 409) {
+      // Order already placed — lock cart UI
+      lockCartAfterOrder();
+    }
+  } catch(e) { console.error('syncCartItem failed', e); }
+}
+
+function lockCartAfterOrder() {
+  // Disable all cart interaction buttons
+  document.querySelectorAll('.qty-btn, .add-btn, .place-order-btn').forEach(function(btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'not-allowed';
+  });
+  var placeBtn = document.getElementById('placeOrderBtn');
+  if (placeBtn) {
+    placeBtn.textContent = '✅ Order Placed';
+    placeBtn.style.background = '#22c55e';
+    placeBtn.disabled = true;
+  }
+  showToast('✅ Order placed — cart is locked');
+  console.log('🔒 Cart locked — order already placed');
+}
+
+async function saveCart() {
+  // DISABLED — all writes go through syncCartItem per-item
+  // No-op kept to avoid errors from any stale callers
+}
+
+// ══════════════════════════════════════════════
+// ADDRESS
+// ══════════════════════════════════════════════
+function onAddressInput() {
+  var val = document.getElementById('deliveryAddress').value.trim();
+  var btn = document.getElementById('placeOrderBtn');
+  if (val.length > 5) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    document.getElementById('addressHint').style.display = 'none';
+    document.getElementById('deliveryAddress').style.borderColor = '#22c55e';
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+  }
+}
+
+function selectPastAddress(addr) {
+  document.getElementById('deliveryAddress').value = addr;
+  document.querySelectorAll('.past-addr-chip').forEach(function(el) {
+    el.classList.remove('selected');
+  });
+  event.target.classList.add('selected');
+  onAddressInput();
+}
+
+async function loadPastAddresses() {
+  try {
+    var res  = await fetch(API_BASE + '/api/order-ui/past-addresses/' + SESSION_ID);
+    var data = await res.json();
+    if (!data.addresses || !data.addresses.length) return;
+    var container = document.getElementById('pastAddresses');
+    container.innerHTML =
+      '<div style="font-size:11px;color:#888;margin-bottom:4px">Recent addresses:</div>' +
+      data.addresses.map(function(addr) {
+        return '<div class="past-addr-chip" onclick="selectPastAddress(\'' + addr.replace(/'/g, "\\'") + '\')">📍 ' + addr + '</div>';
+      }).join('') +
+      '<div style="font-size:11px;color:#888;margin-top:6px;margin-bottom:2px">Or enter new address:</div>';
+  } catch(e) { /* ignore */ }
+}
+
+// ══════════════════════════════════════════════
+// LOCK UI (takeaway/delivery after order placed)
+// ══════════════════════════════════════════════
+function lockUI(billNumber) {
+  document.querySelectorAll('.qty-btn, .add-btn').forEach(function(b) {
+    b.disabled = true;
+    b.style.opacity = '0.4';
+    b.style.pointerEvents = 'none';
+  });
+  var btn = document.getElementById('placeOrderBtn');
+  btn.disabled = true;
+  btn.style.background = '#22c55e';
+  btn.style.opacity = '1';
+  btn.textContent = billNumber ? '✅ Order Placed #' + billNumber : '✅ Order Placed';
+  var chatInput = document.getElementById('aiInput');
+  var sendBtn   = document.getElementById('chatSendBtn');
+  if (chatInput) { chatInput.disabled = true; chatInput.placeholder = 'Order placed — session closed'; }
+  if (sendBtn)   { sendBtn.disabled = true; sendBtn.style.opacity = '0.4'; }
+}
+
+// ══════════════════════════════════════════════
+// PLACE ORDER
+// ══════════════════════════════════════════════
+async function placeOrder(skipAddressCheck) {
+  if (Object.keys(cart).length === 0) { showToast('Add items first!'); return; }
+
+  var btn = document.getElementById('placeOrderBtn');
+  btn.classList.add('loading');
+  btn.textContent = 'Placing order…';
+
+  try {
+    var addrEl     = document.getElementById('deliveryAddress');
+    var address    = addrEl ? addrEl.value.trim() : '';
+    var isDelivery = document.getElementById('addressSection').style.display !== 'none';
+
+    if (isDelivery && address.length < 6 && !skipAddressCheck) {
+      document.getElementById('addressHint').style.display = 'block';
+      if (addrEl) { addrEl.focus(); addrEl.style.borderColor = '#e53e3e'; }
+      btn.textContent = 'Place Order →';
+      btn.classList.remove('loading');
+      return;
+    }
+
+    if (isDelivery && address) {
+      await fetch(API_BASE + '/api/order-ui/address/' + SESSION_ID, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: address })
+      });
+    }
+
+    // DB is always authoritative — never overwrite before placing
+    // All writes happen per-item via syncCartItem as customer interacts
+    window._aiManagedCart = false;
+
+    var res  = await fetch(API_BASE + '/api/order-ui/place-order/' + SESSION_ID, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    var data = await res.json();
+
+    if (res.status === 410) {
+      showToast('⚠️ Session expired — scan QR to reorder');
+      btn.textContent = 'Place Order →';
+      btn.classList.remove('loading');
+      return;
+    }
+
+    if (data.success) {
+      closeCart();
+      document.getElementById('cartPill').classList.remove('visible');
+      showToast('✅ Order placed! Bill #' + data.bill_number);
+      if (sessionMode !== 'dine_in') {
+        cart = {};
+        updateCartUI();
+        renderMenu();
+        lockUI(data.bill_number);
+        addAIMessage('bot', '🎉 Order placed! Bill #' + data.bill_number + ' — ₹' + data.total + '. WhatsApp confirmation coming shortly!');
+      } else {
+        cart = {};
+        updateCartUI();
+        renderMenu();
+        btn.textContent = 'Place Order →';
+        btn.classList.remove('loading');
+        addAIMessage('bot', '🎉 Order sent to kitchen! Want to order more or request the bill?');
+      }
+    } else {
+      throw new Error(data.error || 'Failed');
+    }
+  } catch (e) {
+    showToast('Failed to place order. Try again.');
+    btn.textContent = 'Place Order →';
+    btn.classList.remove('loading');
+  }
+}
+
+// ══════════════════════════════════════════════
+// CART DRAWER
+// ══════════════════════════════════════════════
+function openCart() {
+  document.getElementById('cartDrawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('aiFab').style.display = 'none';
+  renderCartDrawer();
+}
+function closeCart() {
+  document.getElementById('cartDrawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('aiFab').style.display = '';
+}
+function renderCartDrawer() {
+  var items = Object.entries(cart);
+  var total = items.reduce(function(s, e) { return s + e[1].price * e[1].qty; }, 0);
+  var container = document.getElementById('cartItems');
+  if (!items.length) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Cart is empty</div>';
+    document.getElementById('cartTotalRow').style.display = 'none';
+    return;
+  }
+  container.innerHTML = items.map(function(e) {
+    var id = e[0]; var item = e[1];
+    return '<div class="cart-item-row">' +
+      '<div>' +
+      '<div class="cart-item-name">' + item.name + '</div>' +
+      '<div class="cart-item-price">₹' + item.price + ' each</div>' +
+      '</div>' +
+      '<div class="cart-item-qty">' +
+      '<button class="qty-btn minus" onclick="changeQty(\'' + id + '\',\'' + item.name.replace(/'/g,"\\'" ) + '\',' + item.price + ',-1);renderCartDrawer()">−</button>' +
+      '<span>' + item.qty + '</span>' +
+      '<button class="qty-btn plus" onclick="changeQty(\'' + id + '\',\'' + item.name.replace(/'/g,"\\'") + '\',' + item.price + ',1);renderCartDrawer()">+</button>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+  document.getElementById('cartTotal').textContent = '₹' + total;
+  document.getElementById('cartTotalRow').style.display = 'flex';
+}
+
+// ══════════════════════════════════════════════
+// AI CHAT
+// ══════════════════════════════════════════════
+function toggleAI() { var p = document.getElementById('aiPanel'); if (p.classList.contains('open')) closeAI(); else openAI(); }
+function openAI()  { document.getElementById('aiPanel').classList.add('open'); document.getElementById('aiOverlay').classList.add('open'); document.getElementById('aiInput').focus(); }
+function closeAI() { document.getElementById('aiPanel').classList.remove('open'); document.getElementById('aiOverlay').classList.remove('open'); }
+
+function addAIMessage(role, text) {
+  var msgs = document.getElementById('aiMessages');
+  var div  = document.createElement('div');
+  div.className = 'ai-msg ' + role;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  aiHistory.push({ role: role === 'bot' ? 'assistant' : 'user', content: text });
+}
+function showTyping() {
+  var msgs = document.getElementById('aiMessages');
+  var div  = document.createElement('div');
+  div.className = 'ai-msg bot typing';
+  div.id = 'typingIndicator';
+  div.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function hideTyping() { var el = document.getElementById('typingIndicator'); if (el) el.remove(); }
+
+async function sendAIMsg() {
+  if (window._upsellOpen) return; // upsell modal is open — ignore chat
+  var input = document.getElementById('aiInput');
+  var text  = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addAIMessage('user', text);
+  showTyping();
+
+  // If AI is waiting for address
+  if (window._aiWantsToOrder) {
+    window._aiWantsToOrder = false;
+    hideTyping();
+    var addrEl = document.getElementById('deliveryAddress');
+    if (addrEl) addrEl.value = text;
+    onAddressInput();
+    // Save address to server first, then place order
+    await fetch(API_BASE + '/api/order-ui/address/' + SESSION_ID, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: text })
+    });
+    addAIMessage('bot', 'Got it! Placing your order now… ⏳');
+    await placeOrder(true);
+    return;
+  }
+
+  try {
+    var cartItems = Object.values(cart).map(function(i) { return i.name + ' x' + i.qty; }).join(', ');
+    var res = await fetch(API_BASE + '/api/order-ui/ai-chat/' + SESSION_ID, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message:  text,
+        history:  aiHistory.slice(-8),
+        cartInfo: cartItems || 'empty',
+        language: getLangInstruction()
+      })
+    });
+    var data = await res.json();
+    hideTyping();
+
+    if (data.reply) addAIMessage('bot', data.reply);
+
+    // @@SHOW_CART@@ — close chat, open cart, highlight Place Order button
+    if (data.action === 'show_cart') {
+      setTimeout(function() {
+        // Close AI chat panel properly (use classList so it can reopen)
+        closeAI();
+
+        // Open cart drawer
+        openCart();
+
+        // Scroll to and highlight Place Order button
+        setTimeout(function() {
+          var btn = document.getElementById('placeOrderBtn');
+          if (btn) {
+            btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            btn.style.background = '#16a34a';
+            btn.style.transform = 'scale(1.05)';
+            btn.textContent = '✅ Tap to Place Order!';
+            btn.style.boxShadow = '0 0 0 4px rgba(22,163,74,0.3)';
+            setTimeout(function() {
+              btn.style.background = '';
+              btn.style.transform = '';
+              btn.textContent = 'Place Order →';
+              btn.style.boxShadow = '';
+            }, 4000);
+          }
+          showToast('👆 Tap Place Order to confirm!');
+        }, 300);
+      }, 600);
+    }
+
+    // Refresh cart if items added/removed
+    if (data.itemsAdded && data.itemsAdded.length > 0) {
+      // AI wrote directly to DB — refresh browser cart from DB
+      window._aiManagedCart = true;
+      var cartRes  = await fetch(API_BASE + '/api/order-ui/cart/' + SESSION_ID);
+      var cartData = await cartRes.json();
+      if (cartData.items) {
+        cart = {};
+        cartData.items.forEach(function(item) {
+          cart[item.menu_item_id] = { qty: item.quantity, notes: item.notes || '', name: item.name, price: item.price };
+        });
+        // Show cart icon badge pulse to draw attention
+        var cartBtn = document.getElementById('cartBtn');
+        if (cartBtn) { cartBtn.style.animation = 'pulse 0.5s ease 2'; setTimeout(function(){ cartBtn.style.animation=''; }, 1200); }
+        // Flag stays true until user manually interacts with cart
+        updateCartUI();
+        renderMenu();
+        data.itemsAdded.forEach(function(item) { showToast('✅ ' + item.name + ' added!'); });
+      }
+    }
+
+    // AI wants address before placing
+    if (data.action === 'need_address') {
+      window._aiWantsToOrder = true;
+      document.getElementById('addressSection').style.display = 'block';
+      addAIMessage('bot', 'Please type your delivery address and I will place the order for you!');
+      openCart();
+      return;
+    }
+
+    // place_order action disabled — AI no longer places orders directly
+    // All orders go through Place Order button only
+
+  } catch (e) {
+    hideTyping();
+    addAIMessage('bot', 'Sorry, something went wrong. Please try again.');
+  }
+}
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+// ══════════════════════════════════════════════
+// POPULAR ITEMS
+// ══════════════════════════════════════════════
+function renderPopular() {
+  // Pick top 4 items based on none order history — use first items from each category as proxy
+  // In future this can be driven by actual order counts
+  var popular = allItems.filter(function(i) { return i.is_popular; });
+  if (!popular.length) {
+    // Fallback: first item from each category, max 4
+    var seen = {};
+    popular = allItems.filter(function(i) {
+      if (!seen[i.category_id] && popular.length < 4) { seen[i.category_id] = true; return true; }
+      return false;
+    }).slice(0, 4);
+  }
+  if (!popular.length) return;
+
+  var section = document.getElementById('popularSection');
+  var container = document.getElementById('popularItems');
+  section.style.display = 'block';
+
+  container.innerHTML = popular.map(function(item) {
+    var safeName = item.name.replace(/'/g, "\\'");
+    return '<div class="popular-chip" onclick="quickAddPopular(\''+item.id+'\',\''+safeName+'\','+item.price+')">' +
+      '<div class="popular-chip-name">' + item.name + '</div>' +
+      '<div class="popular-chip-price">&#8377;' + item.price + '</div>' +
+      '<div class="popular-chip-add">+ Add</div>' +
+      '</div>';
+  }).join('');
+}
+
+function quickAddPopular(id, name, price) {
+  if (cart[id]) {
+    cart[id].qty += 1;
+  } else {
+    cart[id] = { qty: 1, notes: '', name: name, price: price };
+  }
+  renderMenu();
+  updateCartUI();
+  syncCartItem(itemId, newQty);
+  showToast('✅ ' + name + ' added!');
+}
+
+// ══════════════════════════════════════════════
+// UPSELL
+// ══════════════════════════════════════════════
+var _upsellItem    = null;
+var _skipAddressCheck = false;
+
+async function startUpsell(skipAddr) {
+  _skipAddressCheck = skipAddr || false;
+
+  // Address validation first (for delivery)
+  var addrEl     = document.getElementById('deliveryAddress');
+  var address    = addrEl ? addrEl.value.trim() : '';
+  var isDelivery = document.getElementById('addressSection').style.display !== 'none';
+  if (isDelivery && address.length < 6 && !skipAddr) {
+    document.getElementById('addressHint').style.display = 'block';
+    if (addrEl) { addrEl.focus(); addrEl.style.borderColor = '#e53e3e'; }
+    return;
+  }
+
+  if (Object.keys(cart).length === 0) { showToast('Add items first!'); return; }
+
+  // Get cart item names for AI context
+  var cartNames = Object.values(cart).map(function(i) { return i.name; });
+  var allNames  = allItems.map(function(i) { return i.name + ' (₹' + i.price + ')'; }).join(', ');
+
+  // Show modal with loading state immediately
+  showUpsellModal('loading', null);
+
+  try {
+    var res  = await fetch(API_BASE + '/api/order-ui/upsell/' + SESSION_ID, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cartItems: cartNames })
+    });
+    var data = await res.json();
+
+    if (data.suggestion && data.itemId) {
+      _upsellItem = { id: data.itemId, name: data.suggestion, price: data.price };
+      showUpsellModal(data.message, _upsellItem);
+    } else {
+      // No good suggestion — go to confirmation
+      hideUpsellModal();
+      showConfirmModal(_skipAddressCheck);
+    }
+  } catch(e) {
+    hideUpsellModal();
+    await placeOrder(_skipAddressCheck);
+  }
+}
+
+function showUpsellModal(msg, item) {
+  // Show overlay + modal
+  document.getElementById('upsellOverlay').style.opacity = '1';
+  document.getElementById('upsellOverlay').style.pointerEvents = 'all';
+  document.getElementById('upsellModal').style.transform = 'translateX(-50%) translateY(0)';
+
+  // Block AI chat
+  window._upsellOpen = true;
+  var aiInput = document.getElementById('aiInput');
+  if (aiInput) aiInput.disabled = true;
+
+  if (item) {
+    // Show suggested item
+    document.getElementById('upsellMsg').textContent = msg;
+    document.getElementById('upsellLoading').style.display = 'none';
+    document.getElementById('upsellItemName').textContent  = item.name;
+    document.getElementById('upsellItemPrice').textContent = '₹' + item.price;
+    document.getElementById('upsellItem').style.display    = 'block';
+  } else if (msg === 'loading') {
+    // Loading state
+    document.getElementById('upsellMsg').textContent      = '';
+    document.getElementById('upsellLoading').style.display = 'block';
+    document.getElementById('upsellItem').style.display   = 'none';
+  } else {
+    // No suggestion — just confirm buttons
+    document.getElementById('upsellMsg').textContent       = msg || 'Ready to place your order?';
+    document.getElementById('upsellLoading').style.display = 'none';
+    document.getElementById('upsellItem').style.display    = 'none';
+  }
+}
+
+function hideUpsellModal() {
+  document.getElementById('upsellOverlay').style.opacity = '0';
+  document.getElementById('upsellOverlay').style.pointerEvents = 'none';
+  document.getElementById('upsellModal').style.transform = 'translateX(-50%) translateY(100%)';
+  _upsellItem = null;
+  // Re-enable AI chat
+  window._upsellOpen = false;
+  var aiInput = document.getElementById('aiInput');
+  if (aiInput) aiInput.disabled = false;
+}
+
+async function addUpsellItem() {
+  if (!_upsellItem) return;
+  var item = _upsellItem;
+  var newQty = cart[item.id] ? cart[item.id].qty + 1 : 1;
+
+  // Write to DB first
+  try {
+    await fetch(API_BASE + '/api/order-ui/cart-item/' + SESSION_ID, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ menu_item_id: item.id, quantity: newQty, name: item.name, price: item.price })
+    });
+  } catch(e) {
+    console.error('Upsell item save failed', e);
+  }
+
+  // Refresh browser cart from DB so cart drawer shows correct state
+  try {
+    var res  = await fetch(API_BASE + '/api/order-ui/cart/' + SESSION_ID);
+    var data = await res.json();
+    if (data.items) {
+      cart = {};
+      data.items.forEach(function(i) {
+        cart[i.menu_item_id] = { qty: i.quantity, notes: i.notes || '', name: i.name, price: i.price };
+      });
+    }
+  } catch(e) { console.error('Cart refresh failed', e); }
+
+  renderMenu();
+  updateCartUI();
+  showToast('✅ ' + item.name + ' added!');
+  hideUpsellModal();
+  showConfirmModal(_skipAddressCheck);
+}
+
+async function skipUpsell() {
+  hideUpsellModal();
+  showConfirmModal(_skipAddressCheck);
+}
+
+async function confirmAfterUpsell() {
+  hideUpsellModal();
+  showConfirmModal(_skipAddressCheck);
+}
+
+// ══════════════════════════════════════════════
+// NOTES
+// ══════════════════════════════════════════════
+var _notesItemId = null;
+
+function openNotes(itemId) {
+  _notesItemId = itemId;
+  var item = cart[itemId];
+  if (!item) return;
+  document.getElementById('notesItemName').textContent = item.name;
+  document.getElementById('notesTextarea').value = item.notes || '';
+  document.getElementById('notesModal').style.display = 'block';
+  setTimeout(function() { document.getElementById('notesTextarea').focus(); }, 300);
+}
+
+function closeNotes() {
+  document.getElementById('notesModal').style.display = 'none';
+  _notesItemId = null;
+}
+
+function addNoteHint(hint) {
+  var ta = document.getElementById('notesTextarea');
+  var cur = ta.value.trim();
+  ta.value = cur ? cur + ', ' + hint : hint;
+}
+
+function saveNotes() {
+  if (!_notesItemId || !cart[_notesItemId]) { closeNotes(); return; }
+  cart[_notesItemId].notes = document.getElementById('notesTextarea').value.trim();
+  updateCartUI();
+  syncCartItem(_notesItemId, cart[_notesItemId].qty);
+  closeNotes();
+  showToast('📝 Note saved!');
+}
+
+// ══════════════════════════════════════════════
+// ORDER CONFIRMATION
+// ══════════════════════════════════════════════
+var _confirmSkipAddr = false;
+
+function showConfirmModal(skipAddr) {
+  _confirmSkipAddr = skipAddr || false;
+  var items = Object.entries(cart);
+  if (!items.length) return;
+
+  // Build items list
+  var total = 0;
+  var html = items.map(function(e) {
+    var id = e[0], item = e[1];
+    total += item.price * item.qty;
+    var noteHtml = item.notes ? '<div class="confirm-item-note">📝 ' + item.notes + '</div>' : '';
+    return '<div class="confirm-item">' +
+      '<div class="confirm-item-name">' + item.name +
+        '<div style="font-size:12px;color:#9b8b72;font-weight:400">x' + item.qty + '</div>' +
+        noteHtml +
+      '</div>' +
+      '<div class="confirm-item-price">₹' + (item.price * item.qty) + '</div>' +
+    '</div>';
+  }).join('');
+
+  document.getElementById('confirmItems').innerHTML = html;
+  document.getElementById('confirmTotal').textContent = '₹' + total;
+
+  // Address
+  var addrEl = document.getElementById('deliveryAddress');
+  var addr = addrEl ? addrEl.value.trim() : '';
+  var addrBox = document.getElementById('confirmAddr');
+  if (addr) {
+    addrBox.style.display = 'block';
+    addrBox.innerHTML = '📍 Delivering to: <strong>' + addr + '</strong>';
+  } else if (sessionMode === 'dine_in') {
+    addrBox.style.display = 'block';
+    addrBox.innerHTML = '🍽️ Dine-in order';
+  } else if (sessionMode === 'takeaway') {
+    addrBox.style.display = 'block';
+    addrBox.innerHTML = '🏃 Takeaway — collect at counter';
+  } else {
+    addrBox.style.display = 'none';
+  }
+
+  document.getElementById('confirmModal').style.display = 'block';
+}
+
+function closeConfirm() {
+  document.getElementById('confirmModal').style.display = 'none';
+}
+
+async function closeConfirmOpenCart() {
+  closeConfirm();
+  // Refresh cart from DB before opening drawer (catches upsell items)
+  try {
+    var res  = await fetch(API_BASE + '/api/order-ui/cart/' + SESSION_ID);
+    var data = await res.json();
+    if (data.items) {
+      cart = {};
+      data.items.forEach(function(i) {
+        cart[i.menu_item_id] = { qty: i.quantity, notes: i.notes||'', name: i.name, price: i.price };
+      });
+      renderMenu();
+      updateCartUI();
+    }
+  } catch(e) {}
+  openCart();
+}
+
+async function confirmAndPlace() {
+  var btn = document.getElementById('confirmPlaceBtn');
+  btn.textContent = 'Placing…';
+  btn.disabled = true;
+  closeConfirm();
+  await placeOrder(_confirmSkipAddr);
+  btn.textContent = 'Place Order →';
+  btn.disabled = false;
+}
+
+// ══════════════════════════════════════════════
+// LANGUAGE
+// ══════════════════════════════════════════════
+var LANGUAGES = [
+  { code: 'en',    flag: '🇬🇧', name: 'English',    native: 'English'    },
+  { code: 'hi',    flag: '🇮🇳', name: 'Hindi',      native: 'हिन्दी'       },
+  { code: 'de',    flag: '🇩🇪', name: 'German',     native: 'Deutsch'    },
+  { code: 'ru',    flag: '🇷🇺', name: 'Russian',    native: 'Русский'    },
+  { code: 'fr',    flag: '🇫🇷', name: 'French',     native: 'Français'   },
+  { code: 'es',    flag: '🇪🇸', name: 'Spanish',    native: 'Español'    },
+  { code: 'ar',    flag: '🇸🇦', name: 'Arabic',     native: 'العربية'    },
+  { code: 'zh',    flag: '🇨🇳', name: 'Chinese',    native: '中文'        },
+  { code: 'ja',    flag: '🇯🇵', name: 'Japanese',   native: '日本語'      },
+  { code: 'ko',    flag: '🇰🇷', name: 'Korean',     native: '한국어'      },
+];
+
+var selectedLang = localStorage.getItem('buddy_lang') || 'en';
+
+function getLang() { return LANGUAGES.find(function(l) { return l.code === selectedLang; }) || LANGUAGES[0]; }
+
+function openLangDrawer() {
+  var grid = document.getElementById('langGrid');
+  grid.innerHTML = LANGUAGES.map(function(l) {
+    var sel = l.code === selectedLang ? ' selected' : '';
+    return '<button class="lang-option' + sel + '" onclick="selectLang(\'' + l.code + '\')">' +
+      '<span class="flag">' + l.flag + '</span>' +
+      '<span class="label"><span>' + l.name + '</span><span class="native">' + l.native + '</span></span>' +
+      '</button>';
+  }).join('');
+  document.getElementById('langDrawer').style.display = 'block';
+}
+
+function closeLangDrawer() {
+  document.getElementById('langDrawer').style.display = 'none';
+}
+
+function selectLang(code) {
+  selectedLang = code;
+  localStorage.setItem('buddy_lang', code);
+  var lang = getLang();
+  document.getElementById('langBtn').textContent = lang.flag + ' ' + lang.code.toUpperCase();
+  closeLangDrawer();
+  // Greet in new language
+  var greetings = {
+    en: 'Hi! How can I help you order today? 😊',
+    hi: 'नमस्ते! आज क्या खाना है? 😊',
+    de: 'Hallo! Was möchten Sie heute bestellen? 😊',
+    ru: 'Привет! Что вы хотите заказать? 😊',
+    fr: 'Bonjour! Que voulez-vous commander? 😊',
+    es: '¡Hola! ¿Qué desea ordenar hoy? 😊',
+    ar: 'مرحباً! ماذا تريد أن تطلب اليوم؟ 😊',
+    zh: '你好！今天想点什么？😊',
+    ja: 'こんにちは！何をご注文しますか？😊',
+    ko: '안녕하세요! 오늘 무엇을 주문하시겠어요? 😊',
+  };
+  // Clear chat and greet in selected language
+  var chat = document.getElementById('aiMessages');
+  if (chat) {
+    chat.innerHTML = '';
+    addAIMessage('bot', greetings[code] || greetings['en']);
+  }
+  showToast(lang.flag + ' Language changed to ' + lang.name);
+}
+
+function getLangInstruction() {
+  var langNames = {
+    en: 'English', hi: 'Hindi/Hinglish', de: 'German', ru: 'Russian',
+    fr: 'French', es: 'Spanish', ar: 'Arabic', zh: 'Chinese',
+    ja: 'Japanese', ko: 'Korean'
+  };
+  return langNames[selectedLang] || 'English';
+}
+
+// ══════════════════════════════════════════════
+// START
+// ══════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
+

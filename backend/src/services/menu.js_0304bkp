@@ -1,0 +1,329 @@
+const db = require('../database/db');
+
+// ─────────────────────────────────────────────
+// Fetch complete menu + restaurant config from DB
+// ─────────────────────────────────────────────
+async function getRestaurantData(restaurantId) {
+  const restaurant = await db.queryOne(
+    'SELECT * FROM restaurants WHERE id = $1 AND is_active = true',
+    [restaurantId]
+  );
+  if (!restaurant) throw new Error('Restaurant not found');
+
+  const categories = await db.queryAll(
+    'SELECT * FROM menu_categories WHERE restaurant_id = $1 AND is_active = true ORDER BY sort_order',
+    [restaurantId]
+  );
+
+  const items = await db.queryAll(
+    'SELECT * FROM menu_items WHERE restaurant_id = $1 AND is_available = true ORDER BY sort_order',
+    [restaurantId]
+  );
+
+  const blocked = await db.queryAll(
+    'SELECT item_name FROM blocked_items WHERE restaurant_id = $1',
+    [restaurantId]
+  );
+
+  return {
+    restaurant,
+    categories,
+    items,
+    blockedItems: blocked.map(b => b.item_name),
+  };
+}
+
+// ─────────────────────────────────────────────
+// Fetch active offers for restaurant
+// ─────────────────────────────────────────────
+async function getActiveOffers(restaurantId, sessionMode = 'all') {
+  const now     = new Date();
+  const nowTime = now.toTimeString().slice(0, 5); // "HH:MM"
+  const today   = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+  const offers = await db.queryAll(
+    `SELECT o.*, mi.name as free_item_name, mi.price as free_item_price
+     FROM offers o
+     LEFT JOIN menu_items mi ON mi.id = o.free_item_id
+     WHERE o.restaurant_id = $1
+       AND o.is_active = true
+       AND (o.valid_from IS NULL OR o.valid_from <= $2)
+       AND (o.valid_until IS NULL OR o.valid_until >= $2)
+     ORDER BY o.created_at DESC`,
+    [restaurantId, today]
+  );
+
+  const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const todayName = DAYS[now.getDay()];
+
+  // Map session mode to what valid_modes values match it
+  // e.g. dine_in_zomato session should see: 'all', 'dine_in', 'dine_in_zomato' offers
+  const modeMatches = {
+    delivery:       ['all', 'delivery'],
+    takeaway:       ['all', 'takeaway'],
+    dine_in:        ['all', 'dine_in'],
+    dine_in_zomato: ['all', 'dine_in', 'dine_in_zomato'],
+    dine_in_swiggy: ['all', 'dine_in', 'dine_in_swiggy'],
+  };
+  const allowedModes = modeMatches[sessionMode] || ['all'];
+
+  return offers.filter(offer => {
+    // Check mode restriction
+    const offerMode = offer.valid_modes || 'all';
+    if (!allowedModes.includes(offerMode)) return false;
+
+    // Check valid_days restriction
+    if (offer.valid_days && offer.valid_days !== 'all') {
+      if (offer.valid_days.toLowerCase() !== todayName) return false;
+    }
+    // Check happy hour time window
+    if (offer.offer_type === 'happy_hour') {
+      if (!offer.happy_hour_start || !offer.happy_hour_end) return false;
+      const start = offer.happy_hour_start.slice(0, 5);
+      const end   = offer.happy_hour_end.slice(0, 5);
+      return nowTime >= start && nowTime <= end;
+    }
+    return true;
+  });
+}
+
+// ─────────────────────────────────────────────
+// Format active offers for AI system prompt
+// ─────────────────────────────────────────────
+function formatOffersForAI(offers) {
+  if (!offers || offers.length === 0) return '';
+
+  let text = '\nACTIVE OFFERS & DISCOUNTS (mention these proactively to customers):\n';
+  for (const offer of offers) {
+    text += `  🎉 ${offer.title}: ${offer.description}\n`;
+    if (offer.offer_type === 'percent_off') {
+      text += `     → ${offer.discount_percent}% off will be auto-applied to the bill\n`;
+    }
+    if (offer.offer_type === 'happy_hour') {
+      const start = offer.happy_hour_start?.slice(0, 5);
+      const end   = offer.happy_hour_end?.slice(0, 5);
+      text += `     → ${offer.discount_percent}% off RIGHT NOW (Happy Hours: ${start} - ${end})\n`;
+    }
+    if (offer.offer_type === 'item_free') {
+      text += `     → FREE ${offer.free_item_name} on orders above ₹${offer.min_order_amount}\n`;
+    }
+  }
+  text += '\nIMPORTANT: If customer asks about offers/discounts, tell them about the above. Discounts are applied automatically at billing.\n';
+  return text;
+}
+
+// ─────────────────────────────────────────────
+// Get restaurant by slug (for QR code URLs)
+// ─────────────────────────────────────────────
+async function getRestaurantBySlug(slug) {
+  return db.queryOne(
+    'SELECT * FROM restaurants WHERE slug = $1 AND is_active = true',
+    [slug]
+  );
+}
+
+// ─────────────────────────────────────────────
+// Format menu into clean text for AI system prompt
+// ─────────────────────────────────────────────
+function formatMenuForAI(categories, items) {
+  const grouped = {};
+  for (const cat of categories) {
+    grouped[cat.id] = { name: cat.name, items: [] };
+  }
+  for (const item of items) {
+    if (grouped[item.category_id]) {
+      grouped[item.category_id].items.push(item);
+    }
+  }
+
+  let menuText = '';
+  for (const group of Object.values(grouped)) {
+    if (group.items.length === 0) continue;
+    menuText += `\n${group.name.toUpperCase()}:\n`;
+    for (const item of group.items) {
+      const veg      = item.is_veg ? '[VEG 🟢]' : '[NON-VEG 🔴]';
+      const spice    = item.spice_level && item.spice_level !== 'none'
+                         ? `[${item.spice_level.toUpperCase()} 🌶️]` : '';
+      const tags     = item.tags?.length ? `[${item.tags.join(', ')}]` : '';
+      const calories = item.calories ? `[${item.calories} kcal]` : '';
+      const allergens = item.allergens?.length
+                         ? `[Contains: ${item.allergens.join(', ')}]` : '';
+      const cuisine  = item.cuisine_type ? `[${item.cuisine_type}]` : '';
+
+      menuText += `  • ${item.name} — ₹${item.price} ${veg} ${spice} ${tags} ${cuisine} ${calories}\n`;
+      if (item.description)  menuText += `    ${item.description}\n`;
+      if (allergens)         menuText += `    ${allergens}\n`;
+      menuText += `    [ID: ${item.id}]\n`;
+    }
+  }
+  return menuText;
+}
+
+// ─────────────────────────────────────────────
+// Build the complete AI system prompt
+// ─────────────────────────────────────────────
+async function buildSystemPrompt(restaurant, categories, items, blockedItems, session) {
+  const menuText    = formatMenuForAI(categories, items);
+  const modeContext = getModeContext(session.mode, session.discount_pct, session.table_number);
+  const blocked     = blockedItems.length > 0
+    ? `\nITEMS WE DO NOT SERVE (say "not available" — never explain why):\n${blockedItems.map(b => `  • ${b}`).join('\n')}`
+    : '';
+
+  const currentOrder   = session ? await getSessionOrderStatus(session) : null;
+  const orderStatusCtx = currentOrder ? getOrderStatusContext(currentOrder) : '';
+
+  // Fetch and format active offers — filtered by session mode
+  const sessionMode   = session ? (session.platform ? `dine_in_${session.platform}` : session.mode) : 'all';
+  const activeOffers  = await getActiveOffers(restaurant.id, sessionMode);
+  const offersContext = formatOffersForAI(activeOffers);
+
+  return `You are ${restaurant.bot_name}, the AI waiter for ${restaurant.name}.
+You help customers browse the menu, take their order, and assist with any food-related questions.
+
+${modeContext}
+${orderStatusCtx}
+${offersContext}
+
+YOUR MENU — YOU CAN ONLY OFFER THESE ITEMS:
+${menuText}
+${blocked}
+
+TOOLS YOU CAN USE:
+- add_to_cart: Add an item to the customer's cart
+- remove_from_cart: Remove an item from cart
+- view_cart: Show what is currently in the cart
+- show_order_summary: Show order summary when customer asks
+
+STRICT RULES — NEVER BREAK THESE:
+1. ONLY take orders for items on the menu above
+2. If asked for something not on the menu, suggest the CLOSEST matching item FROM THE MENU
+3. If asked for a blocked item, just say "We don't serve that" and offer an alternative
+4. NEVER mention other restaurants or where to get unavailable items
+5. NEVER explain why an item is unavailable
+6. Always confirm item name and price before adding to cart
+7. Keep replies SHORT — this is a chat, not an essay. 2-3 sentences max.
+8. Always be warm, friendly, and helpful
+9. If customer asks anything unrelated to food/ordering, politely redirect back to the menu
+10. UPSELL maximum ONCE per conversation — if customer says no/nope/nahi, STOP suggesting extras
+⚠️  CRITICAL — YOU ARE CONVERSATION-ONLY. YOU DO NOT TOUCH THE CART.
+- You CANNOT add items to cart, remove items, or place orders
+- You CANNOT confirm, finalize, or process orders in any way
+- NEVER say "added to cart", "order confirmed", "order placed", "your order is ready"
+- Your ONLY job: help customer decide what to order (recommendations, descriptions, upsells)
+- When customer clearly wants to order something, signal it like this at the END of your reply:
+  @@ADD:ITEM_ID:QUANTITY:NOTES@@
+  Example: "Great choice! 🍔 @@ADD:abc-123:1:@@"
+  Example with note: "Sure! @@ADD:abc-123:1:extra spicy@@"
+  Example multiple: "Perfect combo! @@ADD:abc-123:1:@@ @@ADD:xyz-789:1:@@"
+- Use the exact item_id from the menu data provided
+- For quantity: use what customer asked for (default 1)
+- For notes: include special instructions if any, or leave empty
+- After the @@ADD:...:...:@@, write NOTHING MORE — the system handles the rest
+- If customer confirms a previous suggestion ("ha", "yes", "add kar"), emit @@ADD:...:...:@@ for that item
+- NEVER make up item IDs — only use IDs from the menu list provided to you
+11. MODIFIER WORDS ARE NOTES — NEVER add a new item for modifier words:
+    - "extra cheese", "cheese jyada", "cheese thoda zyada" → note on existing item, NOT a new Cheese Burger
+    - "no onion", "bina pyaz", "less spicy", "thoda kam" → note on existing item
+    - "k sath sauce", "with extra sauce" → note on existing item
+    - RULE: if customer says ITEM + modifier → @@ADD:item-id:qty:modifier-as-note@@
+    - WRONG: "Cheese Burger extra cheese" → @@ADD:cheese-burger-id:1:@@ @@ADD:cheese-slice-id:1:@@
+    - CORRECT: "Cheese Burger extra cheese" → @@ADD:cheese-burger-id:1:extra cheese@@
+    - ONLY add a separate item if customer EXPLICITLY says the item name as a new order
+12. SPECIAL INSTRUCTIONS — include in notes field:
+    - Example: "thoda spicy Russian Burger" → @@ADD:burger-id:1:thoda spicy@@
+    - Example: "Double Decker extra cheese k sath" → @@ADD:decker-id:1:extra cheese@@
+13. ASKING FOR SPECIAL INSTRUCTIONS — ask ONCE before signaling @@ADD:
+    - After customer names an item, ask: "Any special instructions? (e.g. extra spicy, no onions)"
+    - Wait for reply, then emit @@ADD:id:qty:their-note@@ or @@ADD:id:qty:@@ if no note
+
+HINGLISH / HINDI — treat as YES:
+"haan", "ha", "haa", "thik hai", "bilkul", "yes", "ok", "okay", "kar do", "chalega", "done", "confirm", "yep", "yup"
+
+HINGLISH / HINDI — treat as NO:
+"nahi", "nhi", "mat karo", "band karo", "remove", "hatao", "no", "cancel", "nope", "nothing"
+
+WHEN CUSTOMER CONFIRMS after "shall I add to cart?":
+→ Immediately use add_to_cart tool and confirm what was added.
+
+MULTILINGUAL SUPPORT — detect and reply in customer language automatically:
+- English, Hindi, Hinglish: default supported
+- Russian (Русский): reply in Cyrillic script naturally
+- German (Deutsch): use proper grammar and umlauts (ä, ö, ü)
+- Italian (Italiano): use proper accents and formal/informal tone
+- French (Français): use proper accents (é, à, ê)
+- Arabic (العربية): right-to-left, reply naturally in Arabic script
+- Menu item names stay as-is, prices always in ₹
+- If language unclear, default to English
+
+RESPONSE LANGUAGE: Always reply in the SAME language the customer writes in.`;
+}
+
+// ─────────────────────────────────────────────
+// Context based on order mode
+// ─────────────────────────────────────────────
+function getModeContext(mode, discountPct, tableNumber) {
+  switch (mode) {
+    case 'zomato_dine':
+    case 'swiggy_dine':
+      return `CURRENT SESSION: Dine-in at Table ${tableNumber || '?'}. Customer has a ${discountPct}% discount applied.`;
+    case 'direct_dine':
+      return `CURRENT SESSION: Direct dine-in at Table ${tableNumber || '?'}. No special discount.`;
+    case 'takeaway':
+      return `CURRENT SESSION: Takeaway order. Customer will pick up from counter.`;
+    case 'delivery':
+      return `CURRENT SESSION: Home delivery order. Customer will receive at their address.`;
+    default:
+      return `CURRENT SESSION: Customer is ordering.`;
+  }
+}
+
+// AI_TOOLS removed — AI is conversation-only, cart managed by worker code
+const AI_TOOLS = []; // kept for compatibility
+
+// ─────────────────────────────────────────────
+// Get current order status for session
+// ─────────────────────────────────────────────
+async function getSessionOrderStatus(session) {
+  const order = await db.queryOne(
+    `SELECT o.id, o.status FROM orders o
+     WHERE o.session_id = $1
+     ORDER BY o.created_at DESC LIMIT 1`,
+    [session.id]
+  );
+  return order;
+}
+
+// ─────────────────────────────────────────────
+// Build order status context for AI prompt
+// ─────────────────────────────────────────────
+function getOrderStatusContext(order) {
+  if (!order) return '';
+  switch (order.status) {
+    case 'confirmed':
+    case 'preparing':
+      return `\nCURRENT ORDER STATUS: ORDER IS BEING PREPARED 🍳
+- Cart modifications are NOT allowed now
+- If customer asks to change order: say "Your order is being prepared. Call us for urgent changes."`;
+    case 'out_for_delivery':
+      return `\nCURRENT ORDER STATUS: OUT FOR DELIVERY 🛵
+- Cart modifications are STRICTLY NOT ALLOWED`;
+    case 'completed':
+    case 'delivered':
+      return `\nCURRENT ORDER STATUS: ORDER DELIVERED ✅
+- If customer wants to order again, start fresh`;
+    default:
+      return '';
+  }
+}
+
+module.exports = {
+  getRestaurantData,
+  getRestaurantBySlug,
+  getActiveOffers,
+  buildSystemPrompt,
+  formatMenuForAI,
+  getSessionOrderStatus,
+  getOrderStatusContext,
+  AI_TOOLS,
+};
+

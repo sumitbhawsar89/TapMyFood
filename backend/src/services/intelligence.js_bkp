@@ -1,0 +1,272 @@
+// ══════════════════════════════════════════════════════════
+// OrderBuddy — Intelligence Layer
+// Real-time upsell + business analytics + proactive messaging
+// ══════════════════════════════════════════════════════════
+
+const db       = require('../database/db');
+const whatsapp = require('./whatsapp');
+
+// ──────────────────────────────────────────────────────────
+// REAL-TIME UPSELL ENGINE
+// Called after each item add — suggests smart combos
+// ──────────────────────────────────────────────────────────
+async function getUpsellSuggestion(session, cartItems, restaurantId) {
+  if (!cartItems || cartItems.length === 0) return null;
+
+  const itemNames = cartItems.map(i => i.name.toLowerCase());
+  const cartTotal = cartItems.reduce((s, i) => s + i.subtotal, 0);
+
+  // Rule 1: Drink pairing — has food but no drink
+  const hasDrink = itemNames.some(n =>
+    ['coffee', 'tea', 'juice', 'shake', 'lassi', 'cola', 'drink', 'water', 'soda'].some(d => n.includes(d))
+  );
+  const hasFood = itemNames.some(n =>
+    ['burger', 'pizza', 'sandwich', 'roll', 'wrap', 'rice', 'noodle', 'pasta'].some(d => n.includes(d))
+  );
+
+  if (hasFood && !hasDrink) {
+    const drinks = await db.queryAll(
+      `SELECT * FROM menu_items 
+       WHERE restaurant_id = $1 AND is_available = true AND price > 0
+         AND (LOWER(name) LIKE '%coffee%' OR LOWER(name) LIKE '%shake%' 
+              OR LOWER(name) LIKE '%juice%' OR LOWER(name) LIKE '%tea%'
+              OR LOWER(name) LIKE '%lassi%' OR LOWER(name) LIKE '%cola%')
+       ORDER BY RANDOM() LIMIT 1`,
+      [restaurantId]
+    );
+    if (drinks.length > 0) {
+      return { type: 'drink_pairing', item: drinks[0], message: `🥤 Pair it with *${drinks[0].name}* (₹${drinks[0].price})? Goes really well together!` };
+    }
+  }
+
+  // Rule 2: Alcohol + no snack
+  const hasAlcohol = itemNames.some(n =>
+    ['beer', 'wine', 'whiskey', 'rum', 'vodka', 'gin', 'alcohol'].some(a => n.includes(a))
+  );
+  const hasSnack = itemNames.some(n =>
+    ['peanut', 'chips', 'fries', 'nugget', 'snack', 'nachos'].some(s => n.includes(s))
+  );
+
+  if (hasAlcohol && !hasSnack) {
+    const snacks = await db.queryAll(
+      `SELECT * FROM menu_items 
+       WHERE restaurant_id = $1 AND is_available = true
+         AND (LOWER(name) LIKE '%peanut%' OR LOWER(name) LIKE '%chips%'
+              OR LOWER(name) LIKE '%fries%' OR LOWER(name) LIKE '%nachos%')
+       ORDER BY price ASC LIMIT 1`,
+      [restaurantId]
+    );
+    if (snacks.length > 0) {
+      return { type: 'snack_pairing', item: snacks[0], message: `🥜 *${snacks[0].name}* (₹${snacks[0].price}) goes perfectly with your drink! Add it?` };
+    }
+  }
+
+  // Rule 3: Near free delivery threshold
+  const rest = await db.queryOne('SELECT free_delivery_above FROM restaurants WHERE id = $1', [restaurantId]);
+  if (rest?.free_delivery_above > 0 && cartTotal < rest.free_delivery_above) {
+    const gap = rest.free_delivery_above - cartTotal;
+    if (gap > 0 && gap <= 80) {
+      // Suggest cheapest item that bridges the gap
+      const bridgeItem = await db.queryOne(
+        `SELECT * FROM menu_items 
+         WHERE restaurant_id = $1 AND is_available = true AND price >= $2 AND price <= $3
+         ORDER BY price ASC LIMIT 1`,
+        [restaurantId, gap, gap + 50]
+      );
+      if (bridgeItem) {
+        return {
+          type: 'free_delivery_nudge',
+          item: bridgeItem,
+          message: `🚚 Add *${bridgeItem.name}* (₹${bridgeItem.price}) and get *FREE delivery*! Just ₹${gap} away!`
+        };
+      }
+    }
+  }
+
+  // Rule 4: Bestseller not in cart
+  const bestseller = await db.queryOne(
+    `SELECT mi.*, COUNT(oi.id) AS order_count
+     FROM menu_items mi
+     JOIN order_items oi ON oi.menu_item_id = mi.id
+     WHERE mi.restaurant_id = $1 AND mi.is_available = true
+       AND mi.id NOT IN (SELECT menu_item_id FROM cart_items WHERE session_id = $2)
+     GROUP BY mi.id
+     ORDER BY order_count DESC LIMIT 1`,
+    [restaurantId, session.id]
+  );
+  if (bestseller && bestseller.order_count > 5) {
+    return {
+      type: 'bestseller',
+      item: bestseller,
+      message: `🔥 *${bestseller.name}* (₹${bestseller.price}) is our bestseller — want to add it?`
+    };
+  }
+
+  return null;
+}
+
+// ──────────────────────────────────────────────────────────
+// CUSTOMER INTELLIGENCE
+// Builds a profile for smart decisions
+// ──────────────────────────────────────────────────────────
+async function getCustomerProfile(customerPhone, restaurantId) {
+  const profile = await db.queryOne(
+    `SELECT
+       COUNT(DISTINCT s.id)                              AS visit_count,
+       COALESCE(AVG(b.grand_total), 0)                  AS avg_spend,
+       COALESCE(MAX(b.grand_total), 0)                  AS max_spend,
+       COALESCE(MIN(b.grand_total), 0)                  AS min_spend,
+       MAX(s.created_at)                                AS last_visit,
+       COUNT(DISTINCT DATE(s.created_at))               AS unique_days,
+       COALESCE(AVG(EXTRACT(HOUR FROM s.created_at)), 0) AS avg_order_hour,
+       COALESCE(SUM(b.discount_amount), 0)              AS total_discounts_used,
+       COALESCE(SUM(b.grand_total), 0)                  AS lifetime_value
+     FROM sessions s
+     JOIN orders o ON o.session_id = s.id
+     JOIN bills b ON b.order_id = o.id
+     WHERE s.customer_phone = $1
+       AND s.restaurant_id = $2
+       AND o.status NOT IN ('cancelled')`,
+    [customerPhone, restaurantId]
+  );
+
+  // Favorite items
+  const favorites = await db.queryAll(
+    `SELECT oi.name, oi.menu_item_id, COUNT(*) AS times_ordered
+     FROM sessions s
+     JOIN orders o ON o.session_id = s.id
+     JOIN order_items oi ON oi.order_id = o.id
+     WHERE s.customer_phone = $1 AND s.restaurant_id = $2
+     GROUP BY oi.name, oi.menu_item_id
+     ORDER BY times_ordered DESC LIMIT 3`,
+    [customerPhone, restaurantId]
+  );
+
+  // Discount dependency: >50% orders used a discount = price sensitive
+  const discountUsage = await db.queryOne(
+    `SELECT 
+       COUNT(*) AS total_orders,
+       COUNT(CASE WHEN b.discount_amount > 0 THEN 1 END) AS discounted_orders
+     FROM sessions s
+     JOIN orders o ON o.session_id = s.id
+     JOIN bills b ON b.order_id = o.id
+     WHERE s.customer_phone = $1 AND s.restaurant_id = $2`,
+    [customerPhone, restaurantId]
+  );
+
+  const discountDependency = discountUsage?.total_orders > 0
+    ? discountUsage.discounted_orders / discountUsage.total_orders
+    : 0;
+
+  return {
+    ...profile,
+    favorites,
+    discountDependency,
+    isNewCustomer:    (profile?.visit_count || 0) === 0,
+    isLoyal:          (profile?.visit_count || 0) >= 5,
+    isPriceSensitive: discountDependency > 0.5,
+    daysSinceLastVisit: profile?.last_visit
+      ? Math.floor((Date.now() - new Date(profile.last_visit)) / 86400000)
+      : null,
+  };
+}
+
+// ──────────────────────────────────────────────────────────
+// BUSINESS ANALYTICS (for dashboard + owner suggestions)
+// ──────────────────────────────────────────────────────────
+async function getMenuPerformance(restaurantId, days = 30) {
+  return db.queryAll(
+    `SELECT
+       mi.id, mi.name, mi.price, mi.cost_price,
+       COUNT(oi.id)                                              AS total_ordered,
+       SUM(oi.quantity)                                          AS units_sold,
+       SUM(oi.subtotal)                                          AS total_revenue,
+       COALESCE(SUM(oi.subtotal) - SUM(mi.cost_price * oi.quantity), 0) AS gross_profit,
+       COUNT(DISTINCT s.customer_phone)                          AS unique_customers,
+       ROUND(COUNT(oi.id)::numeric / NULLIF($2, 0), 2)          AS orders_per_day
+     FROM menu_items mi
+     LEFT JOIN order_items oi ON oi.menu_item_id = mi.id
+     LEFT JOIN orders o ON o.id = oi.order_id
+     LEFT JOIN sessions s ON s.id = o.session_id
+     WHERE mi.restaurant_id = $1
+       AND (o.created_at IS NULL OR o.created_at > NOW() - INTERVAL '1 day' * $2)
+       AND (o.status IS NULL OR o.status NOT IN ('cancelled'))
+     GROUP BY mi.id, mi.name, mi.price, mi.cost_price
+     ORDER BY total_ordered DESC NULLS LAST`,
+    [restaurantId, days]
+  );
+}
+
+async function getTimeSlotPerformance(restaurantId) {
+  return db.queryAll(
+    `SELECT
+       EXTRACT(HOUR FROM o.created_at AT TIME ZONE 'Asia/Kolkata') AS hour,
+       COUNT(o.id)                    AS order_count,
+       COALESCE(AVG(b.grand_total),0) AS avg_bill,
+       COALESCE(SUM(b.grand_total),0) AS total_revenue
+     FROM orders o
+     JOIN sessions s ON s.id = o.session_id
+     JOIN bills b ON b.order_id = o.id
+     WHERE s.restaurant_id = $1
+       AND o.status NOT IN ('cancelled')
+       AND o.created_at > NOW() - INTERVAL '30 days'
+     GROUP BY hour ORDER BY hour`,
+    [restaurantId]
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// PROACTIVE MESSAGING
+// Send WhatsApp to dormant customers at optimal time
+// ──────────────────────────────────────────────────────────
+async function sendReengagementMessages(restaurantId) {
+  // Find customers dormant 7-30 days
+  const dormant = await db.queryAll(
+    `SELECT DISTINCT s.customer_phone,
+       MAX(s.created_at) AS last_visit,
+       COUNT(DISTINCT s.id) AS total_visits
+     FROM sessions s
+     JOIN orders o ON o.session_id = s.id
+     WHERE s.restaurant_id = $1
+       AND o.status NOT IN ('cancelled')
+     GROUP BY s.customer_phone
+     HAVING MAX(s.created_at) BETWEEN NOW() - INTERVAL '30 days' AND NOW() - INTERVAL '7 days'
+     LIMIT 50`,
+    [restaurantId]
+  );
+
+  const rest = await db.queryOne('SELECT name FROM restaurants WHERE id = $1', [restaurantId]);
+  let sent = 0;
+
+  for (const customer of dormant) {
+    const profile = await getCustomerProfile(customer.customer_phone, restaurantId);
+    const favItem  = profile.favorites?.[0]?.name;
+    let msg;
+
+    if (favItem) {
+      msg = `👋 Hey! Missing you at *${rest.name}*.\n\n` +
+            `Your favourite *${favItem}* is waiting! 😋\n\n` +
+            `Reply *menu* to order now and we'll deliver fresh to you! 🛵`;
+    } else {
+      msg = `👋 Hey! It's been a while since your last order at *${rest.name}*.\n\n` +
+            `We have new items and offers waiting for you! 🎉\n\nReply *menu* to order now!`;
+    }
+
+    await whatsapp.sendMessage(customer.customer_phone, msg);
+    sent++;
+
+    // Rate limit: 1 per second
+    await new Promise(r => setTimeout(r, 1000));
+  }
+
+  return { sent, total: dormant.length };
+}
+
+module.exports = {
+  getUpsellSuggestion,
+  getCustomerProfile,
+  getMenuPerformance,
+  getTimeSlotPerformance,
+  sendReengagementMessages,
+};
+

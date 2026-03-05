@@ -1,0 +1,2014 @@
+require('dotenv').config();
+const { Worker } = require('bullmq');
+const db          = require('../database/db');
+const aiSvc       = require('../services/ai');
+const cartSvc     = require('../services/cart');
+const billSvc     = require('../services/billing');
+const whatsapp    = require('../services/whatsapp');
+const { redisConnection } = require('./setup');
+const deliverySvc   = require('../services/delivery');
+const flowSvc       = require('../services/flow');
+const intelligence  = require('../services/intelligence');
+const menuNav       = require('../services/menu_nav');
+
+// Util: safe button title + dedup (mirrors menu_nav logic)
+function makeUniqueButtons(buttons) {
+  const seen = new Set();
+  return buttons.map((btn, idx) => {
+    const stripped = btn.title.replace(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{26FF}]/gu, '').replace(/\s+/g, ' ').trim();
+    let title = stripped.length > 20 ? stripped.substring(0, 19) + '\u2026' : stripped;
+    if (seen.has(title)) title = (idx + 1) + ' ' + title.substring(0, 18);
+    seen.add(title);
+    return { id: btn.id, title };
+  });
+}
+
+console.log('🚀 Worker started — waiting for messages...');
+
+const messageWorker = new Worker('whatsapp-messages', async (job) => {
+
+  const { from, message, restaurantId, isButtonReply, buttonId, timestamp } = job.data;
+  console.log(`📨 Processing from ${from}: "${message}" ${buttonId ? `[button: ${buttonId}]` : ''}`);
+
+  // ── 1. Find or create session ──
+  let session = await db.queryOne(
+    `SELECT * FROM sessions
+     WHERE customer_phone = $1
+       AND restaurant_id  = $2
+       AND status NOT IN ('closed', 'paid', 'delivered')
+       AND (
+         -- Delivery/takeaway: exclude ordered (meal done)
+         (mode NOT IN ('dine_in') AND status != 'ordered')
+         OR
+         -- Dine-in: keep session alive through all rounds until bill requested
+         (mode = 'dine_in' AND status != 'closed')
+       )
+       AND created_at > NOW() - INTERVAL '8 hours'
+     ORDER BY created_at DESC LIMIT 1`,
+    [from, restaurantId]
+  );
+
+  // ── Handle delivery boy commands (button tap OR typed) ──
+  // buttonId comes from interactive button tap: "CLAIM-MDB-023"
+  // message text fallback for manual typing
+  const claimSource = (buttonId || message || '').toUpperCase().trim();
+  if (claimSource.startsWith('CLAIM-')) {
+    const billNumber = claimSource.substring(6).trim();
+    await deliverySvc.handleClaim(from, billNumber, restaurantId);
+    return;
+  }
+  if (claimSource.startsWith('DELIVERED-')) {
+    const billNumber = claimSource.substring(10).trim();
+    await deliverySvc.handleDelivered(from, billNumber, restaurantId);
+    return;
+  }
+
+  // ── Check restaurant open/close hours ──
+  if (!['TAKEAWAY','TABLE'].some(k => message.toUpperCase().startsWith(k))) {
+    const rest = await db.queryOne('SELECT * FROM restaurants WHERE id = $1', [restaurantId]);
+    if (rest && rest.open_time && rest.close_time) {
+      const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const [openH, openM]  = rest.open_time.split(':').map(Number);
+      const [closeH, closeM] = rest.close_time.split(':').map(Number);
+      const nowMins   = now.getHours() * 60 + now.getMinutes();
+      const openMins  = openH * 60 + openM;
+      const closeMins = closeH * 60 + closeM;
+      const isClosed  = nowMins < openMins || nowMins >= closeMins;
+
+      if (isClosed && !session) {
+        // Only block NEW sessions — don't block existing active sessions
+        const openStr  = rest.open_time.replace(':', ':').replace(/^(\d):/, '0$1:');
+        const closeStr = rest.close_time.replace(':', ':').replace(/^(\d):/, '0$1:');
+        await whatsapp.sendMessage(from,
+          `🕐 *We're currently closed!*\n\n` +
+          `${rest.name} is open from *${openStr}* to *${closeStr}* (IST).\n\n` +
+          `Please message us during opening hours. We'd love to serve you! 🙏`
+        );
+        return;
+      }
+    }
+  }
+
+  let isNewSession = false;
+  if (!session) {
+
+    // ── Auto-detect mode from QR scan keyword ──
+    // Takeaway QR:          "TAKEAWAY"
+    // Direct dine-in QR:    "TABLE-12"
+    // Swiggy dine-in QR:    "SWIGGY-TABLE-12"
+    // Zomato dine-in QR:    "ZOMATO-TABLE-5"
+    // Direct message/typo:  anything else → delivery session (person reached us on WhatsApp directly)
+    const firstMsg = message.trim().toUpperCase();
+    const isQrKeyword = firstMsg === 'TAKEAWAY' ||
+      firstMsg.startsWith('TABLE-') ||
+      firstMsg.startsWith('SWIGGY-TABLE-') ||
+      firstMsg.startsWith('ZOMATO-TABLE-');
+    const isDirectMessage = !isQrKeyword; // typed message, not QR scan
+    let detectedMode      = 'delivery';
+    let detectedTableNo   = null;
+    let detectedPlatform  = null;  // 'swiggy' | 'zomato' | null
+    let detectedDiscount  = 0;
+
+    if (firstMsg === 'TAKEAWAY') {
+      detectedMode = 'takeaway';
+
+    } else if (firstMsg.startsWith('SWIGGY-TABLE-')) {
+      detectedMode     = 'dine_in';
+      detectedPlatform = 'swiggy';
+      detectedTableNo  = firstMsg.replace('SWIGGY-TABLE-', '').trim();
+
+    } else if (firstMsg.startsWith('ZOMATO-TABLE-')) {
+      detectedMode     = 'dine_in';
+      detectedPlatform = 'zomato';
+      detectedTableNo  = firstMsg.replace('ZOMATO-TABLE-', '').trim();
+
+    } else if (firstMsg.startsWith('TABLE-')) {
+      detectedMode     = 'dine_in';
+      detectedPlatform = null;  // direct, no platform discount
+      detectedTableNo  = firstMsg.replace('TABLE-', '').trim();
+    }
+
+    // Fetch platform discount from restaurant settings
+    if (detectedPlatform) {
+      const rest = await db.queryOne(
+        'SELECT swiggy_discount, zomato_discount, swiggy_active, zomato_active FROM restaurants WHERE id = $1',
+        [restaurantId]
+      );
+      if (detectedPlatform === 'swiggy' && rest.swiggy_active) {
+        detectedDiscount = rest.swiggy_discount || 0;
+      } else if (detectedPlatform === 'zomato' && rest.zomato_active) {
+        detectedDiscount = rest.zomato_discount || 0;
+      }
+    }
+
+    session = await db.queryOne(
+      `INSERT INTO sessions
+         (restaurant_id, customer_phone, mode, table_number, platform, discount_pct, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'active') RETURNING *`,
+      [restaurantId, from, detectedMode, detectedTableNo, detectedPlatform, detectedDiscount]
+    );
+    isNewSession = true;
+    console.log(`🆕 New session [${detectedMode}${detectedTableNo ? ' T-'+detectedTableNo : ''}${detectedPlatform ? ' via '+detectedPlatform : ''}${detectedDiscount ? ' '+detectedDiscount+'% off' : ''}] for ${from}`);
+  } else {
+    console.log(`♻️ Reusing session [${session.status}] for ${from}`);
+  }
+
+  // ── 2. Deduplicate ──
+  if (timestamp) {
+    if (session.last_message_ts === String(timestamp)) {
+      console.log(`⏭️ Duplicate message skipped: ${timestamp}`);
+      return;
+    }
+    await db.query(
+      'UPDATE sessions SET last_message_ts = $1, updated_at = NOW() WHERE id = $2',
+      [String(timestamp), session.id]
+    );
+  }
+
+  const msg = message.toLowerCase().trim();
+
+  // ── 2b. Check if customer is asking about a recent order status ──
+  // Handles post-order WhatsApp messages without creating new sessions
+  const STATUS_KEYWORDS = ['order', 'status', 'kahan', 'kab', 'ayega', 'deliver',
+    'kitna time', 'kitni der', 'track', 'mera order', 'my order', 'order kahan'];
+  const isStatusQuery = STATUS_KEYWORDS.some(kw => msg.includes(kw));
+
+  if (isStatusQuery) {
+    // Look for recent completed order from this phone (last 3 hours)
+    const recentOrder = await db.queryOne(
+      `SELECT o.id, o.status, o.created_at,
+              b.bill_number, b.grand_total,
+              k.status AS kot_status, k.kot_type,
+              s.mode, s.delivery_address, s.table_number
+       FROM orders o
+       JOIN sessions s   ON s.id = o.session_id
+       JOIN bills b      ON b.order_id = o.id
+       LEFT JOIN kots k  ON k.order_id = o.id AND k.kot_type = 'kitchen'
+       WHERE s.customer_phone = $1
+         AND s.restaurant_id  = $2
+         AND o.created_at > NOW() - INTERVAL '3 hours'
+       ORDER BY o.created_at DESC LIMIT 1`,
+      [from, restaurantId]
+    );
+
+    if (recentOrder) {
+      const statusMap = {
+        new:     '🟡 Order received — kitchen will start soon (15-20 mins)',
+        cooking: '🔥 Being prepared in kitchen (10-15 mins more)',
+        ready:   recentOrder.mode === 'delivery'
+                   ? '🛵 Out for delivery — almost there! (5-10 mins)'
+                   : '✅ Ready for pickup at counter!',
+        done:    '✅ Delivered! Hope you enjoyed it 😊'
+      };
+      const kotStatus = recentOrder.kot_status || 'new';
+      const statusMsg = statusMap[kotStatus] || 'Order is being processed';
+
+      const reply = `*Order Status — Bill #${recentOrder.bill_number}*
+
+` +
+        `${statusMsg}
+
+` +
+        `💰 Total: ₹${recentOrder.grand_total}
+` +
+        (recentOrder.mode === 'delivery' ? `📍 Delivering to: ${recentOrder.delivery_address}
+` : '') +
+        `
+_Reply with your order to place a new one!_`;
+
+      await whatsapp.sendMessage(from, reply);
+      return;
+    }
+  }
+
+  // ── 2c. Handle STOP opt-out ──
+  if (msg === 'stop' || msg === 'unsubscribe' || msg === 'stop messages') {
+    await db.query(
+      `INSERT INTO opt_outs (restaurant_id, phone)
+       VALUES ($1, $2)
+       ON CONFLICT (restaurant_id, phone) DO NOTHING`,
+      [restaurantId, from]
+    );
+    await whatsapp.sendMessage(from,
+      `You've been unsubscribed from promotional messages. ` +
+      `You'll still receive order confirmations and updates. ` +
+      `Reply START to re-subscribe anytime. 🙏`
+    );
+    return;
+  }
+
+  // Handle START re-subscribe
+  if (msg === 'start' || msg === 'subscribe') {
+    await db.query(
+      `DELETE FROM opt_outs WHERE restaurant_id = $1 AND phone = $2`,
+      [restaurantId, from]
+    );
+    await whatsapp.sendMessage(from,
+      `You're back! You'll now receive offers and updates from us. 🎉`
+    );
+    return;
+  }
+
+  // ── 3. Check if message is from restaurant owner ──
+  const restaurant = await db.queryOne(
+    'SELECT * FROM restaurants WHERE id = $1', [restaurantId]
+  );
+  if (restaurant && restaurant.owner_phone === from) {
+    // Owner commands must start with ! to avoid conflict with customer messages
+    // e.g. !OFFER LIST, !STATS, !HELP
+    if (message.startsWith('!')) {
+      await handleOwnerCommand(from, message.substring(1).trim(), restaurant);
+      return;
+    }
+  }
+
+
+  // ── AWAITING NOTE — check FIRST before any resolver ──
+  // Re-fetch session to get latest pending_action (avoids stale data)
+  if (!buttonId) {
+    const freshSession = await db.queryOne('SELECT pending_action FROM sessions WHERE id = $1', [session.id]);
+    const _pendingAction = freshSession?.pending_action || null;
+    if (_pendingAction?.type === 'awaiting_note') {
+      const itemId   = _pendingAction.item_id;
+      const noteText = message.trim();
+      const menuItem = await db.queryOne(
+        'SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2',
+        [itemId, restaurantId]
+      );
+      if (menuItem) {
+        await cartSvc.addToCart(session.id, restaurantId, itemId, 1, noteText);
+        await db.query('UPDATE sessions SET pending_action = NULL WHERE id = $1', [session.id]);
+        const cart = await cartSvc.getCart(session.id);
+        await whatsapp.sendMessage(from,
+          `✅ *${menuItem.name}* added!\n📝 *Special:* _${noteText}_`
+        );
+        await new Promise(r => setTimeout(r, 400));
+        await flowSvc.setState(session.id, flowSvc.STATES.CART_ACTIVE);
+        await whatsapp.sendInteractiveButtons(from,
+          `🛒 Cart: ${cart.items.length} item(s) — ₹${cart.subtotal}`,
+          [
+            { id: 'add_more',      title: '➕ Add More'   },
+            { id: 'confirm_order', title: '✅ Place Order' },
+            { id: 'view_cart',     title: '🛒 View Cart'  },
+          ]
+        );
+      } else {
+        await whatsapp.sendMessage(from, 'Sorry, could not find that item. Please try again.');
+      }
+      return;
+    }
+  }
+
+  // ── MENU NUMBER / NAME RESOLVER ──
+  // Runs before guards so typing works while viewing a category or category list
+  if (!buttonId) {
+    const isViewingCategory = menuNav.getMenuNumberMap(session.id) !== null;
+    const isViewingCatList  = menuNav.getCategoryNumberMap(session.id) !== null;
+
+    // ── Step 0: Customer typed a number/name from the CATEGORY LIST screen ──
+    if (isViewingCatList && !isViewingCategory) {
+      const matchedCat = await menuNav.resolveCategoryNumber(message, session);
+      if (matchedCat) {
+        console.log(`📂 Cat number/name: "${message}" → ${matchedCat.name}`);
+        await menuNav.sendCategoryItems(from, restaurantId, matchedCat.id, session.id);
+        return;
+      }
+    }
+
+    // Try item number (customer typed "1", "2" from item list)
+    const menuItem = await menuNav.resolveMenuNumber(message, session);
+    if (menuItem) {
+      const buttons = makeUniqueButtons([
+        { id: `quickadd_${menuItem.id}`, title: 'Add to Cart'   },
+        { id: `addnote_${menuItem.id}`,  title: 'Add with Note' },
+        { id: 'show_menu',               title: 'Back to Menu'  },
+      ]);
+      await whatsapp.sendInteractiveButtons(from,
+        `*${menuItem.name}* — Rs.${menuItem.price}\n\nAny special instructions?`,
+        buttons.slice(0, 3)
+      );
+      return;
+    }
+
+    // Fuzzy category match — ONLY when customer is NOT already viewing a category
+    // Prevents "Cheesy nuggets" from matching a category named "Cheesy..."
+    if (!isViewingCategory) {
+      const matchedCat = await menuNav.resolveCategoryName(message, restaurantId);
+      if (matchedCat) {
+        console.log(`🗂️ Category match: "${message}" → ${matchedCat.name}`);
+        await menuNav.sendCategoryItems(from, restaurantId, matchedCat.id, session.id);
+        return;
+      }
+    }
+  }
+
+  // ── STATE MACHINE GUARDS — push customer to correct step ──
+  const isLocation = message.startsWith('LOCATION:');
+
+  // If customer is actively viewing a category (has number map in cache),
+  // skip the browsing guard — they're trying to order by typing item name
+  const _isViewingItemList = !buttonId && menuNav.getMenuNumberMap(session.id);
+  const _isViewingCatList  = !buttonId && menuNav.getCategoryNumberMap(session.id);
+  if (!isNewSession && !_isViewingItemList && !_isViewingCatList) {
+    // Only block noise when customer hasn't opened any menu screen yet
+    if (await flowSvc.guardBrowsing(session, from, message, buttonId, restaurantId)) return;
+  }
+
+  // Block off-flow text when cart is active (skip for new sessions)
+  if (!isNewSession && await flowSvc.guardCartActive(session, from, message, buttonId)) return;
+
+  // Block nonsense when awaiting address
+  if (await flowSvc.guardAwaitingAddress(session, from, message, buttonId, isLocation)) return;
+
+  // Block off-topic when confirming order
+  if (await flowSvc.guardAwaitingConfirmation(session, from, message, buttonId)) return;
+
+  // Nudge off-topic text during browsing back to buttons
+  if (!isNewSession && await flowSvc.guardBrowsing(session, from, message, buttonId)) return;
+
+  // catpage_ nav removed — all categories now sent as burst
+
+  // ── Item page navigation: itempage_CATEGORYID_N ──
+  if (buttonId && buttonId.startsWith('itempage_')) {
+    // format: itempage_<uuid>_<pagenum>
+    // UUID contains hyphens, page is last segment after final underscore
+    const lastUnderscore = buttonId.lastIndexOf('_');
+    const pg    = parseInt(buttonId.substring(lastUnderscore + 1)) || 0;
+    const catId = buttonId.substring('itempage_'.length, lastUnderscore);
+    await menuNav.sendCategoryItems(from, restaurantId, catId, pg);
+    return;
+  }
+
+  // ── Handle category tap → show numbered item list ──
+  if (buttonId && buttonId.startsWith('cat_')) {
+    const catId = buttonId.replace('cat_', '');
+    await menuNav.sendCategoryItems(from, restaurantId, catId, session.id);
+    return;
+  }
+
+  // ── Handle category pagination ──
+  if (buttonId && buttonId.startsWith('cat_more_')) {
+    // format: cat_more_CATEGORYID_OFFSET
+    const parts  = buttonId.split('_');
+    const offset = parseInt(parts[parts.length - 1]);
+    const catId  = parts.slice(2, parts.length - 1).join('_');
+    await menuNav.sendCategoryItemsPage(from, restaurantId, catId, offset);
+    return;
+  }
+
+  // ── Handle item tap from list — add to cart directly ──
+  if (buttonId && buttonId.startsWith('order_')) {
+    const itemId  = buttonId.replace('order_', '');
+    const menuItem = await db.queryOne(
+      'SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2 AND is_available = true',
+      [itemId, restaurantId]
+    );
+    if (!menuItem) {
+      await whatsapp.sendMessage(from, 'Sorry, that item is not available right now.');
+      return;
+    }
+    // Ask for special instructions first
+    await whatsapp.sendInteractiveButtons(from,
+      `*${menuItem.name}* (₹${menuItem.price})
+
+Any special instructions? (e.g. extra spicy, no onions)`,
+      [
+        { id: `quickadd_${itemId}`,       title: '✅ Add as-is'       },
+        { id: `addnote_${itemId}`,         title: '📝 Add with note'   },
+        { id: 'show_menu',                 title: '⬅️ Back to Menu'    },
+      ]
+    );
+    // Store pending item in session
+    await db.query(
+      "UPDATE sessions SET updated_at = NOW() WHERE id = $2", -- pending_item in cache
+      [JSON.stringify({ id: itemId, name: menuItem.name, price: menuItem.price }), session.id]
+    );
+    return;
+  }
+
+  // ── Quick add (no note) ──
+  if (buttonId && buttonId.startsWith('quickadd_')) {
+    const itemId = buttonId.replace('quickadd_', '');
+    const menuItem = await db.queryOne(
+      'SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2',
+      [itemId, restaurantId]
+    );
+    if (menuItem) {
+      await cartSvc.addToCart(session.id, restaurantId, itemId, 1, null);
+      const cart = await cartSvc.getCart(session.id);
+      const priceLabel = menuItem.price === 0 ? 'FREE 🎁' : `₹${menuItem.price}`;
+      await whatsapp.sendMessage(from, `✅ *${menuItem.name}* x1 — ${priceLabel}`);
+      await new Promise(r => setTimeout(r, 400));
+      await flowSvc.setState(session.id, flowSvc.STATES.CART_ACTIVE);
+      // Show qty +/- buttons for the just-added item
+      await whatsapp.sendInteractiveButtons(from,
+        `🛒 *${menuItem.name}* added!\nCart: ${cart.items.length} item(s) — ₹${cart.subtotal}`,
+        [
+          { id: `qty_plus_${itemId}`,  title: `➕ Add Another`  },
+          { id: 'add_more',            title: '🍽️ Add More'     },
+          { id: 'confirm_order',       title: '✅ Place Order'  },
+        ]
+      );
+      const upsell = await intelligence.getUpsellSuggestion(session, cart.items, restaurantId);
+      if (upsell) {
+        await new Promise(r => setTimeout(r, 800));
+        await whatsapp.sendInteractiveButtons(from, upsell.message, [
+          { id: `upsell_yes_${upsell.item.id}`, title: upsell.btnLabel || '✅ Yes, Add It!' },
+          { id: 'upsell_no',                    title: '❌ No thanks'                       },
+        ]);
+      }
+    }
+    return;
+  }
+
+  // ── Quantity increase: qty_plus_ITEMID ──
+  if (buttonId && buttonId.startsWith('qty_plus_')) {
+    const itemId = buttonId.replace('qty_plus_', '');
+    const menuItem = await db.queryOne(
+      'SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2',
+      [itemId, restaurantId]
+    );
+    if (menuItem) {
+      await cartSvc.addToCart(session.id, restaurantId, itemId, 1, null);
+      const cart = await cartSvc.getCart(session.id);
+      const cartItem = cart.items.find(i => i.menu_item_id === itemId);
+      const newQty = cartItem ? cartItem.quantity : 1;
+      await whatsapp.sendInteractiveButtons(from,
+        `*${menuItem.name}* — now x${newQty} in cart\nCart total: ₹${cart.subtotal}`,
+        [
+          { id: `qty_plus_${itemId}`,  title: '➕ Add Another' },
+          { id: `qty_minus_${itemId}`, title: '➖ Remove One'  },
+          { id: 'confirm_order',       title: '✅ Place Order' },
+        ]
+      );
+    }
+    return;
+  }
+
+  // ── Quantity decrease: qty_minus_ITEMID ──
+  if (buttonId && buttonId.startsWith('qty_minus_')) {
+    const itemId = buttonId.replace('qty_minus_', '');
+    const menuItem = await db.queryOne(
+      'SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2',
+      [itemId, restaurantId]
+    );
+    if (menuItem) {
+      const existing = await db.queryOne(
+        'SELECT * FROM cart_items WHERE session_id = $1 AND menu_item_id = $2',
+        [session.id, itemId]
+      );
+      if (existing && existing.quantity > 1) {
+        const newQty = existing.quantity - 1;
+        await db.query(
+          'UPDATE cart_items SET quantity = $1, subtotal = $2 WHERE id = $3',
+          [newQty, menuItem.price * newQty, existing.id]
+        );
+        const cart = await cartSvc.getCart(session.id);
+        await whatsapp.sendInteractiveButtons(from,
+          `*${menuItem.name}* — now x${newQty} in cart\nCart total: ₹${cart.subtotal}`,
+          [
+            { id: `qty_plus_${itemId}`,  title: '➕ Add Another' },
+            { id: `qty_minus_${itemId}`, title: '➖ Remove One'  },
+            { id: 'confirm_order',       title: '✅ Place Order' },
+          ]
+        );
+      } else if (existing && existing.quantity === 1) {
+        await db.query('DELETE FROM cart_items WHERE id = $1', [existing.id]);
+        const cart = await cartSvc.getCart(session.id);
+        await whatsapp.sendInteractiveButtons(from,
+          `*${menuItem.name}* removed from cart\nCart: ${cart.items.length} item(s) — ₹${cart.subtotal}`,
+          [
+            { id: 'add_more',      title: '🍽️ Add More'    },
+            { id: 'confirm_order', title: '✅ Place Order' },
+            { id: 'view_cart',     title: '🛒 View Cart'  },
+          ]
+        );
+      }
+    }
+    return;
+  }
+
+  // ── Add with note — prompt customer to type note ──
+  if (buttonId && buttonId.startsWith('addnote_')) {
+    const itemId = buttonId.replace('addnote_', '');
+    await db.query(
+      'UPDATE sessions SET pending_action = $1 WHERE id = $2',
+      [JSON.stringify({ type: 'awaiting_note', item_id: itemId }), session.id]
+    );
+    await whatsapp.sendMessage(from, '📝 Type your special instructions and we will add the item:');
+    return;
+  }
+
+  // awaiting_note handled at top of handler before resolvers
+
+  // ── Handle upsell button taps ──
+  if (buttonId && buttonId.startsWith('upsell_yes_')) {
+    const itemId = buttonId.replace('upsell_yes_', '');
+    const menuItem = await db.queryOne(
+      'SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2',
+      [itemId, restaurantId]
+    );
+    if (menuItem) {
+      await cartSvc.addToCart(session.id, restaurantId, itemId, 1, null);
+      const cart = await cartSvc.getCart(session.id);
+      await whatsapp.sendMessage(from, `✅ *${menuItem.name}* added!`);
+      await new Promise(r => setTimeout(r, 400));
+      await flowSvc.showCartButtons(from, session);
+    }
+    return;
+  }
+  if (buttonId === 'upsell_no') {
+    // Already showing cart buttons above — nothing to do
+    return;
+  }
+
+  // ── Handle repeat last order ──
+  if (buttonId === 'repeat_last_order') {
+    // Fetch last 3 distinct orders with their items
+    const pastOrders = await db.queryAll(
+      `SELECT
+         o.id,
+         o.created_at,
+         COALESCE(b.grand_total, 0) AS total,
+         json_agg(
+           json_build_object('menu_item_id', oi.menu_item_id, 'name', oi.name, 'quantity', oi.quantity, 'notes', oi.notes)
+           ORDER BY oi.id
+         ) AS items
+       FROM sessions s
+       JOIN orders o ON o.session_id = s.id
+       JOIN order_items oi ON oi.order_id = o.id
+       LEFT JOIN bills b ON b.order_id = o.id
+       WHERE s.customer_phone = $1
+         AND s.restaurant_id = $2
+         AND s.id != $3
+         AND o.status NOT IN ('cancelled')
+       GROUP BY o.id, o.created_at, b.grand_total
+       ORDER BY o.created_at DESC
+       LIMIT 3`,
+      [from, session.restaurant_id, session.id]
+    );
+
+    if (!pastOrders.length) {
+      await whatsapp.sendMessage(from, "No past orders found. Here's our menu!");
+      await menuNav.sendCategoryMenu(from, restaurantId, session);
+      return;
+    }
+
+    // If only one past order — repeat it directly
+    if (pastOrders.length === 1) {
+      const order = pastOrders[0];
+      for (const item of order.items) {
+        await cartSvc.addToCart(session.id, session.restaurant_id, item.menu_item_id, item.quantity, item.notes);
+      }
+      const cart = await cartSvc.getCart(session.id);
+      let msg = `✅ *Order repeated!*\n\n`;
+      for (const item of cart.items) {
+        msg += `• ${item.name} x${item.quantity} — ₹${item.subtotal}\n`;
+      }
+      msg += `\n*Total: ₹${cart.subtotal}*`;
+      await whatsapp.sendMessage(from, msg);
+      await new Promise(r => setTimeout(r, 400));
+      await whatsapp.sendInteractiveButtons(from, `🛒 Cart ready — ₹${cart.subtotal}`, [
+        { id: 'add_more',      title: '➕ Add More'   },
+        { id: 'confirm_order', title: '✅ Place Order' },
+        { id: 'cancel_order',  title: '❌ Cancel'      },
+      ]);
+      return;
+    }
+
+    // Multiple past orders — show each as a message with button
+    await whatsapp.sendMessage(from, '🕐 *Your recent orders:*\nTap one to repeat it:');
+    await new Promise(r => setTimeout(r, 300));
+
+    for (const order of pastOrders) {
+      const date = new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      const time = new Date(order.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const itemNames = order.items.slice(0, 3).map(i => i.name).join(', ');
+      const more = order.items.length > 3 ? ` +${order.items.length - 3} more` : '';
+      const label = `${date} ${time} — ₹${order.total}\n${itemNames}${more}`;
+
+      // Store order items in pending_action so we can retrieve on button tap
+      const safeId = order.id.replace(/-/g, '').substring(0, 12);
+      // Store all past orders in session pending for retrieval
+      await db.query(
+        'UPDATE sessions SET pending_action = $1 WHERE id = $2',
+        [JSON.stringify({ type: 'repeat_choice', orders: pastOrders }), session.id]
+      );
+
+      await whatsapp.sendInteractiveButtons(from, label, [
+        { id: `repeat_order_${order.id}`, title: '🔁 Repeat This' },
+      ]);
+      await new Promise(r => setTimeout(r, 300));
+    }
+    return;
+  }
+
+  // ── Repeat specific past order ──
+  if (buttonId && buttonId.startsWith('repeat_order_')) {
+    const orderId = buttonId.replace('repeat_order_', '');
+    // Get items from pending_action cache
+    const pending = session.pending_action;
+    const pastOrders = pending?.type === 'repeat_choice' ? pending.orders : [];
+    const chosenOrder = pastOrders.find(o => o.id === orderId);
+
+    if (!chosenOrder) {
+      await whatsapp.sendMessage(from, 'Sorry, could not find that order. Try again!');
+      return;
+    }
+
+    for (const item of chosenOrder.items) {
+      await cartSvc.addToCart(session.id, session.restaurant_id, item.menu_item_id, item.quantity, item.notes);
+    }
+    await db.query('UPDATE sessions SET pending_action = NULL WHERE id = $1', [session.id]);
+
+    const cart = await cartSvc.getCart(session.id);
+    let msg = `✅ *Order repeated!*\n\n`;
+    for (const item of cart.items) {
+      msg += `• ${item.name} x${item.quantity} — ₹${item.subtotal}\n`;
+    }
+    msg += `\n*Total: ₹${cart.subtotal}*`;
+    await whatsapp.sendMessage(from, msg);
+    await new Promise(r => setTimeout(r, 400));
+    await whatsapp.sendInteractiveButtons(from, `🛒 Cart ready — ₹${cart.subtotal}`, [
+      { id: 'add_more',      title: '➕ Add More'   },
+      { id: 'confirm_order', title: '✅ Place Order' },
+      { id: 'cancel_order',  title: '❌ Cancel'      },
+    ]);
+    return;
+  }
+
+  // ── Yes/No quick reply — pass back to AI to emit @@ADD signal ──
+  if (buttonId === 'reply_yes') {
+    // Customer confirmed — AI will emit @@ADD signal on 'yes'
+    // Falls through to normal AI section below which parses @@ADD signals
+    message = 'yes add it';
+  }
+  if (buttonId === 'reply_no') {
+    message = 'no thanks, skip special instructions';
+    // Falls through to AI which will just confirm without note
+  }
+
+  // ── Guard: ignore buttons from stale/old sessions ──
+  // WhatsApp buttons stay clickable forever — customer might tap old ones
+  if (buttonId && ['add_more','cancel_order','confirm_order','use_saved_address','new_address'].includes(buttonId)) {
+    if (!session || ['closed','ordered'].includes(session.status)) {
+      await whatsapp.sendMessage(from,
+        `⚠️ That button is from a previous order and is no longer active.\n\nType *"menu"* to start a new order! 😊`
+      );
+      return;
+    }
+  }
+
+  if (buttonId === 'show_menu') {
+    await menuNav.sendCategoryMenu(from, restaurantId, session);
+    // Send order URL after menu for delivery/takeaway
+    if (session.mode !== 'dine_in') {
+      const appUrl = process.env.APP_URL || 'https://tapmyfood.com';
+      await new Promise(r => setTimeout(r, 400));
+      await whatsapp.sendMessage(from,
+        `📱 *Browse & order from full menu:*\n${appUrl}/order/${session.id}`
+      );
+    }
+    return;
+  }
+  if (buttonId === 'view_offers') {
+    const { reply } = await aiSvc.processMessage(session, 'what are the current offers?');
+    await whatsapp.sendMessage(from, reply);
+    await new Promise(r => setTimeout(r, 600));
+    await sendStepButtons(from, session, restaurantId);
+    return;
+  }
+  if (buttonId === 'confirm_order') {
+    if (session.status === 'awaiting_confirmation') {
+      await handleConfirmOrder(session, from);
+    } else {
+      await triggerOrderConfirmation(session, from);
+    }
+    return;
+  }
+  if (buttonId === 'cancel_order')    { await handleCancelOrder(session, from);        return; }
+  if (buttonId === 'use_saved_address') {
+    await handleUseSavedAddress(session, from);
+    return;
+  }
+  if (buttonId === 'new_address') {
+    await db.query(
+      "UPDATE sessions SET status = 'awaiting_address', delivery_address = NULL, updated_at = NOW() WHERE id = $1",
+      [session.id]
+    );
+    await whatsapp.sendAddressRequest(from);
+    return;
+  }
+  // ── Dine-in: running tab (all orders this session) ──
+  if (buttonId === 'view_running_tab') {
+    const allOrders = await db.queryAll(
+      `SELECT o.id, o.created_at, b.grand_total, b.bill_number,
+              json_agg(json_build_object('name', oi.name, 'qty', oi.quantity, 'price', oi.subtotal) ORDER BY oi.id) AS items
+       FROM orders o
+       JOIN bills b ON b.order_id = o.id
+       JOIN order_items oi ON oi.order_id = o.id
+       WHERE o.session_id = $1 AND o.status != 'cancelled'
+       GROUP BY o.id, b.grand_total, b.bill_number, o.created_at
+       ORDER BY o.created_at ASC`,
+      [session.id]
+    );
+    if (allOrders.length === 0) {
+      await whatsapp.sendMessage(from, 'No orders placed yet this session.');
+      return;
+    }
+    let tabMsg = `🧾 *Your Tab — Table ${session.table_number}*
+
+`;
+    let runningTotal = 0;
+    allOrders.forEach((order, i) => {
+      tabMsg += `*Round ${i + 1}* (${new Date(order.created_at).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})})
+`;
+      order.items.forEach(item => {
+        tabMsg += `  • ${item.name} x${item.qty} — ₹${item.price}
+`;
+      });
+      tabMsg += `  Subtotal: ₹${order.grand_total}
+
+`;
+      runningTotal += parseFloat(order.grand_total);
+    });
+    tabMsg += `━━━━━━━━━━
+*Total So Far: ₹${runningTotal.toFixed(0)}*`;
+    await whatsapp.sendMessage(from, tabMsg);
+    await new Promise(r => setTimeout(r, 500));
+    await whatsapp.sendInteractiveButtons(from,
+      'What would you like to do?',
+      [
+        { id: 'show_menu',    title: 'Order More'    },
+        { id: 'request_bill', title: 'Request Bill'  },
+      ]
+    );
+    return;
+  }
+
+  // ── Dine-in: request bill — owner notified, session closes ──
+  if (buttonId === 'request_bill' || (session.mode === 'dine_in' && ['bill do', 'bill lao', 'bill please', 'pay karna', 'checkout', 'bill chahiye', 'bill', 'check please'].some(w => msg.includes(w)))) {
+    const allOrders = await db.queryAll(
+      `SELECT b.grand_total FROM orders o JOIN bills b ON b.order_id = o.id
+       WHERE o.session_id = $1 AND o.status != 'cancelled'`,
+      [session.id]
+    );
+    const total = allOrders.reduce((s, o) => s + parseFloat(o.grand_total), 0);
+    const roundCount = allOrders.length;
+
+    await whatsapp.sendMessage(from,
+      `🧾 *Bill Requested — Table ${session.table_number}*
+
+` +
+      `${roundCount} round${roundCount > 1 ? 's' : ''} — *Total: ₹${total.toFixed(0)}*
+
+` +
+      `Our staff will bring your bill shortly! 🙏`
+    );
+
+    // Notify owner
+    const restaurant = await db.queryOne(
+      'SELECT owner_phone FROM restaurants WHERE id = $1', [session.restaurant_id]
+    );
+    if (restaurant?.owner_phone) {
+      await whatsapp.sendMessage(restaurant.owner_phone,
+        `💳 *Bill Requested!*
+🍽️ Table ${session.table_number}
+` +
+        `${roundCount} round${roundCount > 1 ? 's' : ''} — *₹${total.toFixed(0)}*
+
+` +
+        `Please send the bill now.`
+      );
+    }
+
+    await db.query(
+      "UPDATE sessions SET status = 'ordered', updated_at = NOW() WHERE id = $1",
+      [session.id]
+    );
+    return;
+  }
+
+  if (buttonId === 'view_cart') {
+    const cart = await cartSvc.getCart(session.id);
+    if (cart.items.length === 0) {
+      await whatsapp.sendMessage(from, 'Your cart is empty. Browse the menu to add items!');
+      await menuNav.sendCategoryMenu(from, restaurantId, session);
+    } else {
+      // Show cart summary
+      let summary = '*🛒 Your Cart*\n\n';
+      for (const item of cart.items) {
+        summary += `• *${item.name}* x${item.quantity} — ₹${item.subtotal}\n`;
+        if (item.notes) summary += `  📝 _${item.notes}_\n`;
+      }
+      summary += `\n*Total: ₹${cart.subtotal}*\n\nTap an item below to change quantity:`;
+      await whatsapp.sendMessage(from, summary);
+      await new Promise(r => setTimeout(r, 300));
+
+      // Show qty controls for each item (3 per message — item name, +, -)
+      for (const item of cart.items) {
+        await whatsapp.sendInteractiveButtons(from,
+          `*${item.name}* — x${item.quantity} (₹${item.subtotal})`,
+          [
+            { id: `qty_plus_${item.menu_item_id}`,  title: '➕ Add One More' },
+            { id: `qty_minus_${item.menu_item_id}`, title: '➖ Remove One'   },
+          ]
+        );
+        await new Promise(r => setTimeout(r, 250));
+      }
+
+      // Final action buttons
+      await whatsapp.sendInteractiveButtons(from,
+        `Cart total: ₹${cart.subtotal}`,
+        [
+          { id: 'add_more',      title: '🍽️ Add More'   },
+          { id: 'confirm_order', title: '✅ Place Order' },
+          { id: 'cancel_order',  title: '❌ Clear Cart'  },
+        ]
+      );
+    }
+    return;
+  }
+
+  if (buttonId === 'add_more') {
+    // Show current cart summary + menu prompt
+    const cart = await cartSvc.getCart(session.id);
+    let addMoreMsg = `Sure! What else would you like to add? 😊\n\n`;
+    if (cart.items.length > 0) {
+      addMoreMsg += `*Current cart:*\n`;
+      for (const item of cart.items) {
+        addMoreMsg += `• ${item.name} x${item.quantity} — ₹${item.subtotal}\n`;
+        if (item.notes) addMoreMsg += `  📝 *Special:* _${item.notes}_\n`;
+      }
+      addMoreMsg += `\nJust tell me what to add, or type *"menu"* to see full menu and *"offers"* for today's deals!`;
+    }
+    await menuNav.sendCategoryMenu(from, restaurantId, session);
+    await flowSvc.setState(session.id, flowSvc.STATES.BROWSING);
+    return;
+  }
+
+  // ── 4. Handle address collection ──
+  if (session.status === 'awaiting_address') {
+    await handleAddressReceived(session, from, message);
+    return;
+  }
+
+  // ── 5. Handle awaiting confirmation ──
+  if (session.status === 'awaiting_confirmation') {
+    const confirmWords = ['confirm', 'haan', 'ha', 'yes', 'ok', 'okay', 'thik hai',
+                          'thik h', 'bilkul', 'kar do', 'place', 'order karo', 'yup', 'yep'];
+    const cancelWords  = ['cancel', 'nahi', 'nhi', 'no', 'mat karo', 'band karo', 'clear'];
+    if (confirmWords.some(w => msg.includes(w))) { await handleConfirmOrder(session, from); return; }
+    if (cancelWords.some(w => msg.includes(w)))  { await handleCancelOrder(session, from);  return; }
+    const cart = await cartSvc.getCart(session.id);
+    let summary = '';
+    for (const item of cart.items) { summary += `• ${item.name} x${item.quantity} — ₹${item.subtotal}\n`; if (item.notes) summary += `  📝 *Special:* _${item.notes}_\n`; }
+    await whatsapp.sendOrderConfirmation(from, summary, cart.subtotal);
+    return;
+  }
+
+  // ── 6. Menu / offers keyword shortcuts ──
+  const menuWords   = ['menu', 'menu dikhao', 'kya hai', 'what do you have', 'show menu', 'menu show'];
+  const offersWords = ['offers', 'offer', 'discount', 'deals', 'kya offer'];
+  if (menuWords.some(w => msg.includes(w))) {
+    await menuNav.sendCategoryMenu(from, restaurantId, session);
+    if (session.mode !== 'dine_in') {
+      const _appUrl = process.env.APP_URL || 'https://tapmyfood.com';
+      await new Promise(r => setTimeout(r, 400));
+      await whatsapp.sendMessage(from,
+        `📱 *Browse full menu & order online:*\n${_appUrl}/order/${session.id}`
+      );
+    }
+    return;
+  }
+  if (offersWords.some(w => msg.includes(w))) {
+    const { reply } = await aiSvc.processMessage(session, 'what are the current offers?');
+    await whatsapp.sendMessage(from, reply);
+    await new Promise(r => setTimeout(r, 600));
+    await sendStepButtons(from, session, restaurantId);
+    return;
+  }
+
+  // ── 6b. Direct order keywords ──
+  const orderKeywords = ['order karo', 'place order', 'confirm order', 'bill do', 'checkout', 'order kar do'];
+  if (orderKeywords.some(w => msg.includes(w))) {
+    await triggerOrderConfirmation(session, from);
+    return;
+  }
+
+  // ── 7. Bas / closing / no-more with cart ──
+  const basWords   = ['bas', 'done', 'thats all', "that's all", 'finish', 'enough'];
+  const closeWords = ['bye', 'goodbye', 'exit', 'band karo', 'khatam', 'baad mein', 'phir aaunga'];
+  const noMoreWords = ['nope', 'nahi', 'nhi', 'no more', 'nothing', 'kuch nahi',
+                       'bas karo', 'thats it', "that's it", 'sirf itna'];
+
+  const isClosing = basWords.includes(msg) || closeWords.some(w => msg.includes(w));
+  const isNoMore  = noMoreWords.some(w => msg === w || msg.includes(w));
+
+  if (isClosing || isNoMore) {
+    const cart = await cartSvc.getCart(session.id);
+    if (cart.items.length > 0) {
+      await triggerOrderConfirmation(session, from);
+    } else if (isClosing) {
+      await closeSession(session, from, 'Thank you for visiting! 🙏 Come back anytime! 😊');
+    } else {
+      const { reply } = await aiSvc.processMessage(session, message);
+      await whatsapp.sendMessage(from, reply);
+    }
+    return;
+  }
+
+  // ── 8. QR Scan — intercept first message for takeaway/dine-in ──
+  // When customer scans QR, first message is "TAKEAWAY" or "TABLE-12"
+  // Don't pass these raw keywords to AI — send a proper welcome instead
+  if (isNewSession) {
+    if (session.mode === 'takeaway') {
+      const restaurant = await db.queryOne('SELECT * FROM restaurants WHERE id = $1', [restaurantId]);
+      const takeawayUrl = (process.env.APP_URL || 'https://tapmyfood.com') + '/order/' + session.id;
+      await whatsapp.sendMessage(from,
+        `🏃 *Welcome to ${restaurant.name}!*\n\n` +
+        `You've selected *Takeaway*. Your order will be ready for pickup at our counter.\n\n` +
+        `📱 *Full menu & easy ordering:* ${takeawayUrl}\n\n` +
+        `Or order right here on WhatsApp 👇`
+      );
+      await new Promise(r => setTimeout(r, 500));
+      await menuNav.sendCategoryMenu(from, restaurantId, session);
+      return;
+    }
+    if (session.mode === 'dine_in') {
+      const restaurant = await db.queryOne('SELECT * FROM restaurants WHERE id = $1', [restaurantId]);
+      let welcomeMsg = `🍽️ *Welcome to ${restaurant.name}!*\n\n`;
+      welcomeMsg += `*Table ${session.table_number}*\n`;
+      if (session.platform === 'swiggy' && session.discount_pct > 0) {
+        welcomeMsg += `🟠 *Swiggy Dine-in* — ${session.discount_pct}% discount applied automatically!\n`;
+      } else if (session.platform === 'zomato' && session.discount_pct > 0) {
+        welcomeMsg += `🔴 *Zomato Dine-in* — ${session.discount_pct}% discount applied automatically!\n`;
+      }
+      welcomeMsg += `\nOrder right here on WhatsApp. Here's our menu 👇`;
+      await whatsapp.sendMessage(from, welcomeMsg);
+      await new Promise(r => setTimeout(r, 500));
+      await menuNav.sendCategoryMenu(from, restaurantId, session);
+      return;
+    }
+  }
+
+  // ── 9. New delivery session — send welcome FIRST, then menu+offers ──
+  if (isNewSession && session.mode === 'delivery') {
+    const rest = await db.queryOne('SELECT * FROM restaurants WHERE id = $1', [restaurantId]);
+
+    // Check if returning customer — get their last order
+    const lastOrder = await db.queryOne(
+      `SELECT b.bill_number, b.grand_total, b.created_at,
+              json_agg(oi.name ORDER BY oi.id) AS item_names
+       FROM sessions s
+       JOIN orders o ON o.session_id = s.id
+       JOIN bills b ON b.order_id = o.id
+       JOIN order_items oi ON oi.order_id = o.id
+       WHERE s.customer_phone = $1
+         AND s.restaurant_id = $2
+         AND s.id != $3
+         AND o.status NOT IN ('cancelled')
+       GROUP BY b.bill_number, b.grand_total, b.created_at
+       ORDER BY b.created_at DESC LIMIT 1`,
+      [from, restaurantId, session.id]
+    );
+
+    let welcomeTxt;
+    if (lastOrder) {
+      const items = lastOrder.item_names.slice(0, 2).join(', ');
+      const more  = lastOrder.item_names.length > 2 ? ` +${lastOrder.item_names.length - 2} more` : '';
+      welcomeTxt = rest.welcome_message ||
+        `👋 *Welcome back to ${rest.name}!*\n\nLast time you ordered: *${items}${more}* (₹${lastOrder.grand_total})\n\nOrder the same again or explore our menu! 🍔`;
+    } else {
+      welcomeTxt = rest.welcome_message ||
+        `👋 Welcome to *${rest.name}!*\n\nOrder right here on WhatsApp — quick, easy, no app needed! 🍔`;
+    }
+
+    // ── Send web UI link — customer can browse and order from full menu ──
+    // URL via nip.io on port 80 (nginx proxies 80→3001)
+    // WhatsApp only hyperlinks standard ports — no :3001 in URL
+    const _appUrl = process.env.APP_URL || 'http://34.229.159.31';
+    const webMenuUrl = `${_appUrl}/order/${session.id}`;
+
+    // Single welcome message with everything
+    const fullWelcome = `${welcomeTxt}\n\n📱 *Full menu:* ${webMenuUrl}`;
+    const buttons = lastOrder
+      ? [
+          { id: 'repeat_last_order', title: '🔁 Repeat Last Order' },
+          { id: 'show_menu',         title: '📋 View Menu'          },
+          { id: 'view_offers',       title: '🎉 Today\'s Offers'    },
+        ]
+      : [
+          { id: 'show_menu',   title: '📋 View Menu'      },
+          { id: 'view_offers', title: '🎉 Today\'s Offers' },
+        ];
+
+    await whatsapp.sendInteractiveButtons(from, fullWelcome, buttons);
+    return;
+  }
+
+  // ── 10. Intent interceptor — catch typed confirmations BEFORE AI ──
+  // Prevents AI from fake-confirming orders without triggering real order flow
+  const msgLower = message.toLowerCase().trim();
+
+  // Confirm order intent — route to real handleConfirmOrder
+  const confirmIntents = [
+    'place order', 'confirm order', 'order confirm', 'place my order',
+    'confirm my order', 'haan order karo', 'order kar do', 'ha place karo',
+    'sure go ahead', 'yes confirm', 'yes place', 'haan karo', 'yes order',
+    'finalize', 'book karo', 'book it', 'le lo order', 'order de do'
+  ];
+  const hasCart = (await cartSvc.getCart(session.id)).items.length > 0;
+
+  if (hasCart && confirmIntents.some(p => msgLower.includes(p))) {
+    console.log(`🎯 Confirm intent detected: "${message}" → routing to handleConfirmOrder`);
+    if (session.status === 'awaiting_confirmation') {
+      await handleConfirmOrder(session, from);
+    } else {
+      await triggerOrderConfirmation(session, from);
+    }
+    return;
+  }
+
+  // Cancel order intent — route to real handleCancelOrder
+  const cancelIntents = [
+    'cancel order', 'cancel my order', 'order cancel', 'sab cancel karo',
+    'clear cart', 'start over', 'sab hatao', 'cart clear karo'
+  ];
+  if (hasCart && cancelIntents.some(p => msgLower.includes(p))) {
+    console.log(`🎯 Cancel intent detected: "${message}" → routing to handleCancelOrder`);
+    await handleCancelOrder(session, from);
+    return;
+  }
+
+  // ── 10b. Order status query interceptor ──
+  const statusIntents = [
+    'order status', 'my order', 'kahan hai', 'kitna time', 'how long',
+    'order kahan', 'kab milega', 'ready hai', 'order ready', 'status check',
+    'track order', 'order track', 'order update', 'when ready', 'waiting',
+    'preparing', 'kitchen', 'delivery status', 'delivery kab', 'order abhi',
+    'abhi kahan', 'order aa', 'aa gaya', 'kitni der', 'eta', 'estimate'
+  ];
+  if (statusIntents.some(p => msgLower.includes(p))) {
+    console.log(`📍 Status query detected: "${message}"`);
+    await handleOrderStatusQuery(session, from);
+    return;
+  }
+
+  // ── 11. AI conversation (conversation-only, no cart tools) ──
+  const { reply: aiReply } = await aiSvc.processMessage(session, message);
+  let reply = aiReply;
+
+  // For delivery sessions — append order URL to every AI response so customer can always access menu
+  if (session.mode === 'delivery' || session.mode === 'takeaway') {
+    const _appUrl = process.env.APP_URL || 'https://tapmyfood.com';
+    const orderUrl = `${_appUrl}/order/${session.id}`;
+    // Only append if not already in reply and reply looks like a greeting/help message
+    const isGreeting = /hi|hello|hey|welcome|help|menu|kya|order|namaste/i.test(reply);
+    if (isGreeting && !reply.includes(orderUrl)) {
+      reply = reply + `\n\n📱 *Full menu:* ${orderUrl}`;
+    }
+  }
+
+  // ── Parse @@ADD:item_id:qty:notes@@ signals from AI reply ──
+  const addSignalRegex = /@@ADD:([^:@]+):(\d*):([^@]*)@@/g;
+  const addSignals = [];
+  let match;
+  while ((match = addSignalRegex.exec(reply)) !== null) {
+    addSignals.push({
+      item_id:  match[1].trim(),
+      quantity: parseInt(match[2]) || 1,
+      notes:    match[3].trim() || null,
+    });
+  }
+
+  // Clean reply — strip @@ADD:...:...:@@ markers before sending to customer
+  const cleanReply = reply.replace(/@@ADD:[^@]*@@/g, '').trim();
+
+  if (addSignals.length > 0) {
+    // ── Code handles cart, not AI ──
+    // Send conversational part first
+    if (cleanReply) await whatsapp.sendMessage(from, cleanReply);
+
+    let itemsAdded = [];
+    let addErrors  = [];
+
+    for (const sig of addSignals) {
+      // Verify item exists in menu
+      const menuItem = await db.queryOne(
+        'SELECT * FROM menu_items WHERE id = $1 AND restaurant_id = $2 AND is_available = true',
+        [sig.item_id, restaurantId]
+      );
+
+      if (!menuItem) {
+        // AI gave wrong ID — try fuzzy name match as fallback
+        console.warn(`⚠️ AI gave unknown item_id: ${sig.item_id}`);
+        addErrors.push(sig.item_id);
+        continue;
+      }
+
+      const result = await cartSvc.addToCart(
+        session.id, restaurantId,
+        sig.item_id, sig.quantity, sig.notes
+      );
+
+      if (result.success) {
+        itemsAdded.push({ name: menuItem.name, qty: sig.quantity, price: menuItem.price, notes: sig.notes });
+        console.log(`🛒 Code added to cart: ${menuItem.name} x${sig.quantity}`);
+      } else {
+        addErrors.push(menuItem.name);
+      }
+    }
+
+    if (itemsAdded.length > 0) {
+      const cart = await cartSvc.getCart(session.id);
+
+      // Build confirmation message
+      let confirmMsg = '';
+      for (const item of itemsAdded) {
+        const priceLabel = item.price === 0 ? 'FREE 🎁' : `₹${item.price * item.qty}`;
+        confirmMsg += `✅ *${item.name}* x${item.qty} — ${priceLabel}\n`;
+        if (item.notes) confirmMsg += `   📝 *Special:* _${item.notes}_\n`;
+      }
+
+      await new Promise(r => setTimeout(r, 400));
+      await whatsapp.sendMessage(from, confirmMsg.trim());
+      // Update session state to cart_active
+      await flowSvc.setState(session.id, flowSvc.STATES.CART_ACTIVE);
+      await new Promise(r => setTimeout(r, 600));
+      await whatsapp.sendInteractiveButtons(from,
+        `🛒 Cart: ${cart.items.length} item(s) — ₹${cart.subtotal}`,
+        [
+          { id: 'add_more',      title: '➕ Add More'   },
+          { id: 'confirm_order', title: '✅ Place Order' },
+          { id: 'cancel_order',  title: '❌ Cancel'      },
+        ]
+      );
+
+      // ── Intelligence: smart upsell ──
+      const upsell = await intelligence.getUpsellSuggestion(session, cart.items, restaurantId);
+      if (upsell) {
+        await new Promise(r => setTimeout(r, 1000));
+        await whatsapp.sendInteractiveButtons(from, upsell.message, [
+          { id: `upsell_yes_${upsell.item.id}`, title: upsell.btnLabel || '✅ Yes, Add It!' },
+          { id: 'upsell_no',                    title: '❌ No thanks'                       },
+        ]);
+      }
+    }
+
+    if (addErrors.length > 0) {
+      console.error('Cart add errors for IDs:', addErrors);
+    }
+    return;
+  }
+
+  // No cart signals — just send the conversational reply
+  if (cleanReply) {
+    await whatsapp.sendMessage(from, cleanReply);
+    console.log(`✅ AI replied to ${from}`);
+  }
+
+  // ── ALWAYS re-anchor customer to correct step after AI speaks ──
+  await new Promise(r => setTimeout(r, 600));
+  await sendStepButtons(from, session, restaurantId);
+
+}, { connection: redisConnection, concurrency: 1 });
+
+// ─────────────────────────────────────────────
+// SEND STEP BUTTONS — always re-anchor customer to current state
+// Called after every AI reply and after every bot message
+// ─────────────────────────────────────────────
+async function sendStepButtons(from, session, restaurantId) {
+  const status = session.status;
+
+  // Has items in cart → show cart actions
+  const cart = await cartSvc.getCart(session.id);
+  if (cart.items.length > 0 && ['active','cart_active'].includes(status)) {
+    await whatsapp.sendInteractiveButtons(from,
+      `🛒 Cart: ${cart.items.length} item(s) — ₹${cart.subtotal}`,
+      [
+        { id: 'add_more',      title: '➕ Add More'   },
+        { id: 'confirm_order', title: '✅ Place Order' },
+        { id: 'cancel_order',  title: '❌ Cancel'      },
+      ]
+    );
+    return;
+  }
+
+  // Browsing (no cart) → context-aware buttons
+  if (['active'].includes(status)) {
+    // If customer is viewing a category item list — show relevant actions
+    const isViewingItems = menuNav.getMenuNumberMap(session.id);
+    if (isViewingItems) {
+      await whatsapp.sendInteractiveButtons(from,
+        'Type a number or item name to add, or:',
+        [
+          { id: 'show_menu',     title: '📋 Back to Menu'  },
+          { id: 'view_cart',     title: '🛒 View Cart'     },
+          { id: 'confirm_order', title: '✅ Place Order'   },
+        ]
+      );
+      return;
+    }
+
+    // If viewing category list — show menu buttons
+    const isViewingCats = menuNav.getCategoryNumberMap(session.id);
+    if (isViewingCats) {
+      await whatsapp.sendInteractiveButtons(from,
+        'Type a category name or number to browse:',
+        [
+          { id: 'show_menu',   title: '📋 View Menu'   },
+          { id: 'view_offers', title: '🎉 Offers'       },
+          { id: 'view_cart',   title: '🛒 View Cart'    },
+        ]
+      );
+      return;
+    }
+
+    // Default: returning vs new customer
+    const lastOrder = await db.queryOne(
+      `SELECT 1 FROM sessions s JOIN orders o ON o.session_id = s.id
+       WHERE s.customer_phone = $1 AND s.restaurant_id = $2
+         AND o.status NOT IN ('cancelled') LIMIT 1`,
+      [session.customer_phone, restaurantId]
+    );
+    const buttons = lastOrder
+      ? [
+          { id: 'repeat_last_order', title: '🔁 Order Again'  },
+          { id: 'show_menu',         title: '📋 View Menu'    },
+          { id: 'view_offers',       title: '🎉 Today Offers' },
+        ]
+      : [
+          { id: 'show_menu',   title: '📋 View Menu'    },
+          { id: 'view_offers', title: '🎉 Today Offers' },
+        ];
+    await whatsapp.sendInteractiveButtons(from, '👇 What would you like to do?', buttons);
+  }
+}
+
+// ─────────────────────────────────────────────
+// TRIGGER ORDER CONFIRMATION
+// Always asks for address — with saved address option if available
+// ─────────────────────────────────────────────
+async function triggerOrderConfirmation(session, from) {
+  const cart = await cartSvc.getCart(session.id);
+  if (cart.items.length === 0) {
+    await whatsapp.sendMessage(from, 'Aapka cart empty hai! Pehle kuch order karein 😊');
+    return;
+  }
+
+  let summary = '';
+  for (const item of cart.items) {
+    summary += `• ${item.name} x${item.quantity} — ₹${item.subtotal}\n`;
+    if (item.notes) summary += `  📝 *Special:* _${item.notes}_\n`;
+  }
+
+  if (session.mode === 'delivery') {
+    // Show cart summary first
+    await whatsapp.sendMessage(from,
+      `🛒 *Your Order*\n\n${summary}\n*Total: ₹${cart.subtotal}*`
+    );
+    await new Promise(r => setTimeout(r, 600));
+
+    // Check if this customer has a previously saved address
+    const prevSession = await db.queryOne(
+      `SELECT delivery_address FROM sessions
+       WHERE customer_phone = $1
+         AND delivery_address IS NOT NULL
+         AND delivery_address != ''
+         AND id != $2
+       ORDER BY created_at DESC LIMIT 1`,
+      [from, session.id]
+    );
+
+    if (prevSession && prevSession.delivery_address) {
+      // Offer saved address or new address
+      const shortAddress = prevSession.delivery_address.length > 40
+        ? prevSession.delivery_address.substring(0, 40) + '...'
+        : prevSession.delivery_address;
+
+      await db.query(
+        "UPDATE sessions SET status = 'awaiting_address', updated_at = NOW() WHERE id = $1",
+        [session.id]
+      );
+
+      await whatsapp.sendInteractiveButtons(from,
+        `📍 *Delivery Address*\n\nDeliver to saved address?\n_${shortAddress}_`,
+        [
+          { id: 'use_saved_address', title: 'Use This Address' },
+          { id: 'new_address',       title: 'Enter New Address' },
+        ]
+      );
+    } else {
+      // No saved address — ask directly
+      await db.query(
+        "UPDATE sessions SET status = 'awaiting_address', updated_at = NOW() WHERE id = $1",
+        [session.id]
+      );
+      await whatsapp.sendAddressRequest(from);
+    }
+  } else if (session.mode === 'takeaway') {
+    // Takeaway — no address, show summary + confirm button
+    await db.query(
+      "UPDATE sessions SET status = 'awaiting_confirmation', updated_at = NOW() WHERE id = $1",
+      [session.id]
+    );
+    await whatsapp.sendInteractiveButtons(from,
+      `🏃 *Takeaway Order Summary*
+
+${summary}
+*Subtotal: ₹${cart.subtotal}*
+
+📍 Pickup at our restaurant
+🕐 Ready in 15-20 mins`,
+      [
+        { id: 'confirm_order', title: '✅ Confirm Order' },
+        { id: 'cancel_order',  title: '❌ Cancel'        },
+      ]
+    );
+  } else {
+    // Dine-in or unknown — no address needed
+    await db.query(
+      "UPDATE sessions SET status = 'awaiting_confirmation', updated_at = NOW() WHERE id = $1",
+      [session.id]
+    );
+    await whatsapp.sendOrderConfirmation(from, summary, cart.subtotal);
+  }
+}
+
+// ─────────────────────────────────────────────
+// USE SAVED ADDRESS
+// ─────────────────────────────────────────────
+async function handleUseSavedAddress(session, from) {
+  const prevSession = await db.queryOne(
+    `SELECT delivery_address FROM sessions
+     WHERE customer_phone = $1
+       AND delivery_address IS NOT NULL
+       AND delivery_address != ''
+       AND id != $2
+     ORDER BY created_at DESC LIMIT 1`,
+    [from, session.id]
+  );
+
+  if (!prevSession) {
+    await db.query(
+      "UPDATE sessions SET status = 'awaiting_address', updated_at = NOW() WHERE id = $1",
+      [session.id]
+    );
+    await whatsapp.sendAddressRequest(from);
+    return;
+  }
+
+  await db.query(
+    "UPDATE sessions SET delivery_address = $1, status = 'awaiting_confirmation', updated_at = NOW() WHERE id = $2",
+    [prevSession.delivery_address, session.id]
+  );
+
+  const cart = await cartSvc.getCart(session.id);
+  let summary = '';
+  for (const item of cart.items) { summary += `• ${item.name} x${item.quantity} — ₹${item.subtotal}\n`; if (item.notes) summary += `  📝 *Special:* _${item.notes}_\n`; }
+
+  await whatsapp.sendMessage(from, `✅ *Address confirmed!*\n📍 ${prevSession.delivery_address}`);
+  await new Promise(r => setTimeout(r, 600));
+  await whatsapp.sendOrderConfirmation(from, summary, cart.subtotal);
+}
+
+// ─────────────────────────────────────────────
+// HANDLE ADDRESS INPUT
+// ─────────────────────────────────────────────
+async function handleAddressReceived(session, from, address) {
+  console.log(`📍 Address from ${from}: "${address}"`);
+
+  // ── Handle location pin (sent as LOCATION:lat,lng from webhook) ──
+  if (address.startsWith('LOCATION:')) {
+    const [lat, lng] = address.replace('LOCATION:', '').split(',').map(parseFloat);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      const mapsLink = `https://maps.google.com/?q=${lat},${lng}`;
+
+      // Save lat/lng + maps link as address
+      await db.query(
+        `UPDATE sessions
+         SET delivery_address = $1,
+             delivery_lat = $2,
+             delivery_lng = $3,
+             status = 'awaiting_confirmation',
+             updated_at = NOW()
+         WHERE id = $4`,
+        [mapsLink, lat, lng, session.id]
+      );
+
+      // Confirm to customer
+      await whatsapp.sendMessage(from,
+        `✅ *Location received!*\n📍 We'll deliver to your pinned location.\n\n` +
+        `If this is correct, please confirm your order.`
+      );
+
+      // Load updated session and trigger order confirmation
+      const updatedSession = await db.queryOne('SELECT * FROM sessions WHERE id = $1', [session.id]);
+      await triggerOrderConfirmation(updatedSession, from);
+      return;
+    }
+  }
+
+  if (address.length < 10) {
+    // Short input — not a real address, re-show address options
+    const prevSession = await db.queryOne(
+      `SELECT delivery_address FROM sessions
+       WHERE customer_phone = $1
+         AND delivery_address IS NOT NULL
+         AND delivery_address != ''
+         AND id != $2
+       ORDER BY created_at DESC LIMIT 1`,
+      [from, session.id]
+    );
+    if (prevSession && prevSession.delivery_address) {
+      const shortAddress = prevSession.delivery_address.length > 40
+        ? prevSession.delivery_address.substring(0, 40) + '...'
+        : prevSession.delivery_address;
+      await whatsapp.sendInteractiveButtons(from,
+        `📍 *Delivery Address*\n\nDeliver to saved address?\n_${shortAddress}_`,
+        [
+          { id: 'use_saved_address', title: 'Use This Address' },
+          { id: 'new_address',       title: 'Enter New Address' },
+        ]
+      );
+    } else {
+      await whatsapp.sendMessage(from,
+        '📍 Please type your complete delivery address:\n\nExample:\nFlat 201, MG Road, Pune 411001'
+      );
+    }
+    return;
+  }
+
+  await db.query(
+    "UPDATE sessions SET delivery_address = $1, status = 'awaiting_confirmation', updated_at = NOW() WHERE id = $2",
+    [address, session.id]
+  );
+
+  const cart = await cartSvc.getCart(session.id);
+  let summary = '';
+  for (const item of cart.items) { summary += `• ${item.name} x${item.quantity} — ₹${item.subtotal}\n`; if (item.notes) summary += `  📝 *Special:* _${item.notes}_\n`; }
+
+  await whatsapp.sendMessage(from, `✅ *Address saved!*\n📍 ${address}`);
+  await new Promise(r => setTimeout(r, 600));
+  await whatsapp.sendOrderConfirmation(from, summary, cart.subtotal);
+}
+
+// ─────────────────────────────────────────────
+// CONFIRM ORDER
+// ─────────────────────────────────────────────
+async function handleConfirmOrder(session, from) {
+  console.log(`✅ Confirming order for ${from}`);
+  session = await db.queryOne('SELECT * FROM sessions WHERE id = $1', [session.id]);
+  const cart = await cartSvc.getCart(session.id);
+
+  if (cart.items.length === 0) {
+    await whatsapp.sendMessage(from, 'Cart is empty! Kuch items add karein pehle 😊');
+    return;
+  }
+
+  try {
+    const order = await createOrder(session, cart);
+    const bill = await billSvc.generateBill(session);
+
+    // Delivery/takeaway: mark ordered (locks session)
+    // Dine-in: handled below — stays active
+    if (session.mode !== 'dine_in') {
+      await db.query(
+        "UPDATE sessions SET status = 'ordered', updated_at = NOW() WHERE id = $1",
+        [session.id]
+      );
+    }
+
+    let msg = `🎉 *Order Confirmed!*\n\n`;
+    msg += `*Bill No:* ${bill.bill_number}\n\n`;
+    // Bill breakdown
+    msg += `Subtotal: ₹${bill.subtotal}\n`;
+    if (bill.total_tax > 0) msg += `GST: ₹${bill.total_tax}\n`;
+    if (bill.discount_amount > 0) msg += `Discount: -₹${bill.discount_amount}\n`;
+    if (bill.deliveryFee > 0) {
+      msg += `Delivery Fee:     ₹${bill.deliveryFee}\n`;
+    } else if (bill.freeDelivery) {
+      msg += `Delivery Fee:     FREE 🎉\n`;
+    }
+    msg += `Convenience Fee:  ₹${bill.platform_fee}\n`;
+    msg += `━━━━━━━━━━━━\n`;
+    msg += `*Total: ₹${bill.grand_total}*\n`;
+    if (bill.appliedOffers && bill.appliedOffers.length > 0) {
+      msg += `\n🎉 *Offers Applied:*\n`;
+      for (const offer of bill.appliedOffers) msg += `  • ${offer}\n`;
+    }
+    if (bill.freeItemName) msg += `🎁 *Free item:* ${bill.freeItemName}\n`;
+    if (session.mode === 'delivery' && session.delivery_address) {
+      msg += `\n📍 *Delivering to:*\n${session.delivery_address}\n`;
+      msg += `\n🕐 Estimated: *25-35 minutes*`;
+      msg += `\n\nWe'll notify you when your order is on its way! 🛵`;
+    } else if (session.mode === 'takeaway') {
+      // Generate pickup token: T-001 to T-999, resets daily
+      const tokenResult = await db.queryOne(
+        `SELECT COALESCE(MAX(pickup_token_num), 0) + 1 AS next_token
+         FROM sessions
+         WHERE restaurant_id = $1
+           AND mode = 'takeaway'
+           AND DATE(created_at) = CURRENT_DATE
+           AND pickup_token_num IS NOT NULL`,
+        [session.restaurant_id]
+      );
+      const tokenNum = tokenResult.next_token;
+      const tokenStr = 'T-' + String(tokenNum).padStart(3, '0');
+      await db.query(
+        'UPDATE sessions SET pickup_token_num = $1, pickup_token = $2 WHERE id = $3',
+        [tokenNum, tokenStr, session.id]
+      );
+      msg += `\n\n🎫 *Your Pickup Token: ${tokenStr}*`;
+      msg += `\n🕐 Ready in *15-20 minutes*`;
+      msg += `\n📍 Show this token at the counter`;
+    } else if (session.mode === 'dine_in') {
+      msg += `\n\n🍽️ *Table ${session.table_number}*`;
+      msg += `\n🕐 Your order is being prepared. Enjoy! 😊`;
+    }
+
+    await whatsapp.sendMessage(from, msg);
+
+    // ── Dine-in: keep session active for more rounds ──
+    if (session.mode === 'dine_in') {
+      // Reset session back to active — they can order again
+      await db.query(
+        "UPDATE sessions SET status = 'active', updated_at = NOW() WHERE id = $1",
+        [session.id]
+      );
+      await new Promise(r => setTimeout(r, 1200));
+      await whatsapp.sendInteractiveButtons(from,
+        `Table ${session.table_number} — Order sent to kitchen! 👨‍🍳\n\nWant anything else?`,
+        [
+          { id: 'show_menu',        title: 'Order More'      },
+          { id: 'view_running_tab', title: 'View My Tab'     },
+          { id: 'request_bill',     title: 'Request Bill'    },
+        ]
+      );
+    }
+    console.log(`🔔 NEW ORDER: ${bill.bill_number} | ₹${bill.grand_total} | ${session.mode}`);
+
+    // Notify restaurant owner
+    const restaurant = await db.queryOne(
+      'SELECT id, owner_phone, owner_name, name, delivery_phones FROM restaurants WHERE id = $1',
+      [session.restaurant_id]
+    );
+    if (restaurant && restaurant.owner_phone) {
+      const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      let ownerMsg = `🔔 *New Order Received!*\n`;
+      ownerMsg += `*Bill:* ${bill.bill_number}\n`;
+      ownerMsg += `━━━━━━━━━━━━━━\n`;
+      for (const item of cart.items) {
+        ownerMsg += `• ${item.name} x${item.quantity} — ₹${item.subtotal}\n`;
+        if (item.notes) ownerMsg += `  ⚠️ *SPECIAL: ${item.notes}*\n`;
+      }
+      ownerMsg += `━━━━━━━━━━━━━━\n`;
+      ownerMsg += `💰 *Total: ₹${bill.grand_total}*`;
+      if (bill.cgst > 0) ownerMsg += ` _(incl. GST ₹${bill.cgst + bill.sgst})_`;
+      ownerMsg += `\n📦 *Mode:* ${session.mode.toUpperCase()}`;
+      if (session.mode === 'takeaway' && session.pickup_token) {
+        ownerMsg += `\n🎫 *Pickup Token:* ${session.pickup_token}`;
+      }
+      if (session.mode === 'dine_in' && session.table_number) {
+        const platformLabel = session.platform === 'swiggy' ? ' 🟠 Swiggy'
+                            : session.platform === 'zomato' ? ' 🔴 Zomato'
+                            : ' Direct';
+        ownerMsg += `\n🍽️ *Table:* ${session.table_number}${platformLabel}`;
+        if (session.discount_pct > 0) ownerMsg += ` (${session.discount_pct}% off)`;
+      }
+      if (session.delivery_address) {
+        // If it's a Google Maps link (from location pin), show it clickable
+        if (session.delivery_address.startsWith('https://maps.google.com')) {
+          ownerMsg += `\n📍 *Location Pin:* ${session.delivery_address}`;
+        } else {
+          const encodedAddr = encodeURIComponent(session.delivery_address);
+          ownerMsg += `\n📍 *Address:* ${session.delivery_address}`;
+          ownerMsg += `\n🗺️ *Maps:* https://maps.google.com/?q=${encodedAddr}`;
+        }
+      }
+      ownerMsg += `\n👤 *Customer:* +${from}`;
+      ownerMsg += `\n⏰ ${now}`;
+
+      await whatsapp.sendMessage(restaurant.owner_phone, ownerMsg);
+      console.log(`📲 Owner notified: ${restaurant.owner_phone}`);
+
+      // ── Broadcast to delivery boys with claim system ──
+      console.log(`🔍 Delivery check — mode: ${session.mode}, phones: ${restaurant.delivery_phones || 'NONE'}`);
+      if (session.mode === 'delivery' && restaurant.delivery_phones) {
+        console.log(`📦 Broadcasting to delivery boys: ${restaurant.delivery_phones}`);
+        await deliverySvc.broadcastToDeliveryBoys({
+          order:  { id: order.id },
+          bill:   { ...bill, payment_status: bill.status },
+          session,
+          restaurant,
+          cart,
+        });
+      } else if (session.mode === 'delivery' && !restaurant.delivery_phones) {
+        console.log(`⚠️ No delivery_phones set for restaurant ${restaurant.name} — skipping delivery notification`);
+      }
+    }
+
+  } catch (err) {
+    console.error('Order error:', err.message);
+    await whatsapp.sendMessage(from, '⚠️ Something went wrong. Please try again or call us.');
+  }
+}
+
+// ─────────────────────────────────────────────
+// CANCEL ORDER
+// ─────────────────────────────────────────────
+async function handleCancelOrder(session, from) {
+  await db.query('DELETE FROM cart_items WHERE session_id = $1', [session.id]);
+  await db.query(
+    "UPDATE sessions SET status = 'active', delivery_address = NULL, updated_at = NOW() WHERE id = $1",
+    [session.id]
+  );
+  await new Promise(r => setTimeout(r, 500));
+  await whatsapp.sendInteractiveButtons(from,
+    '❌ Order cancelled. Cart cleared.\n\nWhat would you like to do?',
+    [
+      { id: 'show_menu',   title: '📋 View Menu'       },
+      { id: 'view_offers', title: '🎉 Today\'s Offers' },
+    ]
+  );
+}
+
+// ─────────────────────────────────────────────
+// CLOSE SESSION
+// ─────────────────────────────────────────────
+async function closeSession(session, from, message) {
+  await db.query("UPDATE sessions SET status = 'closed', updated_at = NOW() WHERE id = $1", [session.id]);
+  await db.query('DELETE FROM cart_items WHERE session_id = $1', [session.id]);
+  await whatsapp.sendMessage(from, message);
+  console.log(`👋 Session closed for ${from}`);
+}
+
+// ─────────────────────────────────────────────
+// CREATE ORDER + KOTs
+// ─────────────────────────────────────────────
+async function createOrder(session, cart) {
+  return db.transaction(async (client) => {
+    const { rows: [order] } = await client.query(
+      `INSERT INTO orders (session_id, restaurant_id, status)
+       VALUES ($1, $2, 'confirmed') RETURNING *`,
+      [session.id, session.restaurant_id]
+    );
+
+    for (const item of cart.items) {
+      await client.query(
+        `INSERT INTO order_items
+          (order_id, menu_item_id, name, price, quantity, subtotal, kot_type, tax_category, notes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [order.id, item.menu_item_id, item.name, item.price,
+         item.quantity, item.subtotal, item.kot_type, item.tax_category, item.notes]
+      );
+    }
+
+    const foodItems = cart.items.filter(i => i.kot_type === 'kitchen');
+    const barItems  = cart.items.filter(i => i.kot_type === 'bar');
+
+    if (foodItems.length > 0) {
+      await client.query(
+        `INSERT INTO kots (order_id, restaurant_id, kot_type, items, table_number)
+         VALUES ($1,$2,'kitchen',$3,$4)`,
+        [order.id, session.restaurant_id, JSON.stringify(foodItems), session.table_number]
+      );
+    }
+    if (barItems.length > 0) {
+      await client.query(
+        `INSERT INTO kots (order_id, restaurant_id, kot_type, items, table_number)
+         VALUES ($1,$2,'bar',$3,$4)`,
+        [order.id, session.restaurant_id, JSON.stringify(barItems), session.table_number]
+      );
+    }
+
+    await client.query('DELETE FROM cart_items WHERE session_id = $1', [session.id]);
+    console.log(`✅ Order: ${order.id} | Kitchen:${foodItems.length} Bar:${barItems.length}`);
+    return order;
+  });
+}
+
+// ─────────────────────────────────────────────
+// OWNER WHATSAPP COMMANDS
+// ─────────────────────────────────────────────
+async function handleOwnerCommand(from, message, restaurant) {
+  const msg    = message.trim();
+  const lower  = msg.toLowerCase();
+  console.log(`👑 Owner command from ${from}: "${msg}"`);
+
+  // ── HELP ──
+  if (lower === 'help') {
+    await whatsapp.sendMessage(from,
+      `👑 *Owner Commands*\n` +
+      `_(prefix all commands with !)_\n\n` +
+      `*!OFFER LIST* — see all offers\n` +
+      `*!OFFER ADD <text>* — add new offer\n` +
+      `  Examples:\n` +
+      `  !OFFER ADD 20% off today\n` +
+      `  !OFFER ADD Happy hours 4-7pm 15% off\n` +
+      `  !OFFER ADD Free cold coffee above 200\n` +
+      `  !OFFER ADD 10% off on thursday\n` +
+      `*!OFFER OFF <number>* — deactivate offer\n` +
+      `*!OFFER ON <number>* — reactivate offer\n` +
+      `*!OFFER DEL <number>* — delete offer\n` +
+      `*!STATS* — today's order summary\n` +
+      `*!TAKEAWAY LIST* — pending pickup tokens today`
+    );
+    return;
+  }
+
+  // ── STATS ──
+  if (lower === 'stats') {
+    const today = new Date().toISOString().slice(0, 10);
+    const stats = await db.queryOne(
+      `SELECT 
+         COUNT(DISTINCT o.id) as total_orders,
+         COALESCE(SUM(b.grand_total), 0) as total_revenue
+       FROM orders o
+       LEFT JOIN bills b ON b.order_id = o.id
+       WHERE o.restaurant_id = $1 AND DATE(o.created_at) = $2`,
+      [restaurant.id, today]
+    );
+    await whatsapp.sendMessage(from,
+      `📊 *Today's Stats*\n\n` +
+      `Orders: ${stats.total_orders}\n` +
+      `Revenue: ₹${stats.total_revenue}`
+    );
+    return;
+  }
+
+  // ── OFFER LIST ──
+  if (lower === 'offer list' || lower === 'offer' || lower === 'offers') {
+    const offers = await db.queryAll(
+      `SELECT o.*, mi.name as free_item_name 
+       FROM offers o LEFT JOIN menu_items mi ON mi.id = o.free_item_id
+       WHERE o.restaurant_id = $1 ORDER BY o.created_at DESC`,
+      [restaurant.id]
+    );
+    if (offers.length === 0) {
+      await whatsapp.sendMessage(from, 'No offers yet. Use OFFER ADD to create one.');
+      return;
+    }
+    let reply = `🎉 *Offers for ${restaurant.name}*\n\n`;
+    offers.forEach((o, i) => {
+      const status = o.is_active ? '✅' : '❌';
+      reply += `${status} *${i + 1}. ${o.title}*\n`;
+      if (o.happy_hour_start) reply += `   ⏰ ${o.happy_hour_start.slice(0,5)} - ${o.happy_hour_end.slice(0,5)}\n`;
+      if (o.valid_until)      reply += `   📅 Until: ${o.valid_until}\n`;
+      reply += '\n';
+    });
+    reply += `_OFFER OFF <number> to deactivate_`;
+    await whatsapp.sendMessage(from, reply);
+    return;
+  }
+
+  // ── OFFER OFF / ON ──
+  if (lower.startsWith('offer off ') || lower.startsWith('offer on ')) {
+    const isOff  = lower.startsWith('offer off');
+    const num    = parseInt(lower.split(' ').pop()) - 1;
+    const offers = await db.queryAll(
+      'SELECT id, title FROM offers WHERE restaurant_id = $1 ORDER BY created_at DESC',
+      [restaurant.id]
+    );
+    if (!offers[num]) {
+      await whatsapp.sendMessage(from, `❌ Offer #${num + 1} not found. Use OFFER LIST.`);
+      return;
+    }
+    await db.query('UPDATE offers SET is_active = $1 WHERE id = $2', [!isOff, offers[num].id]);
+    await whatsapp.sendMessage(from, `${isOff ? '❌ Deactivated' : '✅ Activated'}: *${offers[num].title}*`);
+    return;
+  }
+
+  // ── OFFER DEL ──
+  if (lower.startsWith('offer del ')) {
+    const num    = parseInt(lower.split(' ').pop()) - 1;
+    const offers = await db.queryAll(
+      'SELECT id, title FROM offers WHERE restaurant_id = $1 ORDER BY created_at DESC',
+      [restaurant.id]
+    );
+    if (!offers[num]) {
+      await whatsapp.sendMessage(from, `❌ Offer #${num + 1} not found.`);
+      return;
+    }
+    await db.query('DELETE FROM offers WHERE id = $1', [offers[num].id]);
+    await whatsapp.sendMessage(from, `🗑️ Deleted: *${offers[num].title}*`);
+    return;
+  }
+
+  // ── OFFER ADD ──
+  if (lower.startsWith('offer add ')) {
+    const text  = msg.substring(10).trim();
+    const lower2 = text.toLowerCase();
+
+    let offerType       = 'percent_off';
+    let discountPercent = 0;
+    let minOrderAmount  = 0;
+    let happyStart      = null;
+    let happyEnd        = null;
+    let freeItemId      = null;
+    let title           = text;
+
+    // Helper: resolve duration keywords to a valid_until date
+    function getValidUntil(keyword) {
+      const now = new Date();
+      const day = now.getDay(); // 0=Sun, 6=Sat
+      const k   = keyword.toLowerCase();
+      if (k === 'today')                    { return now.toISOString().slice(0, 10); }
+      if (k === 'tomorrow')                 { now.setDate(now.getDate() + 1); return now.toISOString().slice(0, 10); }
+      if (k === 'weekend' || k === 'this weekend') {
+        const daysToSun = (7 - day) % 7 || 7;
+        now.setDate(now.getDate() + daysToSun);
+        return now.toISOString().slice(0, 10);
+      }
+      if (k === 'week' || k === 'this week') { now.setDate(now.getDate() + (7 - day)); return now.toISOString().slice(0, 10); }
+      if (k === 'month' || k === 'this month') { return new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10); }
+      return now.toISOString().slice(0, 10);
+    }
+
+    // Detect duration keyword
+    const durationMatch = lower2.match(/\b(today|this weekend|weekend|tomorrow|this week|this month|week|month)\b/);
+    // null = ongoing (never expires). Only set expiry if owner explicitly says "today", "this week" etc.
+    let validUntil = durationMatch ? getValidUntil(durationMatch[1]) : null;
+
+    // Detect specific day of week: "on thursday", "every monday", "on fridays"
+    const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const dayMatch = lower2.match(/\b(?:on|every)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)s?\b/i);
+    let validDays = 'all';
+    if (dayMatch) {
+      validDays  = dayMatch[1].toLowerCase();
+      validUntil = null; // recurring weekly — no expiry
+    }
+
+    // Detect mode restriction: "on takeaway", "for delivery", "for zomato", "for swiggy dine in"
+    let validModes = 'all';
+    if      (/\b(for|on)\s+zomato\b/i.test(lower2))   validModes = 'dine_in_zomato';
+    else if (/\b(for|on)\s+swiggy\b/i.test(lower2))   validModes = 'dine_in_swiggy';
+    else if (/\btakeaway\b/i.test(lower2))              validModes = 'takeaway';
+    else if (/\b(home\s+)?delivery\b/i.test(lower2))  validModes = 'delivery';
+    else if (/\bdine.?in\b/i.test(lower2))             validModes = 'dine_in';
+
+    // Parse percent: "20% off" or "20% for"
+    const pctMatch = text.match(/(\d+)%/i);
+    if (pctMatch) discountPercent = parseInt(pctMatch[1]);
+
+    // Parse happy hours: "4-7pm" or "4pm-7pm"
+    const hourMatch = text.match(/(\d+)\s*(?:pm|am)?\s*[-–]\s*(\d+)\s*(pm|am)/i);
+    if (hourMatch && discountPercent > 0) {
+      offerType  = 'happy_hour';
+      validUntil = null; // ongoing
+      let startH = parseInt(hourMatch[1]);
+      let endH   = parseInt(hourMatch[2]);
+      const ampm = hourMatch[3].toLowerCase();
+      if (ampm === 'pm' && endH < 12) endH += 12;
+      if (ampm === 'pm' && startH < 12 && startH !== endH) startH += 12;
+      happyStart = `${String(startH).padStart(2,'0')}:00`;
+      happyEnd   = `${String(endH).padStart(2,'0')}:00`;
+      title      = `Happy Hours ${happyStart} - ${happyEnd}: ${discountPercent}% off`;
+    }
+
+    // Parse free item: "free cold coffee above 200"
+    const freeMatch = text.match(/free\s+(.+?)\s+(?:above|over|on orders above)\s+(\d+)/i);
+    if (freeMatch) {
+      offerType       = 'item_free';
+      minOrderAmount  = parseInt(freeMatch[2]);
+      discountPercent = 0;
+      validUntil      = null;
+      const itemName  = freeMatch[1].trim();
+      const menuItem  = await db.queryOne(
+        `SELECT id, name FROM menu_items WHERE restaurant_id = $1 AND name ILIKE $2 LIMIT 1`,
+        [restaurant.id, `%${itemName}%`]
+      );
+      if (!menuItem) {
+        await whatsapp.sendMessage(from, `❌ Item "${itemName}" not found in menu. Check spelling.\nUse OFFER LIST to verify.`);
+        return;
+      }
+      freeItemId = menuItem.id;
+      title      = `Free ${menuItem.name} on orders above ₹${minOrderAmount}`;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    await db.query(
+      `INSERT INTO offers 
+        (restaurant_id, title, description, offer_type, discount_percent,
+         free_item_id, min_order_amount, happy_hour_start, happy_hour_end,
+         valid_from, valid_until, valid_days, valid_modes, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,true)`,
+      [
+        restaurant.id, title, title, offerType, discountPercent,
+        freeItemId, minOrderAmount, happyStart, happyEnd,
+        today, validUntil, validDays, validModes
+      ]
+    );
+
+    let confirm = `✅ *Offer Added!*\n📌 ${title}\n`;
+    if (discountPercent)  confirm += `Discount: ${discountPercent}%\n`;
+    if (happyStart)       confirm += `Hours: ${happyStart} - ${happyEnd}\n`;
+    if (minOrderAmount)   confirm += `Min Order: ₹${minOrderAmount}\n`;
+    if (validDays !== 'all') confirm += `Repeats: every ${validDays}\n`;
+    else if (!validUntil)   confirm += `Valid: ongoing\n`;
+    else if (validUntil === new Date().toISOString().slice(0,10)) confirm += `Valid: today only\n`;
+    else                    confirm += `Valid until: ${validUntil}\n`;
+    const modeLabels = {
+      all: 'All modes', delivery: 'Home Delivery only',
+      takeaway: 'Takeaway only', dine_in: 'Dine-in only',
+      dine_in_zomato: 'Zomato Dine-in only 🔴', dine_in_swiggy: 'Swiggy Dine-in only 🟠'
+    };
+    confirm += `Mode: ${modeLabels[validModes] || validModes}\n`;
+    confirm += `\nCustomers will see this automatically 🎉`;
+    await whatsapp.sendMessage(from, confirm);
+    return;
+  }
+
+  // ── TAKEAWAY LIST ──
+  if (cmd === 'TAKEAWAY LIST' || cmd === 'TAKEAWAY') {
+    const pending = await db.queryAll(
+      `SELECT s.pickup_token, s.customer_phone, b.grand_total,
+              to_char(s.created_at AT TIME ZONE 'Asia/Kolkata', 'HH12:MI AM') as order_time
+       FROM sessions s
+       JOIN bills b ON b.session_id = s.id
+       WHERE s.restaurant_id = $1
+         AND s.mode = 'takeaway'
+         AND s.status = 'ordered'
+         AND DATE(s.created_at) = CURRENT_DATE
+       ORDER BY s.pickup_token_num ASC`,
+      [restaurant.id]
+    );
+    if (pending.length === 0) {
+      await whatsapp.sendMessage(from, '🏃 No takeaway orders today yet.');
+    } else {
+      let reply = `🏃 *Todays Takeaway Orders*\n━━━━━━━━━━━━━━\n`;
+      for (const p of pending) {
+        reply += `${p.pickup_token}  ₹${p.grand_total}  ${p.order_time}\n`;
+      }
+      reply += `━━━━━━━━━━━━━━\n${pending.length} order(s) today`;
+      await whatsapp.sendMessage(from, reply);
+    }
+    return;
+  }
+
+  // Unknown
+  await whatsapp.sendMessage(from, `❓ Unknown command. Send *HELP* to see all commands.`);
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATION WORKER
+// ─────────────────────────────────────────────
+const notificationWorker = new Worker('whatsapp-notifications', async (job) => {
+  const { to, message, type, documentUrl, filename } = job.data;
+  if (type === 'document' && documentUrl) {
+    await whatsapp.sendDocument(to, documentUrl, filename, message);
+  } else {
+    await whatsapp.sendMessage(to, message);
+  }
+}, { connection: redisConnection, concurrency: 10 });
+
+messageWorker.on('failed',      (job, err) => console.error(`❌ Message job ${job?.id} failed:`, err.message));
+notificationWorker.on('failed', (job, err) => console.error(`❌ Notif job ${job?.id} failed:`,   err.message));
+
+process.on('SIGTERM', async () => {
+  await messageWorker.close();
+  await notificationWorker.close();
+  process.exit(0);
+});
+

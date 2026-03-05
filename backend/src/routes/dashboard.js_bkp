@@ -1,0 +1,672 @@
+// ─────────────────────────────────────────────
+// OrderBuddy Dashboard API Routes
+// Registered in server.js as: app.register(require('./routes/dashboard'), { prefix: '/api' })
+// ─────────────────────────────────────────────
+
+const db = require('../database/db');
+
+module.exports = async function dashboardRoutes(fastify, opts) {
+
+  // ── AUTH: Owner login with phone number ──────────────────────────
+  // POST /api/auth
+  fastify.post('/auth', async (req, reply) => {
+    const { phone } = req.body;
+    if (!phone) return reply.status(400).send({ error: 'Phone required' });
+
+    // Normalize: strip spaces, +, leading 91 etc → raw digits
+    const normalized = phone.replace(/\D/g, '').replace(/^91/, '');
+
+    const restaurant = await db.queryOne(
+      `SELECT id, name, slug, phone, bot_name, bill_prefix,
+              restaurant_type, gstin, fssai, address,
+              delivery_fee, free_delivery_above, delivery_active,
+              zomato_discount, swiggy_discount, zomato_active, swiggy_active,
+              platform_fee,
+              owner_phone, whatsapp_number_id
+       FROM restaurants
+       WHERE (
+         REGEXP_REPLACE(COALESCE(owner_phone, ''), '[^0-9]', '', 'g') LIKE $1
+         OR REGEXP_REPLACE(COALESCE(phone, ''), '[^0-9]', '', 'g') LIKE $1
+       )
+         AND is_active = true
+       LIMIT 1`,
+      [`%${normalized}`]
+    );
+
+    if (!restaurant) {
+      return reply.status(401).send({ error: 'No restaurant found for this number' });
+    }
+
+    // Simple token: base64(restaurant_id:timestamp) — good enough for MVP
+    const token = Buffer.from(`${restaurant.id}:${Date.now()}`).toString('base64');
+
+    return reply.send({ token, restaurant });
+  });
+
+  // ── MIDDLEWARE: Verify token on all other routes ──────────────────
+  fastify.addHook('preHandler', async (req, reply) => {
+    if (req.url === '/api/auth') return; // skip auth route
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return reply.status(401).send({ error: 'Unauthorized' });
+    }
+
+    try {
+      const token   = authHeader.replace('Bearer ', '');
+      const decoded = Buffer.from(token, 'base64').toString('utf8');
+      const [restaurantId] = decoded.split(':');
+
+      const restaurant = await db.queryOne(
+        'SELECT * FROM restaurants WHERE id = $1 AND is_active = true',
+        [restaurantId]
+      );
+
+      if (!restaurant) return reply.status(401).send({ error: 'Invalid token' });
+
+      req.restaurant = restaurant;
+    } catch {
+      return reply.status(401).send({ error: 'Invalid token' });
+    }
+  });
+
+  // ── STATS: Today's summary ────────────────────────────────────────
+  // GET /api/stats
+  fastify.get('/stats', async (req, reply) => {
+    const rid = req.restaurant.id;
+
+    const [todayStats, weekStats, modeStats, topItems] = await Promise.all([
+      // Today totals — use orders table so even unbilled orders count
+      db.queryOne(
+        `SELECT
+           COUNT(DISTINCT o.id)                            AS total_orders,
+           COALESCE(SUM(b.grand_total), 0)                AS total_revenue,
+           COALESCE(AVG(b.grand_total), 0)                AS avg_bill,
+           COUNT(DISTINCT s.customer_phone)               AS unique_customers
+         FROM orders o
+         JOIN sessions s ON s.id = o.session_id
+         LEFT JOIN bills b ON b.order_id = o.id
+         WHERE o.restaurant_id = $1
+           AND o.status NOT IN ('cancelled')
+           AND o.created_at >= (NOW() AT TIME ZONE 'Asia/Kolkata')::date::timestamp AT TIME ZONE 'Asia/Kolkata'
+           AND o.created_at <  ((NOW() AT TIME ZONE 'Asia/Kolkata')::date + 1)::timestamp AT TIME ZONE 'Asia/Kolkata'`,
+        [rid]
+      ),
+
+      // Last 7 days revenue
+      db.queryAll(
+        `SELECT
+           DATE(o.created_at AT TIME ZONE 'Asia/Kolkata') AS day,
+           COALESCE(SUM(b.grand_total), 0)                AS revenue,
+           COUNT(DISTINCT o.id)                           AS orders
+         FROM orders o
+         LEFT JOIN bills b ON b.order_id = o.id
+         WHERE o.restaurant_id = $1
+           AND o.status NOT IN ('cancelled')
+           AND o.created_at > NOW() - INTERVAL '7 days'
+         GROUP BY day ORDER BY day`,
+        [rid]
+      ),
+
+      // Orders by mode today
+      db.queryAll(
+        `SELECT s.mode, COUNT(DISTINCT o.id) AS cnt, COALESCE(SUM(b.grand_total), 0) AS revenue
+         FROM orders o
+         JOIN sessions s ON s.id = o.session_id
+         LEFT JOIN bills b ON b.order_id = o.id
+         WHERE o.restaurant_id = $1
+           AND o.status NOT IN ('cancelled')
+           AND DATE(o.created_at AT TIME ZONE 'Asia/Kolkata') = (NOW() AT TIME ZONE 'Asia/Kolkata')::date
+         GROUP BY s.mode`,
+        [rid]
+      ),
+
+      // Top 5 items today
+      db.queryAll(
+        `SELECT oi.name, SUM(oi.quantity) AS qty, SUM(oi.subtotal) AS revenue
+         FROM order_items oi
+         JOIN orders o ON o.id = oi.order_id
+         WHERE o.restaurant_id = $1
+           AND o.status NOT IN ('cancelled')
+           AND DATE(o.created_at AT TIME ZONE 'Asia/Kolkata') = (NOW() AT TIME ZONE 'Asia/Kolkata')::date
+         GROUP BY oi.name
+         ORDER BY qty DESC LIMIT 5`,
+        [rid]
+      ),
+    ]);
+
+    return reply.send({ todayStats, weekStats, modeStats, topItems });
+  });
+
+  // ── ORDERS: Live + historical ─────────────────────────────────────
+  // GET /api/orders?date=today&mode=all&status=all&limit=50
+  fastify.get('/orders', async (req, reply) => {
+    const rid    = req.restaurant.id;
+    const { date = 'today', mode = 'all', status = 'all', limit = 50 } = req.query;
+
+    const todayIST = `o.created_at >= (NOW() AT TIME ZONE 'Asia/Kolkata')::date::timestamp AT TIME ZONE 'Asia/Kolkata'
+           AND o.created_at <  ((NOW() AT TIME ZONE 'Asia/Kolkata')::date + 1)::timestamp AT TIME ZONE 'Asia/Kolkata'`;
+    let dateFilter = todayIST;
+    if (date === 'week')  dateFilter = `o.created_at > NOW() - INTERVAL '7 days'`;
+    if (date === 'month') dateFilter = `o.created_at > NOW() - INTERVAL '30 days'`;
+
+    const modeFilter   = mode   !== 'all' ? `AND s.mode = '${mode}'`     : '';
+    const statusFilter = status !== 'all' ? `AND o.status = '${status}'` : '';
+
+    const orders = await db.queryAll(
+      `SELECT
+         o.id, o.status, o.created_at,
+         s.mode, s.customer_phone,
+         COALESCE(s.table_number, '') AS table_number,
+         COALESCE(s.delivery_address, '') AS delivery_address,
+         s.delivery_lat,
+         s.delivery_lng,
+         o.delivery_boy,
+         (SELECT da.status FROM delivery_assignments da
+          WHERE da.order_id = o.id LIMIT 1) AS delivery_status,
+         b.bill_number,
+         COALESCE(b.grand_total, 0) AS grand_total,
+         COALESCE(b.subtotal, 0) AS subtotal,
+         COALESCE(b.discount_amount, 0) AS discount_amount,
+         COALESCE(b.cgst, 0) AS cgst,
+         COALESCE(b.sgst, 0) AS sgst,
+         COALESCE(b.total_tax, 0) AS total_tax,
+         b.status AS payment_status,
+         (
+           SELECT json_agg(json_build_object(
+             'name', oi.name, 'qty', oi.quantity,
+             'price', oi.price, 'subtotal', oi.subtotal,
+             'kot_type', oi.kot_type
+           ))
+           FROM order_items oi WHERE oi.order_id = o.id
+         ) AS items
+       FROM orders o
+       JOIN sessions s ON s.id = o.session_id
+       LEFT JOIN bills b ON b.order_id = o.id
+       WHERE o.restaurant_id = $1
+         AND ${dateFilter}
+         ${modeFilter}
+         ${statusFilter}
+       ORDER BY o.created_at DESC
+       LIMIT $2`,
+      [rid, parseInt(limit)]
+    );
+
+    return reply.send({ orders });
+  });
+
+  // PUT /api/orders/:id/status
+  fastify.put('/orders/:id/status', async (req, reply) => {
+    const { status } = req.body;
+    const validStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return reply.status(400).send({ error: 'Invalid status' });
+    }
+
+    const order = await db.queryOne(
+      `UPDATE orders SET status = $1, updated_at = NOW()
+       WHERE id = $2 AND restaurant_id = $3 RETURNING *`,
+      [status, req.params.id, req.restaurant.id]
+    );
+
+    if (!order) return reply.status(404).send({ error: 'Order not found' });
+
+    return reply.send({ success: true, order });
+  });
+
+  // ── MENU: Categories + Items ──────────────────────────────────────
+  // GET /api/menu
+  fastify.get('/menu', async (req, reply) => {
+    const rid = req.restaurant.id;
+
+    const [categories, items] = await Promise.all([
+      db.queryAll(
+        `SELECT * FROM menu_categories WHERE restaurant_id = $1 ORDER BY sort_order`,
+        [rid]
+      ),
+      db.queryAll(
+        `SELECT mi.*, mc.name AS category_name
+         FROM menu_items mi
+         LEFT JOIN menu_categories mc ON mc.id = mi.category_id
+         WHERE mi.restaurant_id = $1
+         ORDER BY mc.sort_order, mi.sort_order, mi.name`,
+        [rid]
+      ),
+    ]);
+
+    return reply.send({ categories, items });
+  });
+
+  // POST /api/menu/categories
+  fastify.post('/menu/categories', async (req, reply) => {
+    const { name } = req.body;
+    const cat = await db.queryOne(
+      `INSERT INTO menu_categories (restaurant_id, name, sort_order)
+       VALUES ($1, $2, (SELECT COALESCE(MAX(sort_order),0)+1 FROM menu_categories WHERE restaurant_id=$1))
+       RETURNING *`,
+      [req.restaurant.id, name]
+    );
+    return reply.send({ category: cat });
+  });
+
+  // POST /api/menu/items
+  fastify.post('/menu/items', async (req, reply) => {
+    const { name, description, price, category_id, tax_category, kot_type, is_veg } = req.body;
+
+    const item = await db.queryOne(
+      `INSERT INTO menu_items
+         (restaurant_id, category_id, name, description, price, tax_category, kot_type, is_veg)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       RETURNING *`,
+      [req.restaurant.id, category_id, name, description || '', parseInt(price),
+       tax_category || 'food', kot_type || 'kitchen', is_veg !== false]
+    );
+
+    return reply.send({ item });
+  });
+
+  // PUT /api/menu/items/:id
+  fastify.put('/menu/items/:id', async (req, reply) => {
+    const { name, description, price, category_id, tax_category, kot_type, is_veg } = req.body;
+
+    const item = await db.queryOne(
+      `UPDATE menu_items
+       SET name=$1, description=$2, price=$3, category_id=$4,
+           tax_category=$5, kot_type=$6, is_veg=$7
+       WHERE id=$8 AND restaurant_id=$9
+       RETURNING *`,
+      [name, description, parseInt(price), category_id,
+       tax_category, kot_type, is_veg, req.params.id, req.restaurant.id]
+    );
+
+    if (!item) return reply.status(404).send({ error: 'Item not found' });
+    return reply.send({ item });
+  });
+
+  // PUT /api/menu/items/:id/toggle  (available on/off)
+  fastify.put('/menu/items/:id/toggle', async (req, reply) => {
+    const item = await db.queryOne(
+      `UPDATE menu_items SET is_available = NOT is_available
+       WHERE id=$1 AND restaurant_id=$2 RETURNING *`,
+      [req.params.id, req.restaurant.id]
+    );
+    if (!item) return reply.status(404).send({ error: 'Item not found' });
+    return reply.send({ item });
+  });
+
+  // DELETE /api/menu/items/:id
+  fastify.delete('/menu/items/:id', async (req, reply) => {
+    await db.query(
+      `DELETE FROM menu_items WHERE id=$1 AND restaurant_id=$2`,
+      [req.params.id, req.restaurant.id]
+    );
+    return reply.send({ success: true });
+  });
+
+  // ── OFFERS ───────────────────────────────────────────────────────
+  // GET /api/offers
+  fastify.get('/offers', async (req, reply) => {
+    const offers = await db.queryAll(
+      `SELECT o.*, mi.name AS free_item_name
+       FROM offers o
+       LEFT JOIN menu_items mi ON mi.id = o.free_item_id
+       WHERE o.restaurant_id = $1
+       ORDER BY o.created_at DESC`,
+      [req.restaurant.id]
+    );
+    return reply.send({ offers });
+  });
+
+  // POST /api/offers
+  fastify.post('/offers', async (req, reply) => {
+    const {
+      title, offer_type = 'percent_off', discount_percent = 0,
+      min_order_amount = 0, valid_modes = 'all', valid_days = 'all',
+      valid_until = null, happy_hour_start = null, happy_hour_end = null,
+    } = req.body;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const offer = await db.queryOne(
+      `INSERT INTO offers
+         (restaurant_id, title, description, offer_type, discount_percent,
+          min_order_amount, valid_modes, valid_days, valid_from, valid_until,
+          happy_hour_start, happy_hour_end, is_active)
+       VALUES ($1,$2,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true)
+       RETURNING *`,
+      [req.restaurant.id, title, offer_type, parseInt(discount_percent),
+       parseInt(min_order_amount), valid_modes, valid_days,
+       today, valid_until || null, happy_hour_start || null, happy_hour_end || null]
+    );
+    return reply.send({ offer });
+  });
+
+  // PUT /api/offers/:id/toggle
+  fastify.put('/offers/:id/toggle', async (req, reply) => {
+    const offer = await db.queryOne(
+      `UPDATE offers SET is_active = NOT is_active
+       WHERE id=$1 AND restaurant_id=$2 RETURNING *`,
+      [req.params.id, req.restaurant.id]
+    );
+    if (!offer) return reply.status(404).send({ error: 'Offer not found' });
+    return reply.send({ offer });
+  });
+
+  // DELETE /api/offers/:id
+  fastify.delete('/offers/:id', async (req, reply) => {
+    await db.query(
+      `DELETE FROM offers WHERE id=$1 AND restaurant_id=$2`,
+      [req.params.id, req.restaurant.id]
+    );
+    return reply.send({ success: true });
+  });
+
+  // ── SETTINGS ─────────────────────────────────────────────────────
+  // GET /api/settings
+  fastify.get('/settings', async (req, reply) => {
+    return reply.send({ restaurant: req.restaurant });
+  });
+
+  // PUT /api/settings
+  fastify.put('/settings', async (req, reply) => {
+    const {
+      name, bot_name, welcome_message,
+      delivery_fee, free_delivery_above, delivery_active, min_order_delivery,
+      zomato_discount, swiggy_discount, zomato_active, swiggy_active,
+      platform_fee, restaurant_type, gstin, fssai, address,
+      open_time, close_time, delivery_phones,
+    } = req.body;
+
+    try {
+      const restaurant = await db.queryOne(
+        `UPDATE restaurants SET
+           name=$1, bot_name=$2, welcome_message=$3,
+           delivery_fee=$4, free_delivery_above=$5, delivery_active=$6, min_order_delivery=$7,
+           zomato_discount=$8, swiggy_discount=$9, zomato_active=$10, swiggy_active=$11,
+           platform_fee=$12, restaurant_type=$13, gstin=$14, fssai=$15, address=$16,
+           open_time=$17, close_time=$18,
+           delivery_phones=$19,
+           updated_at=NOW()
+         WHERE id=$20 RETURNING *`,
+        [
+          name, bot_name, welcome_message,
+          parseInt(delivery_fee)||0, parseInt(free_delivery_above)||0,
+          delivery_active, parseInt(min_order_delivery)||0,
+          parseInt(zomato_discount)||0, parseInt(swiggy_discount)||0,
+          zomato_active, swiggy_active,
+          parseInt(platform_fee)||0, restaurant_type,
+          gstin, fssai, address,
+          open_time || null, close_time || null,
+          delivery_phones || null,
+          req.restaurant.id,
+        ]
+      );
+      return reply.send({ restaurant });
+    } catch (err) {
+      console.error('Settings save error:', err.message);
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+
+  // ── OUTLETS ──────────────────────────────────────────────────────
+  // GET /api/outlets — returns all outlets under same parent (or self if standalone)
+  fastify.get('/outlets', async (req, reply) => {
+    const rid = req.restaurant.id;
+    const parentId = req.restaurant.parent_restaurant_id || rid;
+
+    // Get all restaurants sharing same parent (including parent itself)
+    const outlets = await db.queryAll(
+      `SELECT id, name, outlet_name, outlet_address, delivery_phones,
+              open_time, close_time, whatsapp_number_id
+       FROM restaurants
+       WHERE (id = $1 OR parent_restaurant_id = $1)
+         AND is_active = true
+       ORDER BY outlet_name NULLS FIRST`,
+      [parentId]
+    );
+    return reply.send({ outlets });
+  });
+
+  // ── CUSTOMERS ─────────────────────────────────────────────────────
+  // GET /api/customers
+  fastify.get('/customers', async (req, reply) => {
+    const customers = await db.queryAll(
+      `SELECT
+         s.customer_phone,
+         COUNT(DISTINCT b.id)           AS total_orders,
+         COALESCE(SUM(b.grand_total),0) AS total_spent,
+         MAX(b.created_at)              AS last_order_at,
+         MIN(b.created_at)              AS first_order_at
+       FROM sessions s
+       JOIN bills b ON b.session_id = s.id
+       WHERE s.restaurant_id = $1
+       GROUP BY s.customer_phone
+       ORDER BY total_spent DESC
+       LIMIT 100`,
+      [req.restaurant.id]
+    );
+    return reply.send({ customers });
+  });
+
+
+
+  // ── MARK ORDER AS CASH PAID (takeaway/dine-in counter payment) ───
+  // POST /api/orders/:id/mark-paid
+  fastify.post('/orders/:id/mark-paid', async (req, reply) => {
+    const { method = 'cash' } = req.body; // cash | upi | card
+
+    try {
+      // Get bill for this order
+      const bill = await db.queryOne(
+        'SELECT * FROM bills WHERE order_id = $1 AND restaurant_id = $2',
+        [req.params.id, req.restaurant.id]
+      );
+
+      if (!bill) return reply.status(404).send({ error: 'No bill found for this order' });
+      if (bill.status === 'paid') return reply.status(400).send({ error: 'Already marked as paid' });
+
+      // Mark bill paid
+      const updatedBill = await db.queryOne(
+        `UPDATE bills
+         SET status = 'paid',
+             payment_method = $1,
+             cash_collected = true,
+             paid_at = NOW()
+         WHERE id = $2
+         RETURNING *`,
+        [method, bill.id]
+      );
+
+      // Mark session paid
+      await db.query(
+        "UPDATE sessions SET status = 'paid' WHERE id = $1",
+        [updatedBill.session_id]
+      );
+
+      // Update order status to completed
+      await db.query(
+        "UPDATE orders SET status = 'completed', updated_at = NOW() WHERE id = $1",
+        [req.params.id]
+      );
+
+      // ── Send WhatsApp payment confirmation to customer ──
+      try {
+        const { notificationQueue } = require('../queue/setup');
+        const whatsapp = require('../services/whatsapp');
+        const session = await db.queryOne(
+          'SELECT s.*, r.name AS restaurant_name FROM sessions s JOIN restaurants r ON r.id = s.restaurant_id WHERE s.id = $1',
+          [updatedBill.session_id]
+        );
+
+        if (session && session.customer_phone) {
+          const methodLabel = { cash: 'Cash', upi: 'UPI', card: 'Card' }[method] || method;
+          const msg = whatsapp.notifications.paymentReceived
+            ? whatsapp.notifications.paymentReceived(updatedBill.grand_total, updatedBill.bill_number)
+            : `✅ *Payment Received!*
+
+Amount: ₹${updatedBill.grand_total}
+Bill: ${updatedBill.bill_number}
+Paid via: ${methodLabel}
+
+Thank you! Enjoy your order 🙏
+— ${session.restaurant_name}`;
+
+          await notificationQueue.add('cash-payment-confirmed', {
+            to:      session.customer_phone,
+            message: msg,
+            type:    'text',
+          });
+        }
+      } catch (notifErr) {
+        // Don't fail the whole request if notification fails
+        console.error('WhatsApp notification failed:', notifErr.message);
+      }
+
+      return reply.send({ success: true, bill: updatedBill, message: `Marked as paid via ${method}` });
+    } catch (e) {
+      return reply.status(500).send({ error: e.message });
+    }
+  });
+
+
+  // ── REFUND ───────────────────────────────────────────────────────
+  // POST /api/orders/:id/refund
+  fastify.post('/orders/:id/refund', async (req, reply) => {
+    const { refundAmount, reason } = req.body;
+
+    if (!refundAmount || parseInt(refundAmount) <= 0) {
+      return reply.status(400).send({ error: 'Invalid refund amount' });
+    }
+
+    try {
+      const { processRefund } = require('../routes/payment');
+      
+      // Get bill for this order
+      const bill = await db.queryOne(
+        'SELECT * FROM bills WHERE order_id = $1 AND restaurant_id = $2',
+        [req.params.id, req.restaurant.id]
+      );
+
+      if (!bill) return reply.status(404).send({ error: 'No bill found for this order. Order may not have been paid online.' });
+
+      const result = await processRefund({
+        billId:       bill.id,
+        refundAmount: parseInt(refundAmount),
+        reason,
+        restaurantId: req.restaurant.id,
+      });
+
+      return reply.send(result);
+
+    } catch (e) {
+      return reply.status(400).send({ error: e.message });
+    }
+  });
+
+
+  // ══════════════════════════════════════════════
+  // KOT DISPLAY ROUTES
+  // ══════════════════════════════════════════════
+
+  // GET /api/kots?restaurant_id=xxx&status=new,cooking,ready
+  fastify.get('/kots', async (req, reply) => {
+    const { restaurant_id, status } = req.query;
+    const rid = restaurant_id || req.restaurant?.id;
+    if (!rid) return reply.status(400).send({ error: 'restaurant_id required' });
+
+    const statuses = status ? status.split(',') : ['new', 'cooking', 'ready'];
+    const placeholders = statuses.map((_, i) => '$' + (i + 2)).join(',');
+
+    const kots = await db.queryAll(
+      `SELECT k.id, k.order_id, k.kot_type, k.items, k.table_number, k.status,
+              k.created_at, k.created_at AS updated_at,
+              s.mode,
+              COALESCE(k.kot_number, UPPER(SUBSTRING(k.id::text, 1, 6))) AS kot_number
+       FROM kots k
+       LEFT JOIN orders o ON o.id = k.order_id
+       LEFT JOIN sessions s ON s.id = o.session_id
+       WHERE k.restaurant_id = $1
+         AND k.status IN (${placeholders})
+         AND k.created_at > NOW() - INTERVAL '12 hours'
+       ORDER BY
+         CASE k.status WHEN 'new' THEN 0 WHEN 'cooking' THEN 1 WHEN 'ready' THEN 2 ELSE 3 END,
+         k.created_at ASC`,
+      [rid, ...statuses]
+    );
+
+    return reply.send({ kots });
+  });
+
+  // PUT /api/kots/:id/status
+  fastify.put('/kots/:id/status', async (req, reply) => {
+    const { status } = req.body;
+    const validStatuses = ['new', 'cooking', 'ready', 'done'];
+    if (!validStatuses.includes(status)) return reply.status(400).send({ error: 'Invalid status' });
+
+    const rid = req.restaurant?.id;
+    const whereClause = rid ? 'AND restaurant_id = $3' : '';
+    const params = rid ? [status, req.params.id, rid] : [status, req.params.id];
+
+    const kot = await db.queryOne(
+      `UPDATE kots SET status = $1 WHERE id = $2 ${whereClause} RETURNING *`,
+      params
+    );
+    if (!kot) return reply.status(404).send({ error: 'KOT not found' });
+
+    // ── Send WhatsApp notification to customer ──
+    if (['cooking', 'ready', 'done'].includes(status)) {
+      try {
+        const orderInfo = await db.queryOne(
+          `SELECT s.customer_phone, s.mode, s.delivery_address, s.id AS session_id,
+                  b.bill_number, b.grand_total, r.name AS restaurant_name
+           FROM orders o
+           JOIN sessions s ON s.id = o.session_id
+           JOIN restaurants r ON r.id = o.restaurant_id
+           LEFT JOIN bills b ON b.order_id = o.id
+           WHERE o.id = $1`,
+          [kot.order_id]
+        );
+
+        if (orderInfo?.customer_phone) {
+          const appUrl = process.env.APP_URL || 'https://tapmyfood.com';
+          let msg = '';
+
+          if (status === 'cooking') {
+            msg = `👨‍🍳 *Your order is being prepared!*\n\n`;
+            msg += `📋 Bill #${orderInfo.bill_number}\n`;
+            msg += `⏱️ Ready in about *15-20 mins*\n\n`;
+            msg += `🔗 Track: ${appUrl}/order/${orderInfo.session_id}`;
+          } else if (status === 'ready') {
+            if (orderInfo.mode === 'delivery') {
+              msg = `🛵 *Your order is out for delivery!*\n\n`;
+              msg += `📋 Bill #${orderInfo.bill_number}\n`;
+              msg += `📍 Delivering to: ${orderInfo.delivery_address || 'your address'}\n`;
+              msg += `⏱️ Arriving in *10-15 mins*\n\n`;
+              msg += `🔗 Track: ${appUrl}/order/${orderInfo.session_id}`;
+            } else {
+              msg = `🔔 *Your order is ready!*\n\n`;
+              msg += `📋 Bill #${orderInfo.bill_number}\n`;
+              msg += `✅ Please collect at the counter`;
+            }
+          } else if (status === 'done') {
+            msg = `✅ *Order delivered! Enjoy your meal 😊*\n\n`;
+            msg += `📋 Bill #${orderInfo.bill_number} — ₹${orderInfo.grand_total}\n\n`;
+            msg += `⭐ How was your experience? Reply and let us know!`;
+          }
+
+          if (msg) {
+            const whatsapp = require('../services/whatsapp');
+            await whatsapp.sendMessage(orderInfo.customer_phone, msg);
+            console.log(`📱 Status notification sent to ${orderInfo.customer_phone}: ${status}`);
+          }
+        }
+      } catch(e) {
+        console.error('WhatsApp status notification error:', e.message);
+        // Don't fail the request if notification fails
+      }
+    }
+
+    return reply.send({ success: true, kot });
+  });
+
+};
