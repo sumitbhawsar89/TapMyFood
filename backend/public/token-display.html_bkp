@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OrderBuddy — Token Display</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0a;
+      color: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: #111;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #1a56a0;
+    }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .logo { font-size: 22px; font-weight: 700; color: #1a56a0; }
+    .restaurant-name { font-size: 18px; color: #ccc; }
+    .clock { font-size: 28px; font-weight: 700; color: #fff; letter-spacing: 2px; }
+
+    /* ── LEGEND ── */
+    .legend {
+      background: #111;
+      padding: 10px 32px;
+      display: flex;
+      gap: 32px;
+      border-bottom: 1px solid #222;
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #aaa; }
+    .dot { width: 14px; height: 14px; border-radius: 50%; }
+    .dot-orange { background: #f97316; }
+    .dot-green  { background: #22c55e; }
+    .dot-grey   { background: #555; }
+
+    /* ── TOKEN GRID ── */
+    .grid-container {
+      flex: 1;
+      padding: 24px 32px;
+      overflow-y: auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    /* ── TOKEN CARD ── */
+    .token-card {
+      border-radius: 16px;
+      padding: 24px 16px;
+      text-align: center;
+      position: relative;
+      transition: all 0.4s ease;
+      border: 2px solid transparent;
+    }
+
+    .token-card.preparing {
+      background: #1c1008;
+      border-color: #f97316;
+      box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+    }
+    .token-card.ready {
+      background: #0a1f0e;
+      border-color: #22c55e;
+      box-shadow: 0 0 24px rgba(34, 197, 94, 0.4);
+      animation: pulse-green 2s infinite;
+    }
+    .token-card.collected {
+      background: #111;
+      border-color: #333;
+      opacity: 0.4;
+    }
+
+    @keyframes pulse-green {
+      0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
+      50%       { box-shadow: 0 0 40px rgba(34, 197, 94, 0.7); }
+    }
+
+    .token-number {
+      font-size: 52px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .token-card.preparing .token-number { color: #f97316; }
+    .token-card.ready      .token-number { color: #22c55e; }
+    .token-card.collected  .token-number { color: #555; }
+
+    .token-status {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .token-card.preparing .token-status { color: #f97316; }
+    .token-card.ready      .token-status { color: #22c55e; }
+    .token-card.collected  .token-status { color: #555; }
+
+    .token-items {
+      font-size: 12px;
+      color: #777;
+      line-height: 1.5;
+      max-height: 60px;
+      overflow: hidden;
+    }
+    .token-card.ready .token-items { color: #aaa; }
+
+    /* Ready badge */
+    .ready-badge {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #22c55e;
+      color: #000;
+      font-size: 18px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      font-size: 18px;
+      gap: 12px;
+    }
+    .empty-icon { font-size: 64px; }
+
+    /* ── FOOTER ── */
+    .footer {
+      background: #111;
+      padding: 10px 32px;
+      border-top: 1px solid #222;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #444;
+    }
+
+    /* ── LOGIN SCREEN ── */
+    .login-screen {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-box {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 20px;
+      padding: 48px;
+      text-align: center;
+      width: 380px;
+    }
+    .login-box h2 { font-size: 24px; margin-bottom: 8px; }
+    .login-box p  { color: #666; font-size: 14px; margin-bottom: 32px; }
+    .login-box input {
+      width: 100%;
+      background: #0a0a0a;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 14px 16px;
+      color: #fff;
+      font-size: 16px;
+      margin-bottom: 16px;
+      outline: none;
+    }
+    .login-box input:focus { border-color: #1a56a0; }
+    .login-box button {
+      width: 100%;
+      background: #1a56a0;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .login-box button:hover { background: #1e66c4; }
+    .login-error { color: #ef4444; font-size: 13px; margin-top: 8px; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <div style="font-size:48px;margin-bottom:16px">🎫</div>
+    <h2>Token Display</h2>
+    <p>Enter your Restaurant ID to start the display screen</p>
+    <input type="text" id="restaurantInput" placeholder="Restaurant ID" />
+    <button onclick="startDisplay()">Start Display</button>
+    <div id="loginError" class="login-error hidden"></div>
+  </div>
+</div>
+
+<!-- DISPLAY SCREEN -->
+<div id="displayScreen" class="hidden" style="display:flex;flex-direction:column;min-height:100vh">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">OrderBuddy</div>
+      <div class="restaurant-name" id="restaurantName">—</div>
+    </div>
+    <div class="clock" id="clock">00:00:00</div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="dot dot-orange"></div> Preparing</div>
+    <div class="legend-item"><div class="dot dot-green"></div> Ready — Collect Now</div>
+    <div class="legend-item"><div class="dot dot-grey"></div> Collected</div>
+  </div>
+
+  <!-- Token Grid -->
+  <div class="grid-container">
+    <div class="grid" id="tokenGrid"></div>
+    <div class="empty hidden" id="emptyState">
+      <div class="empty-icon">🍔</div>
+      <div>No active orders right now</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Powered by OrderBuddy</span>
+    <span id="lastUpdate">—</span>
+    <span id="tokenCount">0 tokens</span>
+  </div>
+
+</div>
+
+<script>
+  const API = '';  // same origin
+  let restaurantId = '';
+  let restaurantName = '';
+  let pollInterval = null;
+  let collectedTokens = new Set(); // track recently collected — fade out after 30s
+
+  // ── CLOCK ──
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      now.toLocaleTimeString('en-IN', { hour12: false });
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // ── LOGIN ──
+  document.getElementById('restaurantInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startDisplay();
+  });
+
+  async function startDisplay() {
+    const input = document.getElementById('restaurantInput').value.trim();
+    if (!input) return;
+
+    try {
+      // Validate restaurant exists
+      const res = await fetch(`${API}/api/tokens/display?restaurant_id=${input}`);
+      if (!res.ok) throw new Error('Restaurant not found');
+      const data = await res.json();
+
+      restaurantId   = input;
+      restaurantName = data.restaurant_name || 'Restaurant';
+
+      document.getElementById('restaurantName').textContent = restaurantName;
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('displayScreen').classList.remove('hidden');
+      document.getElementById('displayScreen').style.display = 'flex';
+
+      // Start polling
+      fetchTokens();
+      pollInterval = setInterval(fetchTokens, 5000); // every 5 seconds
+
+    } catch (e) {
+      const err = document.getElementById('loginError');
+      err.textContent = 'Invalid Restaurant ID. Please check and try again.';
+      err.classList.remove('hidden');
+    }
+  }
+
+  // ── FETCH TOKENS ──
+  async function fetchTokens() {
+    try {
+      const res  = await fetch(`${API}/api/tokens/display?restaurant_id=${restaurantId}`);
+      const data = await res.json();
+
+      renderTokens(data.tokens || []);
+
+      document.getElementById('lastUpdate').textContent =
+        'Updated: ' + new Date().toLocaleTimeString('en-IN', { hour12: true });
+
+    } catch (e) {
+      console.error('Poll error:', e);
+    }
+  }
+
+  // ── RENDER TOKENS ──
+  function renderTokens(tokens) {
+    const grid  = document.getElementById('tokenGrid');
+    const empty = document.getElementById('emptyState');
+
+    if (!tokens.length) {
+      grid.innerHTML = '';
+      empty.classList.remove('hidden');
+      document.getElementById('tokenCount').textContent = '0 tokens';
+      return;
+    }
+
+    empty.classList.add('hidden');
+    document.getElementById('tokenCount').textContent = `${tokens.length} token${tokens.length !== 1 ? 's' : ''}`;
+
+    grid.innerHTML = tokens.map(token => {
+      const stateClass = token.state; // preparing | ready | collected
+      const statusLabel = stateClass === 'preparing' ? '🟠 Preparing'
+                        : stateClass === 'ready'     ? '🟢 Ready — Collect Now!'
+                        :                              '✓ Collected';
+
+      const itemsList = (token.items || [])
+        .slice(0, 4)
+        .map(i => `${i.name} x${i.qty}`)
+        .join(', ');
+      const moreItems = token.items?.length > 4 ? ` +${token.items.length - 4} more` : '';
+
+      return `
+        <div class="token-card ${stateClass}">
+          ${stateClass === 'ready' ? '<div class="ready-badge">✓</div>' : ''}
+          <div class="token-number">${token.token}</div>
+          <div class="token-status">${statusLabel}</div>
+          <div class="token-items">${itemsList}${moreItems}</div>
+        </div>
+      `;
+    }).join('');
+  }
+</script>
+
+</body>
+</html>
+

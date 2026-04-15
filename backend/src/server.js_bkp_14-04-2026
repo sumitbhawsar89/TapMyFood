@@ -1,11 +1,11 @@
 require('dotenv').config();
-
 const Fastify = require('fastify');
 const path    = require('path');
-
 const webhookRoutes   = require('./routes/webhook');
 const paymentRoutes   = require('./routes/payment');
 const dashboardRoutes = require('./routes/dashboard');
+const staffRoutes     = require('./routes/staff');
+const waiterRoutes    = require('./routes/waiter');
 
 const app = Fastify({ logger: true });
 
@@ -16,7 +16,6 @@ app.register(require('@fastify/cors'), {
   origin: true,   // allow all origins for dashboard
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 });
-
 app.register(require('@fastify/formbody'));
 app.register(require('@fastify/static'), {
   root:   path.join(__dirname, '../public'),
@@ -29,7 +28,6 @@ app.register(require('@fastify/static'), {
 app.get('/dashboard', async (req, reply) => {
   return reply.sendFile('dashboard.html');
 });
-
 app.get('/kot', async (req, reply) => {
   reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
   return reply.sendFile('kot-display.html');
@@ -52,6 +50,12 @@ app.get('/order/:sessionId', async (req, reply) => {
 // Dashboard API (auth + all owner endpoints)
 app.register(dashboardRoutes, { prefix: '/api' });
 
+// Staff API (login, list, add, deactivate)
+app.register(staffRoutes, { prefix: '/api' });
+
+// Waiter API (floor map, start session, transfer table)
+app.register(waiterRoutes, { prefix: '/api' });
+
 // Order UI API (web menu + cart sync)
 try {
   const orderUIRoutes = require('./routes/order-ui');
@@ -65,18 +69,51 @@ try {
 app.get('/webhook/whatsapp',  webhookRoutes.verifyWebhook);
 app.post('/webhook/whatsapp', webhookRoutes.receiveMessage);
 
-// Payment routes (Easebuzz)
+// Payment routes (Easebuzz — legacy, to be removed after Paytm goes live)
 app.post('/payment/create',   paymentRoutes.createPayment);
 app.post('/payment/webhook',  paymentRoutes.paymentWebhook);
 app.get('/payment/success',   paymentRoutes.paymentSuccess);
 app.get('/payment/failure',   paymentRoutes.paymentFailure);
+
+// Paytm PG webhook — payment confirmed/failed
+// Configure this URL in Paytm dashboard: {BASE_URL}/payment/paytm/webhook
+app.post('/payment/webhook/:gateway', async (req, reply) => {
+  try {
+    const paymentSvc = require('./services/payment-service');
+    const result = await paymentSvc.handleWebhook(req.params.gateway, req.body);
+    return reply.status(200).send('OK');
+  } catch (err) {
+    console.error('Paytm webhook error:', err);
+    return reply.status(500).send('Error');
+  }
+});
+
+// Paytm payment success/failure redirect pages
+app.get('/payment/paytm/success', async (req, reply) => {
+  return reply.send(`
+    <html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0d0d0d;color:#fff">
+      <h1 style="color:#25D366">✅ Payment Successful!</h1>
+      <p>Your order is confirmed. You will receive a WhatsApp confirmation shortly.</p>
+      <p style="color:#888;font-size:13px">You can close this window.</p>
+    </body></html>
+  `);
+});
+
+app.get('/payment/paytm/failure', async (req, reply) => {
+  return reply.send(`
+    <html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#0d0d0d;color:#fff">
+      <h1 style="color:#ff4757">❌ Payment Failed</h1>
+      <p>Please try again or contact the restaurant.</p>
+      <p style="color:#888;font-size:13px">You can close this window.</p>
+    </body></html>
+  `);
+});
 
 // ─────────────────────────────────────────────
 // Order status update (called by restaurant staff)
 // ─────────────────────────────────────────────
 app.post('/order/status', async (req, reply) => {
   const { orderId, status, restaurantId } = req.body;
-
   const db         = require('./database/db');
   const whatsapp   = require('./services/whatsapp');
   const { notificationQueue } = require('./queue/setup');
@@ -90,7 +127,6 @@ app.post('/order/status', async (req, reply) => {
     'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
     [status, orderId]
   );
-
   if (!order) return reply.status(404).send({ error: 'Order not found' });
 
   const session = await db.queryOne(
@@ -100,10 +136,9 @@ app.post('/order/status', async (req, reply) => {
 
   let notificationMsg = null;
   const n = whatsapp.notifications;
-
   switch (status) {
-    case 'confirmed':       notificationMsg = n.orderConfirmed(session.restaurant_name); break;
-    case 'preparing':       notificationMsg = n.orderPreparing(session.restaurant_name); break;
+    case 'confirmed':        notificationMsg = n.orderConfirmed(session.restaurant_name); break;
+    case 'preparing':        notificationMsg = n.orderPreparing(session.restaurant_name); break;
     case 'ready':
       if (session.mode === 'takeaway' || session.mode === 'delivery') {
         notificationMsg = n.takeawayReady(session.restaurant_name);
@@ -111,7 +146,7 @@ app.post('/order/status', async (req, reply) => {
       break;
     case 'out_for_delivery': notificationMsg = n.outForDelivery(); break;
     case 'completed':
-      if (session.mode === 'takeaway')  notificationMsg = n.takeawayHandedOver();
+      if (session.mode === 'takeaway')      notificationMsg = n.takeawayHandedOver();
       else if (session.mode === 'delivery') notificationMsg = n.delivered(session.restaurant_name);
       break;
   }
@@ -140,7 +175,6 @@ app.get('/menu/:slug', async (req, reply) => {
 // Start server
 // ─────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
-
 app.listen({ port: PORT, host: '0.0.0.0' }, (err, address) => {
   if (err) { console.error('❌ Server failed to start:', err); process.exit(1); }
   console.log(`✅ Server running at ${address}`);

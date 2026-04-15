@@ -5,7 +5,7 @@
 // ══════════════════════════════════════════════════════════
 const db          = require('../database/db');
 const cartSvc     = require('../services/cart');
-// whatsapp notifications handled internally by billing.js
+// whatsapp notifications handled by billing.js internally
 const billing     = require('../services/billing');
 const deliverySvc = require('../services/delivery');
 
@@ -307,47 +307,20 @@ module.exports = async function orderUIRoutes(fastify, opts) {
         });
       }
 
-      // ── Online — Payment Gateway (routed via payment-service.js) ──
-      // payment-service reads restaurant gateway config
-      // Routes to correct adapter: paytm | razorpay | phonepe
-      // Frontend redirects customer to payment_url
-      try {
-        const paymentSvc = require('../services/payment-service');
-        const bill = await db.queryOne(
-          `SELECT id, grand_total FROM bills
-           WHERE session_id = $1
-           ORDER BY created_at DESC LIMIT 1`,
-          [sessionId]
-        );
-        const payResult = await paymentSvc.initiate({
-          restaurantId:  session.restaurant_id,
-          sessionId,
-          billId:        bill.id,
-          amount:        bill.grand_total,
-          customerPhone: session.customer_phone,
-          billNumber:    result.bill_number,
-          mode:          session.mode,
-        });
-        return reply.send({
-          success:      true,
-          payment_mode: 'online',
-          bill_number:  result.bill_number,
-          total:        result.grand_total,
-          payment_url:  payResult.payment_url,
-          txn_token:    payResult.txn_token,
-        });
-      } catch (payErr) {
-        // Gateway not configured yet (MID pending) — return pending gracefully
-        fastify.log.warn('Payment gateway not configured:', payErr.message);
-        return reply.send({
-          success:        true,
-          payment_mode:   'online',
-          bill_number:    result.bill_number,
-          total:          result.grand_total,
-          payment_status: 'payment_pending',
-          message:        'Order placed. Complete payment to confirm.',
-        });
-      }
+      // ── Online — Paytm PG (TODO: add when MID received) ──
+      // Steps when MID arrives:
+      //   1. Call Paytm initiate transaction API
+      //   2. Return { payment_url } to frontend
+      //   3. Frontend redirects customer to Paytm payment page
+      //   4. Paytm webhook fires on payment → close session
+      return reply.send({
+        success:        true,
+        payment_mode:   'online',
+        bill_number:    result.bill_number,
+        total:          result.grand_total,
+        payment_status: 'payment_pending',
+        message:        'Order placed. Complete payment to confirm.',
+      });
 
     } catch (e) {
       fastify.log.error(e);
@@ -445,3 +418,4 @@ module.exports = async function orderUIRoutes(fastify, opts) {
   });
 
 };
+

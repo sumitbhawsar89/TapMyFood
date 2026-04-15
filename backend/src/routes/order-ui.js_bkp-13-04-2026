@@ -5,7 +5,7 @@
 // ══════════════════════════════════════════════════════════
 const db          = require('../database/db');
 const cartSvc     = require('../services/cart');
-// whatsapp notifications handled internally by billing.js
+const whatsapp    = require('./whatsapp');
 const billing     = require('../services/billing');
 const deliverySvc = require('../services/delivery');
 
@@ -445,3 +445,4 @@ module.exports = async function orderUIRoutes(fastify, opts) {
   });
 
 };
+

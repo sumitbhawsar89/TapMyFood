@@ -794,7 +794,7 @@ function showChatOrderSummary() {
     '<div style="display:flex;justify-content:space-between;padding:10px 0 4px;font-weight:800;font-size:16px;">' +
     '<span>Total</span><span style="color:var(--orange)">₹' + total + '</span></div></div>' +
     '<div style="display:flex;gap:8px;padding:12px 16px;border-top:1px solid #f5ede3;">' +
-    '<button onclick="openCart()" style="flex:1;padding:12px;background:white;border:2px solid var(--orange);color:var(--orange);border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">✏️ Edit Cart</button>' +
+    '<button onclick="closeAI();setTimeout(openCart,350)" style="flex:1;padding:12px;background:white;border:2px solid var(--orange);color:var(--orange);border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">✏️ Edit Cart</button>' +
     '<button onclick="chatConfirmOrder()" style="flex:2;padding:12px;background:var(--orange);color:white;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;">✅ Confirm &amp; Place Order</button>' +
     '</div></div>';
 
@@ -1350,7 +1350,7 @@ async function sendAIMsg() {
 
     if (data.reply) addAIMessage('bot', data.reply);
     aiHistory.push({ role: 'user', content: text });
-    if (data.reply) aiHistory.push({ role: 'assistant', content: data.reply });
+    if (data.reply) aiHistory.push({ role: 'assistant', content: data.reply.replace(/@@CART:\[.*?\]@@/gs,'').replace(/@@SHOW_CART@@/g,'').trim() });
 
     if (data.cart_signal && data.cart_signal.length > 0) {
       await showAIConfirmCard(data.cart_signal, data.show_cart || false);
@@ -1446,11 +1446,18 @@ async function showAIConfirmCard(cartSignal, viewMode) {
     var aBtn = document.getElementById('ca_' + cid); if (aBtn) aBtn.disabled = allZero;
   };
   window.cqDismiss = function(cid) {
+    // Get rejected item names before deleting state
+    var s = window._cqStates[cid] || [];
+    var rejectedNames = s.map(i => i.name).join(', ');
     var el = document.getElementById(cid); if (el) el.closest('.ai-msg').remove();
     delete window._cqStates[cid];
     delete (window._cqViewMode||{})[cid];
     if (!hasPendingCard()) {
       unlockChatInput();
+      // Push rejection into chat history so AI knows this item was NOT added
+      if (rejectedNames) {
+        aiHistory.push({ role: 'assistant', content: 'SYSTEM: Customer rejected ' + rejectedNames + '. This item was NOT added to cart. Cart is unchanged.' });
+      }
       addAIMessage('bot', 'Koi baat nahi! Kaunsa item chahiye? 😊');
     }
   };
@@ -1486,6 +1493,8 @@ async function showAIConfirmCard(cartSignal, viewMode) {
       showToast('✅ ' + added.join(', ') + ' added!');
       platformLocked = true;
       var bb = document.getElementById('getBillBtn'); if(bb) bb.disabled = false;
+      // Push confirmation into chat history so AI knows exact cart state
+      aiHistory.push({ role: 'assistant', content: 'SYSTEM: Successfully added to cart: ' + added.join(', ') + '.' });
     }
     if (failed) addAIMessage('bot', '⚠️ Kuch items add nahi ho paaye. Dobara try karein.');
     delete window._cqStates[cid];

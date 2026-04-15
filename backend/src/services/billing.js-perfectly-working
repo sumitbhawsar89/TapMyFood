@@ -1,6 +1,4 @@
-const db          = require('../database/db');
-const whatsapp    = require('./whatsapp');
-const deliverySvc = require('./delivery');
+const db = require('../database/db');
 
 const ALCOHOL_VAT = {
   MH: 0.25, KA: 0.20, DL: 0.25, TN: 0.37,
@@ -24,14 +22,12 @@ function calculateTaxes(items, restaurant) {
   let foodSubtotal = 0, softDrinkSubtotal = 0, alcoholSubtotal = 0, waterSubtotal = 0;
 
   for (const item of items) {
-    // ✅ Always compute subtotal — never trust stored value, avoids NULL bug
-    const itemSubtotal = item.subtotal || (item.price * item.quantity);
     switch (item.tax_category) {
-      case 'food':           foodSubtotal      += itemSubtotal; break;
-      case 'soft_drink':     softDrinkSubtotal += itemSubtotal; break;
-      case 'alcohol':        alcoholSubtotal   += itemSubtotal; break;
-      case 'packaged_water': waterSubtotal     += itemSubtotal; break;
-      default:               foodSubtotal      += itemSubtotal;
+      case 'food':           foodSubtotal      += item.subtotal; break;
+      case 'soft_drink':     softDrinkSubtotal += item.subtotal; break;
+      case 'alcohol':        alcoholSubtotal   += item.subtotal; break;
+      case 'packaged_water': waterSubtotal     += item.subtotal; break;
+      default:               foodSubtotal      += item.subtotal;
     }
   }
 
@@ -39,20 +35,18 @@ function calculateTaxes(items, restaurant) {
   const softDrinkGST = softDrinkSubtotal * 0.18;
   const waterGST     = waterSubtotal * 0.18;
   const totalGST     = foodGST + softDrinkGST + waterGST;
-
   // Round total FIRST, then split equally — prevents ₹1 double-rounding error
   const totalGSTRounded = Math.round(totalGST);
   const cgst = Math.floor(totalGSTRounded / 2);
-  const sgst = totalGSTRounded - cgst;
-
-  const vat      = Math.round(alcoholSubtotal * alcoholVat);
-  const subtotal = foodSubtotal + softDrinkSubtotal + alcoholSubtotal + waterSubtotal;
-  const totalTax = cgst + sgst + vat;
+  const sgst = totalGSTRounded - cgst; // remainder goes to sgst to avoid ₹1 drift
+  const vat          = Math.round(alcoholSubtotal * alcoholVat);
+  const subtotal     = foodSubtotal + softDrinkSubtotal + alcoholSubtotal + waterSubtotal;
+  const totalTax     = cgst + sgst + vat;
 
   return {
-    food_subtotal:       foodSubtotal,
-    bar_subtotal:        alcoholSubtotal,
-    soft_drink_subtotal: softDrinkSubtotal,
+    food_subtotal:        foodSubtotal,
+    bar_subtotal:         alcoholSubtotal,
+    soft_drink_subtotal:  softDrinkSubtotal,
     subtotal, cgst, sgst, vat,
     total_tax: totalTax,
     gst_rate:  gstRate * 100,
@@ -67,26 +61,30 @@ async function applyOffers(restaurantId, subtotal, sessionId, sessionMode = 'all
   const { getActiveOffers } = require('./menu');
   const offers = await getActiveOffers(restaurantId, sessionMode);
 
-  let offerDiscount = 0;
-  let freeItemId    = null;
-  let freeItemName  = null;
-  let appliedOffers = [];
+  let offerDiscount   = 0;
+  let freeItemId      = null;
+  let freeItemName    = null;
+  let appliedOffers   = [];
 
+  // Find best offer combination by actual ₹ value
+  // Group: percent-only offers vs offers that include a free item
   const percentOnlyOffers = offers.filter(o =>
     (o.offer_type === 'percent_off' || o.offer_type === 'happy_hour') && !o.free_item_id
   );
-  const comboOffers    = offers.filter(o => o.free_item_id);
+  const comboOffers = offers.filter(o => o.free_item_id); // offers with free item (may also have %)
   const freeOnlyOffers = offers.filter(o => o.offer_type === 'item_free' && !o.discount_percent);
 
-  let bestPercentOffer = null;
-  let bestPercentValue = 0;
+  // Calculate value of best percent-only offer
+  let bestPercentOffer  = null;
+  let bestPercentValue  = 0;
   for (const o of percentOnlyOffers) {
     const val = Math.round(subtotal * (o.discount_percent / 100));
     if (val > bestPercentValue) { bestPercentValue = val; bestPercentOffer = o; }
   }
 
-  let bestComboOffer = null;
-  let bestComboValue = 0;
+  // Calculate value of each combo offer (% savings + free item price)
+  let bestComboOffer  = null;
+  let bestComboValue  = 0;
   for (const o of comboOffers) {
     const pctVal  = Math.round(subtotal * ((o.discount_percent || 0) / 100));
     const itemVal = o.free_item_price || 0;
@@ -96,15 +94,19 @@ async function applyOffers(restaurantId, subtotal, sessionId, sessionMode = 'all
     }
   }
 
+  // Pick whichever gives customer more value
   if (bestComboOffer && bestComboValue > bestPercentValue) {
+    // Combo offer wins
     const disc = Math.round(subtotal * ((bestComboOffer.discount_percent || 0) / 100));
     if (disc > 0) { offerDiscount += disc; appliedOffers.push(`${bestComboOffer.title} (-₹${disc})`); }
     freeItemId   = bestComboOffer.free_item_id;
     freeItemName = bestComboOffer.free_item_name;
     appliedOffers.push(`Free ${bestComboOffer.free_item_name} 🎁`);
   } else if (bestPercentOffer) {
+    // Percent-only offer wins
     offerDiscount += bestPercentValue;
     appliedOffers.push(`${bestPercentOffer.title} (-₹${bestPercentValue})`);
+    // Still check if any standalone free item offer qualifies
     for (const o of freeOnlyOffers) {
       if (subtotal >= (o.min_order_amount || 0)) {
         freeItemId   = o.free_item_id;
@@ -114,6 +116,7 @@ async function applyOffers(restaurantId, subtotal, sessionId, sessionMode = 'all
       }
     }
   } else {
+    // Only free item offers
     for (const o of freeOnlyOffers) {
       if (subtotal >= (o.min_order_amount || 0)) {
         freeItemId   = o.free_item_id;
@@ -123,6 +126,8 @@ async function applyOffers(restaurantId, subtotal, sessionId, sessionMode = 'all
       }
     }
   }
+
+  // (free item logic handled above in best-offer selection)
 
   return { offerDiscount, freeItemId, freeItemName, appliedOffers };
 }
@@ -162,7 +167,7 @@ async function generateBill(session) {
   );
 
   const order = await db.queryOne(
-    'SELECT * FROM orders WHERE session_id = $1 ORDER BY created_at DESC LIMIT 1',
+    "SELECT * FROM orders WHERE session_id = $1 ORDER BY created_at DESC LIMIT 1",
     [session.id]
   );
   if (!order) throw new Error('No order found for this session');
@@ -172,35 +177,42 @@ async function generateBill(session) {
     [order.id]
   );
 
+  // Calculate base taxes
   const taxes = calculateTaxes(items, restaurant);
 
+  // Apply session discount (Zomato/Swiggy)
   const sessionDiscountPct    = session.discount_pct || 0;
   const sessionDiscountAmount = Math.round(taxes.subtotal * sessionDiscountPct / 100);
 
-  const sessionMode = session.platform
-    ? `dine_in_${session.platform}`
-    : (session.mode || 'delivery');
-
+  // Apply active offers — filtered by session mode
+  const sessionMode = session.platform ? `dine_in_${session.platform}` : (session.mode || 'delivery');
   const { offerDiscount, freeItemId, freeItemName, appliedOffers } =
     await applyOffers(session.restaurant_id, taxes.subtotal, session.id, sessionMode);
 
   const totalDiscount = sessionDiscountAmount + offerDiscount;
 
+  // Delivery fee — free above min order threshold
   let deliveryFee = 0;
   if (session.mode === 'delivery') {
-    const baseDeliveryFee   = restaurant.delivery_fee        || 0;
-    const freeDeliveryAbove = restaurant.free_delivery_above || 0;
-    const subtotalAfterDisc = taxes.subtotal - totalDiscount;
-    deliveryFee = (freeDeliveryAbove > 0 && subtotalAfterDisc >= freeDeliveryAbove)
-      ? 0
-      : baseDeliveryFee;
+    const baseDeliveryFee      = restaurant.delivery_fee      || 0;
+    const freeDeliveryAbove    = restaurant.free_delivery_above || 0;
+    const subtotalAfterDiscount = taxes.subtotal - totalDiscount;
+    if (freeDeliveryAbove > 0 && subtotalAfterDiscount >= freeDeliveryAbove) {
+      deliveryFee = 0; // free delivery threshold reached
+    } else {
+      deliveryFee = baseDeliveryFee;
+    }
   }
 
+  // Platform fee
   const platformFee = 3;
-  const grandTotal  = taxes.subtotal + taxes.total_tax - totalDiscount + deliveryFee + platformFee;
 
+  const grandTotal = taxes.subtotal + taxes.total_tax - totalDiscount + deliveryFee + platformFee;
+
+  // Generate bill number
   const billNumber = await generateBillNumber(restaurant.id, restaurant.bill_prefix);
 
+  // Save bill
   const bill = await db.queryOne(
     `INSERT INTO bills
       (order_id, session_id, restaurant_id, bill_number,
@@ -217,10 +229,11 @@ async function generateBill(session) {
     ]
   );
 
-  bill.appliedOffers = appliedOffers;
-  bill.freeItemName  = freeItemName;
-  bill.deliveryFee   = deliveryFee;
-  bill.freeDelivery  = (session.mode === 'delivery' && deliveryFee === 0 && (restaurant.delivery_fee || 0) > 0);
+  // Attach offer info to bill object for confirmation message
+  bill.appliedOffers    = appliedOffers;
+  bill.freeItemName     = freeItemName;
+  bill.deliveryFee      = deliveryFee;
+  bill.freeDelivery     = (session.mode === 'delivery' && deliveryFee === 0 && (restaurant.delivery_fee || 0) > 0);
 
   console.log(`🧾 Bill: ${billNumber} | Subtotal: ₹${taxes.subtotal} | Offers: ${appliedOffers.join(', ') || 'none'} | Total: ₹${grandTotal}`);
   return bill;
@@ -238,106 +251,11 @@ async function markBillPaid(razorpayOrderId, razorpayPaymentId, paymentMethod = 
   return bill;
 }
 
-// ─────────────────────────────────────────────
-// Send WhatsApp notifications after order
-// Customer bill + Owner alert + Rider broadcast
-// ─────────────────────────────────────────────
-async function sendOrderNotifications(session, bill, cart, order) {
-  // ── 1. Customer WhatsApp — full bill breakdown ──
-  if (session.customer_phone && session.customer_phone !== 'qr_session') {
-    let confirmMsg = `✅ *Order Confirmed!*\n\n*Bill #${bill.bill_number}*\n\n`;
-    for (const item of cart.items) {
-      const itemSubtotal = item.subtotal || (item.price * item.quantity);
-      confirmMsg += `• ${item.name} x${item.quantity} — ₹${itemSubtotal}\n`;
-      if (item.notes) confirmMsg += `  📝 _${item.notes}_\n`;
-    }
-    confirmMsg += `\nSubtotal: ₹${bill.subtotal}\n`;
-    if (bill.total_tax > 0)       confirmMsg += `GST: ₹${bill.total_tax}\n`;
-    if (bill.discount_amount > 0) confirmMsg += `Discount: -₹${bill.discount_amount}\n`;
-    if (bill.deliveryFee > 0)     confirmMsg += `Delivery Fee: ₹${bill.deliveryFee}\n`;
-    else if (bill.freeDelivery)   confirmMsg += `Delivery Fee: FREE 🎉\n`;
-    if (bill.platform_fee > 0)    confirmMsg += `Convenience Fee: ₹${bill.platform_fee}\n`;
-    confirmMsg += `━━━━━━━━━━━━\n*Total: ₹${bill.grand_total}*`;
-    if (bill.appliedOffers && bill.appliedOffers.length > 0) {
-      confirmMsg += `\n\n🎉 *Offers Applied:*\n`;
-      for (const o of bill.appliedOffers) confirmMsg += `  • ${o}\n`;
-    }
-    if (session.mode === 'delivery') {
-      if (session.delivery_address) confirmMsg += `\n\n📍 *Delivering to:*\n${session.delivery_address}`;
-      confirmMsg += `\n\n🛵 Estimated: *25-35 mins*`;
-    } else if (session.mode === 'dine_in') {
-      confirmMsg += `\n\n🍽️ Table ${session.table_number} — being prepared!`;
-    } else if (session.mode === 'takeaway') {
-      confirmMsg += `\n\n🎫 Ready in *15-20 mins* — show at counter`;
-    }
-    await whatsapp.sendMessage(session.customer_phone, confirmMsg).catch(e =>
-      console.warn('⚠️ Customer WhatsApp failed:', e.message)
-    );
-  } else {
-    console.log('📱 QR session — skipping customer WhatsApp');
-  }
+module.exports = { generateBill, markBillPaid, calculateTaxes, createOrder };
 
-  // ── 2. Owner WhatsApp notification ──
-  const ownerPhone = session.owner_phone || session.restaurant_name; // fallback
-  if (session.owner_phone) {
-    let ownerMsg = `🔔 *New Order (Web UI)*\n*Bill:* ${bill.bill_number}\n`;
-    ownerMsg += `━━━━━━━━━━━━━━\n`;
-    for (const item of cart.items) {
-      const itemSubtotal = item.subtotal || (item.price * item.quantity);
-      ownerMsg += `• ${item.name} x${item.quantity} — ₹${itemSubtotal}\n`;
-      if (item.notes) ownerMsg += `  ⚠️ *SPECIAL: ${item.notes}*\n`;
-    }
-    ownerMsg += `━━━━━━━━━━━━━━\n`;
-    ownerMsg += `💰 *Total: ₹${bill.grand_total}*\n`;
-    ownerMsg += `📱 *Via:* Web Menu | 📦 *Mode:* ${session.mode.toUpperCase()}\n`;
-    if (session.mode === 'dine_in' && session.table_number)
-      ownerMsg += `🍽️ *Table:* ${session.table_number}`;
-    if (session.mode === 'delivery' && session.delivery_address)
-      ownerMsg += `📍 *Address:* ${session.delivery_address}`;
-    await whatsapp.sendMessage(session.owner_phone, ownerMsg).catch(e =>
-      console.warn('⚠️ Owner WhatsApp failed:', e.message)
-    );
-  }
-
-  // ── 3. Delivery rider broadcast ──
-  if (session.mode === 'delivery') {
-    if (session.delivery_phones) {
-      const restaurant = await db.queryOne(
-        'SELECT * FROM restaurants WHERE id = $1',
-        [session.restaurant_id]
-      );
-      await deliverySvc.broadcastToDeliveryBoys({
-        order,
-        bill:   { ...bill, payment_status: bill.status },
-        session,
-        restaurant,
-        cart,
-      }).catch(e => console.warn('⚠️ Delivery broadcast failed:', e.message));
-      console.log(`📦 Delivery broadcast sent for bill ${bill.bill_number}`);
-    } else {
-      console.log('⚠️ No delivery_phones set — skipping rider notification');
-    }
-  }
-
-  // ── 4. Dine-in: send interactive buttons after order ──
-  if (session.mode === 'dine_in') {
-    if (session.customer_phone && session.customer_phone !== 'qr_session') {
-      await new Promise(r => setTimeout(r, 1000));
-      await whatsapp.sendInteractiveButtons(
-        session.customer_phone,
-        `Table ${session.table_number} — Order sent! 👨‍🍳\nWant anything else?`,
-        [
-          { id: 'view_running_tab', title: 'View My Tab'  },
-          { id: 'request_bill',     title: 'Request Bill' },
-        ]
-      ).catch(e => console.warn('⚠️ Dine-in buttons failed:', e.message));
-    }
-  }
-}
 
 // ─────────────────────────────────────────────
 // Create order + KOTs + bill (UI place-order flow)
-// Mirrors the WhatsApp flow in worker.js exactly
 // ─────────────────────────────────────────────
 async function createOrder(session, cart) {
   // 1. Insert order + order_items + KOTs in one transaction
@@ -349,37 +267,30 @@ async function createOrder(session, cart) {
     );
 
     for (const item of cart.items) {
-      // ✅ Always compute subtotal — never rely on stored value (can be NULL)
-      const itemSubtotal = item.subtotal || (item.price * item.quantity);
       await client.query(
         `INSERT INTO order_items
           (order_id, menu_item_id, name, price, quantity, subtotal, kot_type, tax_category, notes)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-        [
-          order.id, item.menu_item_id, item.name, item.price,
-          item.quantity, itemSubtotal,
-          item.kot_type     || 'kitchen',
-          item.tax_category || 'food',
-          item.notes        || ''
-        ]
+        [order.id, item.menu_item_id, item.name, item.price,
+         item.quantity, item.subtotal, item.kot_type, item.tax_category, item.notes]
       );
     }
 
-    const foodItems = cart.items.filter(i => (i.kot_type || 'kitchen') === 'kitchen');
+    const foodItems = cart.items.filter(i => i.kot_type === 'kitchen');
     const barItems  = cart.items.filter(i => i.kot_type === 'bar');
 
     if (foodItems.length > 0) {
       await client.query(
         `INSERT INTO kots (order_id, restaurant_id, kot_type, items, table_number)
          VALUES ($1,$2,'kitchen',$3,$4)`,
-        [order.id, session.restaurant_id, JSON.stringify(foodItems), session.table_number || null]
+        [order.id, session.restaurant_id, JSON.stringify(foodItems), session.table_number]
       );
     }
     if (barItems.length > 0) {
       await client.query(
         `INSERT INTO kots (order_id, restaurant_id, kot_type, items, table_number)
          VALUES ($1,$2,'bar',$3,$4)`,
-        [order.id, session.restaurant_id, JSON.stringify(barItems), session.table_number || null]
+        [order.id, session.restaurant_id, JSON.stringify(barItems), session.table_number]
       );
     }
 
@@ -392,31 +303,13 @@ async function createOrder(session, cart) {
   const bill = await generateBill(session);
 
   // 3. Update session status
-  // dine_in: keep active so customer can order more rounds
-  // all other modes: lock as 'ordered' until delivery/pickup
-  if (session.mode === 'dine_in') {
-    await db.queryOne(
-      `UPDATE sessions SET status = 'active', updated_at = NOW() WHERE id = $1`,
-      [session.id]
-    );
-  } else {
+  if (session.mode !== 'dine_in') {
     await db.queryOne(
       `UPDATE sessions SET status = 'ordered', updated_at = NOW() WHERE id = $1`,
       [session.id]
     );
   }
 
-  // 4. Send all WhatsApp notifications (customer + owner + rider)
-  // Fire-and-forget — don't block order response if WhatsApp fails
-  sendOrderNotifications(session, bill, cart, order).catch(e =>
-    console.error('⚠️ Notification error (non-fatal):', e.message)
-  );
-
   return { bill_number: bill.bill_number, grand_total: bill.grand_total };
 }
-
-// ─────────────────────────────────────────────
-// Exports — must be AFTER all function definitions
-// ─────────────────────────────────────────────
-module.exports = { generateBill, markBillPaid, calculateTaxes, createOrder };
 

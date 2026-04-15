@@ -95,7 +95,7 @@ app.get('/api/tokens/display', async (req, reply) => {
            THEN 'preparing'
          WHEN COUNT(k.id) FILTER (WHERE k.status IN ('new','cooking')) > 0
            THEN 'preparing'
-         WHEN COUNT(k.id) FILTER (WHERE k.status IN ('ready','done')) = COUNT(k.id)
+         WHEN COUNT(k.id) FILTER (WHERE k.status = 'ready') = COUNT(k.id)
            THEN 'ready'
          ELSE 'preparing'
        END AS kot_state
@@ -298,4 +298,3 @@ app.listen({ port: PORT, host: '0.0.0.0' }, (err, address) => {
   console.log(`📡 Webhook:       ${address}/webhook/whatsapp`);
   console.log(`🎫 Token Display: ${address}/display`);
 });
-

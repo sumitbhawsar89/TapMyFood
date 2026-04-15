@@ -1,0 +1,10 @@
+total 152
+drwxrwxr-x   5 ubuntu ubuntu   4096 Mar 30 12:13 ./
+drwxrwxr-x   5 ubuntu ubuntu   4096 Mar  5 17:41 ../
+-rw-rw-r--   1 ubuntu ubuntu   1671 Mar  6 19:34 .env
+-rw-rw-r--   1 ubuntu ubuntu      0 Mar 30 12:13 env
+drwxrwxr-x 245 ubuntu ubuntu  12288 Mar  7 12:21 node_modules/
+-rw-rw-r--   1 ubuntu ubuntu 117312 Mar  7 12:21 package-lock.json
+-rw-rw-r--   1 ubuntu ubuntu    755 Feb 22 12:07 package.json
+drwxrwxr-x   2 ubuntu ubuntu   4096 Mar 30 12:05 public/
+drwxrwxr-x   6 ubuntu ubuntu   4096 Mar  1 12:11 src/

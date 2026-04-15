@@ -254,6 +254,7 @@
       <button class="confirm-place-btn" id="confirmPlaceBtn" onclick="confirmAndPlace()">✅ Place Order →</button>
       <div style="display:flex;gap:10px">
         <button class="confirm-edit-btn" style="flex:1" id="confirmEditBtn" onclick="closeConfirmOpenCart()">✏️ Edit Cart</button>
+        <button class="confirm-edit-btn" style="flex:1" id="confirmAddMoreBtn" onclick="closeConfirm()">+ Add More</button>
       </div>
     </div>
   </div>
@@ -2149,6 +2150,7 @@ function updateUIStrings() {
   var cs = document.getElementById('confirmSubtitle'); if (cs) cs.textContent = t('review_order');
   var cp = document.getElementById('confirmPlaceBtn'); if (cp) cp.textContent = t('confirm_place');
   var ce = document.getElementById('confirmEditBtn'); if (ce) ce.textContent = t('edit_cart');
+  var ca = document.getElementById('confirmAddMoreBtn'); if (ca) ca.textContent = t('add_more');
   var nt = document.getElementById('notesTitle'); if (nt) nt.textContent = t('special_instructions');
   var ns = document.getElementById('notesSaveBtn'); if (ns) ns.textContent = t('save');
   var h1 = document.getElementById('hint_spicy'); if (h1) h1.textContent = t('note_extra_spicy');
