@@ -5,3 +5,7 @@ backend/.env
 backend/.env_bkp
 *.pem
 *.key
+.env
+.env.*
+*.env
+backend/.env*
