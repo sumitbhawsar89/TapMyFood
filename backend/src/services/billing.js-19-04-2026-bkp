@@ -1,5 +1,5 @@
-const db = require('../database/db');
-const whatsapp = require('./whatsapp');
+const db          = require('../database/db');
+const whatsapp    = require('./whatsapp');
 const deliverySvc = require('./delivery');
 
 const ALCOHOL_VAT = {
@@ -9,17 +9,17 @@ const ALCOHOL_VAT = {
 };
 
 const GST_RATES = {
-  non_ac: 0.05,
-  ac_without_liquor: 0.05,
-  ac_with_liquor: 0.18,
+  non_ac:             0.05,
+  ac_without_liquor:  0.05,
+  ac_with_liquor:     0.18,
 };
 
 // ─────────────────────────────────────────────
 // Calculate taxes
 // ─────────────────────────────────────────────
 function calculateTaxes(items, restaurant) {
-  const gstRate = GST_RATES[restaurant.restaurant_type] || 0.05;
-  const alcoholVat = ALCOHOL_VAT[restaurant.state_code] || 0.25;
+  const gstRate    = GST_RATES[restaurant.restaurant_type] || 0.05;
+  const alcoholVat = ALCOHOL_VAT[restaurant.state_code]   || 0.25;
 
   let foodSubtotal = 0, softDrinkSubtotal = 0, alcoholSubtotal = 0, waterSubtotal = 0;
 
@@ -27,36 +27,36 @@ function calculateTaxes(items, restaurant) {
     // ✅ Always compute subtotal — never trust stored value, avoids NULL bug
     const itemSubtotal = item.subtotal || (item.price * item.quantity);
     switch (item.tax_category) {
-      case 'food': foodSubtotal += itemSubtotal; break;
-      case 'soft_drink': softDrinkSubtotal += itemSubtotal; break;
-      case 'alcohol': alcoholSubtotal += itemSubtotal; break;
-      case 'packaged_water': waterSubtotal += itemSubtotal; break;
-      default: foodSubtotal += itemSubtotal;
+      case 'food':           foodSubtotal      += itemSubtotal; break;
+      case 'soft_drink':     softDrinkSubtotal += itemSubtotal; break;
+      case 'alcohol':        alcoholSubtotal   += itemSubtotal; break;
+      case 'packaged_water': waterSubtotal     += itemSubtotal; break;
+      default:               foodSubtotal      += itemSubtotal;
     }
   }
 
-  const foodGST = foodSubtotal * gstRate;
+  const foodGST      = foodSubtotal * gstRate;
   const softDrinkGST = softDrinkSubtotal * 0.18;
-  const waterGST = waterSubtotal * 0.18;
-  const totalGST = foodGST + softDrinkGST + waterGST;
+  const waterGST     = waterSubtotal * 0.18;
+  const totalGST     = foodGST + softDrinkGST + waterGST;
 
   // Round total FIRST, then split equally — prevents ₹1 double-rounding error
   const totalGSTRounded = Math.round(totalGST);
   const cgst = Math.floor(totalGSTRounded / 2);
   const sgst = totalGSTRounded - cgst;
 
-  const vat = Math.round(alcoholSubtotal * alcoholVat);
+  const vat      = Math.round(alcoholSubtotal * alcoholVat);
   const subtotal = foodSubtotal + softDrinkSubtotal + alcoholSubtotal + waterSubtotal;
   const totalTax = cgst + sgst + vat;
 
   return {
-    food_subtotal: foodSubtotal,
-    bar_subtotal: alcoholSubtotal,
+    food_subtotal:       foodSubtotal,
+    bar_subtotal:        alcoholSubtotal,
     soft_drink_subtotal: softDrinkSubtotal,
     subtotal, cgst, sgst, vat,
     total_tax: totalTax,
-    gst_rate: gstRate * 100,
-    vat_rate: alcoholVat * 100,
+    gst_rate:  gstRate * 100,
+    vat_rate:  alcoholVat * 100,
   };
 }
 
@@ -68,14 +68,14 @@ async function applyOffers(restaurantId, subtotal, sessionId, sessionMode = 'all
   const offers = await getActiveOffers(restaurantId, sessionMode);
 
   let offerDiscount = 0;
-  let freeItemId = null;
-  let freeItemName = null;
+  let freeItemId    = null;
+  let freeItemName  = null;
   let appliedOffers = [];
 
   const percentOnlyOffers = offers.filter(o =>
     (o.offer_type === 'percent_off' || o.offer_type === 'happy_hour') && !o.free_item_id
   );
-  const comboOffers = offers.filter(o => o.free_item_id);
+  const comboOffers    = offers.filter(o => o.free_item_id);
   const freeOnlyOffers = offers.filter(o => o.offer_type === 'item_free' && !o.discount_percent);
 
   let bestPercentOffer = null;
@@ -88,9 +88,9 @@ async function applyOffers(restaurantId, subtotal, sessionId, sessionMode = 'all
   let bestComboOffer = null;
   let bestComboValue = 0;
   for (const o of comboOffers) {
-    const pctVal = Math.round(subtotal * ((o.discount_percent || 0) / 100));
+    const pctVal  = Math.round(subtotal * ((o.discount_percent || 0) / 100));
     const itemVal = o.free_item_price || 0;
-    const total = pctVal + itemVal;
+    const total   = pctVal + itemVal;
     if (total > bestComboValue && subtotal >= (o.min_order_amount || 0)) {
       bestComboValue = total; bestComboOffer = o;
     }
@@ -99,7 +99,7 @@ async function applyOffers(restaurantId, subtotal, sessionId, sessionMode = 'all
   if (bestComboOffer && bestComboValue > bestPercentValue) {
     const disc = Math.round(subtotal * ((bestComboOffer.discount_percent || 0) / 100));
     if (disc > 0) { offerDiscount += disc; appliedOffers.push(`${bestComboOffer.title} (-₹${disc})`); }
-    freeItemId = bestComboOffer.free_item_id;
+    freeItemId   = bestComboOffer.free_item_id;
     freeItemName = bestComboOffer.free_item_name;
     appliedOffers.push(`Free ${bestComboOffer.free_item_name} 🎁`);
   } else if (bestPercentOffer) {
@@ -107,7 +107,7 @@ async function applyOffers(restaurantId, subtotal, sessionId, sessionMode = 'all
     appliedOffers.push(`${bestPercentOffer.title} (-₹${bestPercentValue})`);
     for (const o of freeOnlyOffers) {
       if (subtotal >= (o.min_order_amount || 0)) {
-        freeItemId = o.free_item_id;
+        freeItemId   = o.free_item_id;
         freeItemName = o.free_item_name;
         appliedOffers.push(`Free ${o.free_item_name} 🎁`);
         break;
@@ -116,7 +116,7 @@ async function applyOffers(restaurantId, subtotal, sessionId, sessionMode = 'all
   } else {
     for (const o of freeOnlyOffers) {
       if (subtotal >= (o.min_order_amount || 0)) {
-        freeItemId = o.free_item_id;
+        freeItemId   = o.free_item_id;
         freeItemName = o.free_item_name;
         appliedOffers.push(`Free ${o.free_item_name} 🎁`);
         break;
@@ -131,7 +131,7 @@ async function applyOffers(restaurantId, subtotal, sessionId, sessionMode = 'all
 // Generate bill number
 // ─────────────────────────────────────────────
 async function generateBillNumber(restaurantId, prefix) {
-  const fy = getFinancialYear();
+  const fy     = getFinancialYear();
   const result = await db.queryOne(
     `UPDATE restaurants SET bill_sequence = bill_sequence + 1
      WHERE id = $1 RETURNING bill_sequence`,
@@ -142,8 +142,8 @@ async function generateBillNumber(restaurantId, prefix) {
 }
 
 function getFinancialYear() {
-  const now = new Date();
-  const year = now.getFullYear();
+  const now   = new Date();
+  const year  = now.getFullYear();
   const month = now.getMonth() + 1;
   if (month >= 4) {
     return `${String(year).slice(2)}${String(year + 1).slice(2)}`;
@@ -174,7 +174,7 @@ async function generateBill(session) {
 
   const taxes = calculateTaxes(items, restaurant);
 
-  const sessionDiscountPct = session.discount_pct || 0;
+  const sessionDiscountPct    = session.discount_pct || 0;
   const sessionDiscountAmount = Math.round(taxes.subtotal * sessionDiscountPct / 100);
 
   const sessionMode = session.platform
@@ -188,7 +188,7 @@ async function generateBill(session) {
 
   let deliveryFee = 0;
   if (session.mode === 'delivery') {
-    const baseDeliveryFee = restaurant.delivery_fee || 0;
+    const baseDeliveryFee   = restaurant.delivery_fee        || 0;
     const freeDeliveryAbove = restaurant.free_delivery_above || 0;
     const subtotalAfterDisc = taxes.subtotal - totalDiscount;
     deliveryFee = (freeDeliveryAbove > 0 && subtotalAfterDisc >= freeDeliveryAbove)
@@ -197,29 +197,30 @@ async function generateBill(session) {
   }
 
   const platformFee = 3;
-  const grandTotal = taxes.subtotal + taxes.total_tax - totalDiscount + deliveryFee + platformFee;
+  const grandTotal  = taxes.subtotal + taxes.total_tax - totalDiscount + deliveryFee + platformFee;
 
   const billNumber = await generateBillNumber(restaurant.id, restaurant.bill_prefix);
 
   const bill = await db.queryOne(
     `INSERT INTO bills
-       (order_id, session_id, restaurant_id, bill_number,
-        subtotal, cgst, sgst, vat, total_tax,
-        discount_amount, delivery_fee, platform_fee, grand_total,
-        status, payment_method)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending','pending')
+      (order_id, session_id, restaurant_id, bill_number,
+       food_subtotal, bar_subtotal, soft_drink_subtotal, subtotal,
+       cgst, sgst, vat, total_tax,
+       discount_pct, discount_amount, delivery_fee, platform_fee, grand_total, status)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'unpaid')
      RETURNING *`,
     [
-      order.id, session.id, session.restaurant_id, billNumber,
-      taxes.subtotal, taxes.cgst, taxes.sgst, taxes.vat, taxes.total_tax,
-      totalDiscount, deliveryFee, platformFee, grandTotal,
+      order.id, session.id, restaurant.id, billNumber,
+      taxes.food_subtotal, taxes.bar_subtotal, taxes.soft_drink_subtotal, taxes.subtotal,
+      taxes.cgst, taxes.sgst, taxes.vat, taxes.total_tax,
+      sessionDiscountPct, totalDiscount, deliveryFee, platformFee, grandTotal
     ]
   );
 
   bill.appliedOffers = appliedOffers;
-  bill.freeItemName = freeItemName;
-  bill.deliveryFee = deliveryFee;
-  bill.freeDelivery = (session.mode === 'delivery' && deliveryFee === 0 && (restaurant.delivery_fee || 0) > 0);
+  bill.freeItemName  = freeItemName;
+  bill.deliveryFee   = deliveryFee;
+  bill.freeDelivery  = (session.mode === 'delivery' && deliveryFee === 0 && (restaurant.delivery_fee || 0) > 0);
 
   console.log(`🧾 Bill: ${billNumber} | Subtotal: ₹${taxes.subtotal} | Offers: ${appliedOffers.join(', ') || 'none'} | Total: ₹${grandTotal}`);
   return bill;
@@ -238,63 +239,28 @@ async function markBillPaid(razorpayOrderId, razorpayPaymentId, paymentMethod = 
 }
 
 // ─────────────────────────────────────────────
-// Assign pickup token to session
-// Takeaway + delivery only. Daily sequence resets at midnight IST.
-// T-001, T-002, ... T-999 per restaurant per day
-// ─────────────────────────────────────────────
-async function assignPickupToken(session) {
-  if (!['takeaway', 'delivery', 'counter'].includes(session.mode)) return null;
-
-  try {
-    const tokenRow = await db.queryOne(
-      `SELECT COALESCE(MAX(pickup_token_num), 0) + 1 AS next_token
-       FROM sessions
-       WHERE restaurant_id = $1
-         AND DATE(created_at AT TIME ZONE 'Asia/Kolkata') = DATE(NOW() AT TIME ZONE 'Asia/Kolkata')
-         AND pickup_token_num IS NOT NULL`,
-      [session.restaurant_id]
-    );
-    const tokenNum = tokenRow.next_token;
-    const tokenStr = 'T-' + String(tokenNum).padStart(3, '0');
-
-    await db.query(
-      `UPDATE sessions SET pickup_token_num = $1, pickup_token = $2, updated_at = NOW()
-       WHERE id = $3`,
-      [tokenNum, tokenStr, session.id]
-    );
-
-    console.log(`🎫 Token assigned: ${tokenStr} for session ${session.id} (${session.mode})`);
-    return { tokenNum, tokenStr };
-  } catch (e) {
-    // Non-fatal — token assignment failure must never block order confirmation
-    console.error('⚠️ Token assignment failed (non-fatal):', e.message);
-    return null;
-  }
-}
-
-// ─────────────────────────────────────────────
 // Send WhatsApp notifications after order
 // Customer bill + Owner alert + Rider broadcast
 // ─────────────────────────────────────────────
-async function sendOrderNotifications(session, bill, cart, order, tokenStr) {
+async function sendOrderNotifications(session, bill, cart, order) {
   // ── 1. Customer WhatsApp — full bill breakdown ──
   if (session.customer_phone && session.customer_phone !== 'qr_session') {
     let confirmMsg = `✅ *Order Confirmed!*\n\n*Bill #${bill.bill_number}*\n\n`;
     for (const item of cart.items) {
       const itemSubtotal = item.subtotal || (item.price * item.quantity);
       confirmMsg += `• ${item.name} x${item.quantity} — ₹${itemSubtotal}\n`;
-      if (item.notes) confirmMsg += ` 📝 _${item.notes}_\n`;
+      if (item.notes) confirmMsg += `  📝 _${item.notes}_\n`;
     }
     confirmMsg += `\nSubtotal: ₹${bill.subtotal}\n`;
-    if (bill.total_tax > 0) confirmMsg += `GST: ₹${bill.total_tax}\n`;
+    if (bill.total_tax > 0)       confirmMsg += `GST: ₹${bill.total_tax}\n`;
     if (bill.discount_amount > 0) confirmMsg += `Discount: -₹${bill.discount_amount}\n`;
-    if (bill.deliveryFee > 0) confirmMsg += `Delivery Fee: ₹${bill.deliveryFee}\n`;
-    else if (bill.freeDelivery) confirmMsg += `Delivery Fee: FREE 🎉\n`;
-    if (bill.platform_fee > 0) confirmMsg += `Convenience Fee: ₹${bill.platform_fee}\n`;
+    if (bill.deliveryFee > 0)     confirmMsg += `Delivery Fee: ₹${bill.deliveryFee}\n`;
+    else if (bill.freeDelivery)   confirmMsg += `Delivery Fee: FREE 🎉\n`;
+    if (bill.platform_fee > 0)    confirmMsg += `Convenience Fee: ₹${bill.platform_fee}\n`;
     confirmMsg += `━━━━━━━━━━━━\n*Total: ₹${bill.grand_total}*`;
     if (bill.appliedOffers && bill.appliedOffers.length > 0) {
       confirmMsg += `\n\n🎉 *Offers Applied:*\n`;
-      for (const o of bill.appliedOffers) confirmMsg += ` • ${o}\n`;
+      for (const o of bill.appliedOffers) confirmMsg += `  • ${o}\n`;
     }
     if (session.mode === 'delivery') {
       if (session.delivery_address) confirmMsg += `\n\n📍 *Delivering to:*\n${session.delivery_address}`;
@@ -302,8 +268,7 @@ async function sendOrderNotifications(session, bill, cart, order, tokenStr) {
     } else if (session.mode === 'dine_in') {
       confirmMsg += `\n\n🍽️ Table ${session.table_number} — being prepared!`;
     } else if (session.mode === 'takeaway') {
-      if (tokenStr) confirmMsg += `\n\n🎫 *Your Token: ${tokenStr}*\nReady in *15-20 mins* — show at counter`;
-      else confirmMsg += `\n\n🎫 Ready in *15-20 mins* — show at counter`;
+      confirmMsg += `\n\n🎫 Ready in *15-20 mins* — show at counter`;
     }
     await whatsapp.sendMessage(session.customer_phone, confirmMsg).catch(e =>
       console.warn('⚠️ Customer WhatsApp failed:', e.message)
@@ -313,14 +278,14 @@ async function sendOrderNotifications(session, bill, cart, order, tokenStr) {
   }
 
   // ── 2. Owner WhatsApp notification ──
+  const ownerPhone = session.owner_phone || session.restaurant_name; // fallback
   if (session.owner_phone) {
     let ownerMsg = `🔔 *New Order (Web UI)*\n*Bill:* ${bill.bill_number}\n`;
-    if (tokenStr) ownerMsg += `🎫 *Token: ${tokenStr}*\n`;
     ownerMsg += `━━━━━━━━━━━━━━\n`;
     for (const item of cart.items) {
       const itemSubtotal = item.subtotal || (item.price * item.quantity);
       ownerMsg += `• ${item.name} x${item.quantity} — ₹${itemSubtotal}\n`;
-      if (item.notes) ownerMsg += ` ⚠️ *SPECIAL: ${item.notes}*\n`;
+      if (item.notes) ownerMsg += `  ⚠️ *SPECIAL: ${item.notes}*\n`;
     }
     ownerMsg += `━━━━━━━━━━━━━━\n`;
     ownerMsg += `💰 *Total: ₹${bill.grand_total}*\n`;
@@ -343,7 +308,7 @@ async function sendOrderNotifications(session, bill, cart, order, tokenStr) {
       );
       await deliverySvc.broadcastToDeliveryBoys({
         order,
-        bill: { ...bill, payment_status: bill.status },
+        bill:   { ...bill, payment_status: bill.status },
         session,
         restaurant,
         cart,
@@ -362,8 +327,8 @@ async function sendOrderNotifications(session, bill, cart, order, tokenStr) {
         session.customer_phone,
         `Table ${session.table_number} — Order sent! 👨‍🍳\nWant anything else?`,
         [
-          { id: 'view_running_tab', title: 'View My Tab' },
-          { id: 'request_bill', title: 'Request Bill' },
+          { id: 'view_running_tab', title: 'View My Tab'  },
+          { id: 'request_bill',     title: 'Request Bill' },
         ]
       ).catch(e => console.warn('⚠️ Dine-in buttons failed:', e.message));
     }
@@ -393,15 +358,15 @@ async function createOrder(session, cart) {
         [
           order.id, item.menu_item_id, item.name, item.price,
           item.quantity, itemSubtotal,
-          item.kot_type || 'kitchen',
+          item.kot_type     || 'kitchen',
           item.tax_category || 'food',
-          item.notes || ''
+          item.notes        || ''
         ]
       );
     }
 
     const foodItems = cart.items.filter(i => (i.kot_type || 'kitchen') === 'kitchen');
-    const barItems = cart.items.filter(i => i.kot_type === 'bar');
+    const barItems  = cart.items.filter(i => i.kot_type === 'bar');
 
     if (foodItems.length > 0) {
       await client.query(
@@ -426,15 +391,9 @@ async function createOrder(session, cart) {
   // 2. Generate bill
   const bill = await generateBill(session);
 
-  // 3. Assign pickup token (takeaway + delivery + counter only)
-  // Done BEFORE updating session status so token is in DB
-  // Non-fatal — never blocks order confirmation
-  const tokenResult = await assignPickupToken(session);
-  const tokenStr = tokenResult ? tokenResult.tokenStr : null;
-
-  // 4. Update session status
-  // dine_in: keep active so customer can order multiple rounds
-  // all other modes: lock as 'ordered' — prevents accidental re-order
+  // 3. Update session status
+  // dine_in: keep active so customer can order more rounds
+  // all other modes: lock as 'ordered' until delivery/pickup
   if (session.mode === 'dine_in') {
     await db.queryOne(
       `UPDATE sessions SET status = 'active', updated_at = NOW() WHERE id = $1`,
@@ -447,22 +406,17 @@ async function createOrder(session, cart) {
     );
   }
 
-  // 5. Send all WhatsApp notifications (customer + owner + rider)
+  // 4. Send all WhatsApp notifications (customer + owner + rider)
   // Fire-and-forget — don't block order response if WhatsApp fails
-  sendOrderNotifications(session, bill, cart, order, tokenStr).catch(e =>
+  sendOrderNotifications(session, bill, cart, order).catch(e =>
     console.error('⚠️ Notification error (non-fatal):', e.message)
   );
 
-  return {
-    bill_number: bill.bill_number,
-    grand_total: bill.grand_total,
-    pickup_token: tokenStr, // returned to frontend for display
-  };
+  return { bill_number: bill.bill_number, grand_total: bill.grand_total };
 }
 
 // ─────────────────────────────────────────────
 // Exports — must be AFTER all function definitions
 // ─────────────────────────────────────────────
 module.exports = { generateBill, markBillPaid, calculateTaxes, createOrder };
-
 

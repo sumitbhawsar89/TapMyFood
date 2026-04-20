@@ -395,7 +395,7 @@
       </div>
     </div>
     <button id="checkoutPlaceBtn" onclick="placeOrderFromCheckout()" class="place-order-btn" style="margin-top:0">Place Order →</button>
-    <div style="display:flex;gap:8px;margin-top:8px"><button onclick="closeCheckout()" style="flex:1;padding:12px;background:none;border:1.5px solid #ede8df;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72">← Back</button><button onclick="closeCheckoutOpenCart()" style="flex:2;padding:12px;background:none;border:1.5px solid #ede8df;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72">✏️ Edit Cart</button></div>
+    <button onclick="closeCheckoutOpenCart()" style="width:100%;padding:12px;background:none;border:1.5px solid #ede8df;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72;margin-top:8px">✏️ Edit Cart</button>
   </div>
 </div>
 
@@ -2625,12 +2625,13 @@ async function loadMyOrders() {
 
       var itemsList = '';
       if (order.items && order.items.length) {
-        itemsList = order.items.map(function(i) {
+        itemsList = order.items.slice(0, 3).map(function(i) {
           return i.name + ' x' + i.quantity;
         }).join(', ');
+        if (order.items.length > 3) itemsList += ' +' + (order.items.length - 3) + ' more';
       }
 
-      var tokenBadge = (order.mode === 'takeaway' && order.pickup_token)
+      var tokenBadge = order.pickup_token
         ? '<span class="order-token">🎫 ' + order.pickup_token + '</span>'
         : '<span class="order-mode">' + modeIcon + ' ' + modeLabel + '</span>';
 

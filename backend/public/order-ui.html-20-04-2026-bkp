@@ -20,7 +20,7 @@
     --radius: 16px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; max-width: 480px; margin: 0 auto; padding-bottom: 80px; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; max-width: 480px; margin: 0 auto; padding-bottom: 160px; }
   .header { background: var(--ink); color: white; padding: 20px 20px 16px; position: sticky; top: 0; z-index: 100; }
   .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .restaurant-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
@@ -95,12 +95,12 @@
   .info-bestseller { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--orange); margin-bottom: 8px; }
   .empty-state { text-align: center; padding: 60px 24px; color: var(--muted); }
   .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
-  .cart-pill { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 14px 28px; border-radius: 50px; font-weight: 600; font-size: 15px; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.25); display: none; align-items: center; gap: 12px; z-index: 90; transition: all 0.3s; white-space: nowrap; }
+  .cart-pill { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 14px 28px; border-radius: 50px; font-weight: 600; font-size: 15px; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.25); display: none; align-items: center; gap: 12px; z-index: 90; transition: all 0.3s; white-space: nowrap; }
   .cart-pill.visible { display: flex; }
   .cart-pill-count { background: var(--orange); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
-  .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 250; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+  .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
   .drawer-overlay.open { opacity: 1; pointer-events: all; }
-  .cart-drawer { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; z-index: 251; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); max-height: 85vh; overflow-y: auto; padding: 24px 20px 32px; }
+  .cart-drawer { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; z-index: 201; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); max-height: 85vh; overflow-y: auto; padding: 24px 20px 32px; }
   .cart-drawer.open { transform: translateX(-50%) translateY(0); }
   .drawer-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
   .drawer-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; margin-bottom: 16px; }
@@ -114,7 +114,7 @@
   .place-order-btn.loading { opacity: 0.7; pointer-events: none; }
   .place-order-btn:disabled { cursor: not-allowed; }
   /* All other existing modals — kept as-is */
-  .confirm-modal { position:fixed;inset:0;z-index:460;display:none; }
+  .confirm-modal { position:fixed;inset:0;z-index:450;display:none; }
   .confirm-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.55); }
   .confirm-panel { position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box;max-height:90vh;overflow-y:auto; }
   .confirm-title { font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px; }
@@ -130,7 +130,7 @@
   .confirm-btns { display:flex;gap:10px; }
   .confirm-edit-btn { flex:1;padding:14px;border:1.5px solid #ede8df;border-radius:12px;background:white;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72; }
   .confirm-place-btn { flex:2;padding:14px;background:#ea580c;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer; }
-  .notes-modal { position:fixed;inset:0;z-index:470;display:none; }
+  .notes-modal { position:fixed;inset:0;z-index:460;display:none; }
   .notes-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.5); }
   .notes-panel { position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box; }
   .notes-title { font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:4px; }
@@ -145,7 +145,7 @@
   .notes-save-btn { width:100%;padding:14px;background:#1a1207;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer; }
   .lang-btn { background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 5px 10px; font-size: 13px; color: white; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s; }
   .lang-btn:active { background: rgba(255,255,255,0.25); }
-  .lang-drawer { position: fixed; inset: 0; z-index: 510; display: none; }
+  .lang-drawer { position: fixed; inset: 0; z-index: 500; display: none; }
   .lang-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
   .lang-panel { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; padding: 24px 20px 32px; box-sizing: border-box; }
   .lang-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; margin-bottom: 16px; text-align: center; }
@@ -171,56 +171,6 @@
   .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: white; padding: 10px 20px; border-radius: 50px; font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 999; white-space: nowrap; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
-
-  /* ── STRUCTURED ADDRESS CARDS ── */
-  .addr-card { border: 1.5px solid #ede8df; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: flex-start; gap: 12px; transition: all .15s; background: white; }
-  .addr-card.selected { border-color: #ea580c; background: #fff7f0; }
-  .addr-card input[type=radio] { accent-color: #ea580c; width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
-  .addr-card-body { flex: 1; }
-  .addr-card-label { font-size: 12px; font-weight: 700; color: #1a1207; margin-bottom: 2px; }
-  .addr-card-text { font-size: 12px; color: #9b8b72; line-height: 1.4; }
-  .addr-card.selected .addr-card-label { color: #ea580c; }
-  .add-addr-btn { width: 100%; padding: 10px 14px; border: 1.5px dashed #ede8df; border-radius: 12px; background: none; font-size: 13px; font-weight: 600; color: #9b8b72; cursor: pointer; text-align: center; margin-top: 4px; transition: all .15s; }
-  .add-addr-btn:hover { border-color: #ea580c; color: #ea580c; }
-  /* ── ADD ADDRESS FORM ── */
-  .addr-form-modal { position: fixed; inset: 0; z-index: 600; display: none; }
-  .addr-form-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
-  .addr-form-panel { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; padding: 24px 20px 32px; box-sizing: border-box; max-height: 90vh; overflow-y: auto; }
-  .addr-form-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; margin-bottom: 16px; }
-  .addr-label-row { display: flex; gap: 8px; margin-bottom: 14px; }
-  .addr-label-chip { flex: 1; padding: 10px 6px; border: 1.5px solid #ede8df; border-radius: 10px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 600; background: white; color: #9b8b72; transition: all .15s; }
-  .addr-label-chip.active { border-color: #ea580c; background: #fff7f0; color: #ea580c; }
-  .addr-field { margin-bottom: 12px; }
-  .addr-field label { display: block; font-size: 11px; font-weight: 700; color: #666; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
-  .addr-field input { width: 100%; border: 1.5px solid #ede8df; border-radius: 10px; padding: 11px 12px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; background: #faf8f5; box-sizing: border-box; color: #1a1207; }
-  .addr-field input:focus { border-color: #ea580c; background: white; }
-  .addr-field-row { display: flex; gap: 10px; }
-  .addr-field-row .addr-field { flex: 1; }
-
-  /* ── BOTTOM NAV ── */
-  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: white; border-top: 1.5px solid #ede8df; display: flex; z-index: 150; }
-  .bottom-nav-item { flex: 1; padding: 10px 0 8px; text-align: center; cursor: pointer; transition: all .15s; border: none; background: none; }
-  .bottom-nav-icon { font-size: 22px; margin-bottom: 2px; }
-  .bottom-nav-label { font-size: 10px; font-weight: 600; color: #9b8b72; }
-  .bottom-nav-item.active .bottom-nav-label { color: #ea580c; }
-  .bottom-nav-badge { background: #ea580c; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 9px; font-weight: 700; display: none; align-items: center; justify-content: center; position: absolute; top: 6px; right: calc(50% - 18px); }
-  .bottom-nav-badge.show { display: flex; }
-  /* ── ORDERS SCREEN ── */
-  .orders-screen { display: none; padding: 16px; }
-  .orders-screen.active { display: block; }
-  .order-card { background: white; border-radius: 16px; border: 1.5px solid #ede8df; padding: 16px; margin-bottom: 12px; }
-  .order-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-  .order-bill { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; }
-  .order-time { font-size: 11px; color: #9b8b72; margin-top: 2px; }
-  .order-token { background: #ea580c; color: white; border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 700; }
-  .order-mode { background: #f5f0e8; color: #9b8b72; border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 600; }
-  .order-items { font-size: 13px; color: #444; margin-bottom: 10px; line-height: 1.6; }
-  .order-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid #ede8df; }
-  .order-total { font-weight: 800; font-size: 16px; color: #ea580c; }
-  .order-status { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 10px; }
-  .order-status.confirmed { background: #dcfce7; color: #16a34a; }
-  .orders-empty { text-align: center; padding: 60px 24px; color: #9b8b72; }
-  .orders-loading { text-align: center; padding: 40px; color: #9b8b72; font-size: 13px; }
   /* Chatbot hidden */
   #aiPanel,#aiOverlay,.ai-fab,.ai-toggle{display:none!important}
 </style>
@@ -230,52 +180,31 @@
   <div class="header-top">
     <span class="restaurant-name" id="restName">Loading…</span>
     <div style="display:flex;align-items:center;gap:8px">
-      <button class="lang-btn" onclick="openLangDrawer()" id="langBtn">🌐 EN</button>
+      <button class="lang-btn" onclick="openLangDrawer()" id="langBtn">\ud83c\udf10 EN</button>
       <span class="mode-badge" id="modeBadge">—</span>
     </div>
   </div>
   <div class="search-wrap">
-    <span class="search-icon">🔍</span>
+    <span class="search-icon">\ud83d\udd0d</span>
     <input class="search-input" id="searchInput" placeholder="Search menu…" autocomplete="off">
   </div>
 </div>
 <!-- Filter Chips -->
 <div class="filter-chips-wrap" id="filterChips" style="display:none">
   <div class="filter-chip" data-filter="all" onclick="applyFilter('all',this)">All</div>
-  <div class="filter-chip" data-filter="veg" onclick="applyFilter('veg',this)">🟢 Veg Only</div>
-  <div class="filter-chip" data-filter="nonveg" onclick="applyFilter('nonveg',this)">🔴 Non-Veg</div>
-  <div class="filter-chip" data-filter="mild" onclick="applyFilter('mild',this)">😊 Mild</div>
-  <div class="filter-chip" data-filter="spicy" onclick="applyFilter('spicy',this)">🌶 Spicy</div>
+  <div class="filter-chip" data-filter="veg" onclick="applyFilter('veg',this)">\ud83d\udfe2 Veg Only</div>
+  <div class="filter-chip" data-filter="nonveg" onclick="applyFilter('nonveg',this)">\ud83d\udd34 Non-Veg</div>
+  <div class="filter-chip" data-filter="mild" onclick="applyFilter('mild',this)">\ud83d\ude0a Mild</div>
+  <div class="filter-chip" data-filter="spicy" onclick="applyFilter('spicy',this)">\ud83c\udf36 Spicy</div>
   <div class="filter-chip" data-filter="popular" onclick="applyFilter('popular',this)">⭐ Popular</div>
 </div>
 <div class="cat-tabs" id="catTabs"></div>
 <div id="popularSection" style="display:none;padding:14px 16px 0">
-  <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;color:#9b8b72;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🔥 Popular</div>
+  <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;color:#9b8b72;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">\ud83d\udd25 Popular</div>
   <div id="popularItems" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none"></div>
 </div>
 <div class="menu-section" id="menuContent">
-  <div class="empty-state"><div class="icon">🍔</div><p id="loadingText">Loading menu…</p></div>
-</div>
-
-<!-- ── BOTTOM NAV ── -->
-<div class="bottom-nav" id="bottomNav">
-  <button class="bottom-nav-item active" id="navMenu" onclick="switchTab('menu')">
-    <div style="position:relative;display:inline-block">
-      <div class="bottom-nav-icon">🍔</div>
-      <div class="bottom-nav-badge" id="cartBadge"></div>
-    </div>
-    <div class="bottom-nav-label">Menu</div>
-  </button>
-  <button class="bottom-nav-item" id="navOrders" onclick="switchTab('orders')">
-    <div class="bottom-nav-icon">📋</div>
-    <div class="bottom-nav-label">My Orders</div>
-  </button>
-</div>
-
-<!-- ── ORDERS SCREEN ── -->
-<div class="orders-screen" id="ordersScreen">
-  <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;padding:18px 0 14px">📋 My Orders</div>
-  <div id="ordersContent" class="orders-loading">Loading orders…</div>
+  <div class="empty-state"><div class="icon">\ud83c\udf54</div><p id="loadingText">Loading menu…</p></div>
 </div>
 <div class="cart-pill" id="cartPill" onclick="openCart()">
   <div class="cart-pill-count" id="cartCount">0</div>
@@ -285,7 +214,7 @@
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeCart()"></div>
 <div class="cart-drawer" id="cartDrawer">
   <div class="drawer-handle"></div>
-  <div class="drawer-title" id="cartDrawerTitle">🛒 Your Cart</div>
+  <div class="drawer-title" id="cartDrawerTitle">\ud83d\uded2 Your Cart</div>
   <div id="cartItems"></div>
   <div class="cart-total-row" id="cartTotalRow" style="display:none">
     <span id="cartTotalLabel">Total</span><span id="cartTotal">₹0</span>
@@ -319,7 +248,7 @@
     <div class="notes-item-name" id="notesItemName"></div>
     <textarea class="notes-textarea" id="notesTextarea" placeholder="e.g. Extra spicy, no onions, less oil…"></textarea>
     <div class="notes-hints">
-      <button class="notes-hint-chip" id="hint_spicy" onclick="addNoteHint(t('note_extra_spicy'))">🌶️ Extra spicy</button>
+      <button class="notes-hint-chip" id="hint_spicy" onclick="addNoteHint(t('note_extra_spicy'))">\ud83c\udf36️ Extra spicy</button>
       <button class="notes-hint-chip" id="hint_onions" onclick="addNoteHint(t('note_no_onions'))">\ud83e\uddc5 No onions</button>
       <button class="notes-hint-chip" id="hint_oil" onclick="addNoteHint(t('note_less_oil'))">Less oil</button>
       <button class="notes-hint-chip" id="hint_garlic" onclick="addNoteHint(t('note_no_garlic'))">No garlic</button>
@@ -334,7 +263,7 @@
   <div class="lang-overlay" onclick="closeLangDrawer()"></div>
   <div class="lang-panel">
     <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
-    <div class="lang-title" id="langDrawerTitle">🌐 Choose Language</div>
+    <div class="lang-title" id="langDrawerTitle">\ud83c\udf10 Choose Language</div>
     <div class="lang-grid" id="langGrid"></div>
   </div>
 </div>
@@ -342,7 +271,7 @@
 <div id="upsellOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;opacity:0;pointer-events:none;transition:opacity 0.25s"></div>
 <div id="upsellModal" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;z-index:401;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);padding:24px 20px 32px;box-sizing:border-box">
   <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
-  <div id="upsellTitle" style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px">🔥 Wait — you might like this!</div>
+  <div id="upsellTitle" style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px">\ud83d\udd25 Wait — you might like this!</div>
   <div id="upsellMsg" style="font-size:14px;color:#9b8b72;margin-bottom:16px;line-height:1.5">Finding the perfect add-on…</div>
   <div id="upsellItem" style="display:none;background:#fdf6e9;border:1.5px solid #f59e0b;border-radius:14px;padding:16px;margin-bottom:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
@@ -374,10 +303,9 @@
     <div id="checkoutItemsList" style="border:1.5px solid #ede8df;border-radius:12px;overflow:hidden;margin-bottom:12px"></div>
     <div id="checkoutPricing" style="background:#f9f6f0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:14px"></div>
     <div id="checkoutAddrSection" style="display:none;margin-bottom:14px">
-      <div style="font-size:12px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">📍 Delivery Address</div>
-      <div id="checkoutAddrCards"></div>
-      <button class="add-addr-btn" onclick="openAddAddressForm()">＋ Add New Address</button>
-      <div id="checkoutAddrHint" style="font-size:11px;color:#e53e3e;margin-top:6px;display:none">⚠️ Please select or add a delivery address</div>
+      <div style="font-size:12px;font-weight:600;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">📍 Delivery Address</div>
+      <textarea id="checkoutAddrInput" style="width:100%;min-height:64px;border:1.5px solid #ede8df;border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;resize:none;background:#faf8f5;box-sizing:border-box;outline:none" placeholder="Enter delivery address…"></textarea>
+      <div id="checkoutAddrHint" style="font-size:11px;color:#e53e3e;margin-top:4px;display:none">⚠️ Please enter delivery address</div>
     </div>
     <div id="checkoutPaySection" style="margin-bottom:16px">
       <div style="font-size:12px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">💳 Payment Method</div>
@@ -395,53 +323,7 @@
       </div>
     </div>
     <button id="checkoutPlaceBtn" onclick="placeOrderFromCheckout()" class="place-order-btn" style="margin-top:0">Place Order →</button>
-    <div style="display:flex;gap:8px;margin-top:8px"><button onclick="closeCheckout()" style="flex:1;padding:12px;background:none;border:1.5px solid #ede8df;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72">← Back</button><button onclick="closeCheckoutOpenCart()" style="flex:2;padding:12px;background:none;border:1.5px solid #ede8df;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72">✏️ Edit Cart</button></div>
-  </div>
-</div>
-
-<!-- ADD ADDRESS FORM MODAL -->
-<div class="addr-form-modal" id="addrFormModal">
-  <div class="addr-form-overlay" onclick="closeAddAddressForm()"></div>
-  <div class="addr-form-panel">
-    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
-    <div class="addr-form-title">📍 Add Delivery Address</div>
-    <!-- Label chips -->
-    <div class="addr-label-row">
-      <div class="addr-label-chip active" data-label="Home" onclick="selectAddrLabel(this)">🏠 Home</div>
-      <div class="addr-label-chip" data-label="Work" onclick="selectAddrLabel(this)">🏢 Work</div>
-      <div class="addr-label-chip" data-label="Other" onclick="selectAddrLabel(this)">📍 Other</div>
-    </div>
-    <!-- Structured fields -->
-    <!-- GPS auto-fill button -->
-    <button type="button" onclick="useMyLocation()" id="gpsBtn" style="width:100%;padding:12px 14px;border:1.5px solid #ea580c;border-radius:12px;background:#fff7f0;color:#ea580c;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px">
-      📍 Use My Current Location
-    </button>
-    <div id="gpsStatus" style="font-size:12px;color:#9b8b72;text-align:center;margin-bottom:10px;display:none"></div>
-    <div class="addr-field">
-      <label>Flat / House No *</label>
-      <input type="text" id="addrLine1" placeholder="e.g. Flat 4B, Sunrise Apartments" autocomplete="off">
-    </div>
-    <div class="addr-field">
-      <label>Street / Colony</label>
-      <input type="text" id="addrLine2" placeholder="e.g. MG Road, Koregaon Park" autocomplete="off">
-    </div>
-    <div class="addr-field">
-      <label>Area / Landmark</label>
-      <input type="text" id="addrArea" placeholder="e.g. Near City Mall" autocomplete="off">
-    </div>
-    <div class="addr-field-row">
-      <div class="addr-field">
-        <label>City</label>
-        <input type="text" id="addrCity" placeholder="Pune" autocomplete="off">
-      </div>
-      <div class="addr-field" style="max-width:120px">
-        <label>Pincode</label>
-        <input type="text" id="addrPincode" placeholder="411001" maxlength="6" inputmode="numeric" autocomplete="off">
-      </div>
-    </div>
-    <div id="addrFormErr" style="font-size:12px;color:#e53e3e;margin-bottom:10px;display:none">⚠️ Flat/House No is required</div>
-    <button onclick="saveNewAddress()" style="width:100%;padding:16px;background:#ea580c;border:none;border-radius:14px;color:white;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer">Save Address</button>
-    <button onclick="closeAddAddressForm()" style="width:100%;padding:12px;background:none;border:1.5px solid #ede8df;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72;margin-top:8px">Cancel</button>
+    <button onclick="closeCheckoutOpenCart()" style="width:100%;padding:12px;background:none;border:1.5px solid #ede8df;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72;margin-top:8px">✏️ Edit Cart</button>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -457,10 +339,10 @@ const I18N = {
     search_placeholder: 'Search menu…',
     // Filter chips
     filter_all:      'All',
-    filter_veg:      '🟢 Veg Only',
-    filter_nonveg:   '🔴 Non-Veg',
-    filter_mild:     '😊 Mild',
-    filter_spicy:    '🌶 Spicy',
+    filter_veg:      '\ud83d\udfe2 Veg Only',
+    filter_nonveg:   '\ud83d\udd34 Non-Veg',
+    filter_mild:     '\ud83d\ude0a Mild',
+    filter_spicy:    '\ud83c\udf36 Spicy',
     filter_popular:  '⭐ Popular',
     // Item card
     add:             'Add',
@@ -469,13 +351,13 @@ const I18N = {
     items:           'items',
     view_cart:       'View Cart',
     // Cart drawer
-    your_cart:       '🛒 Your Cart',
+    your_cart:       '\ud83d\uded2 Your Cart',
     cart_empty:      'Cart is empty',
     total:           'Total',
     each:            'each',
     place_order:     'Place Order →',
     // Address
-    delivery_address:'📍 Delivery Address',
+    delivery_address:'\ud83d\udccd Delivery Address',
     recent_addresses:'Recent addresses:',
     new_address:     'Or enter new address:',
     address_placeholder: 'Enter your full delivery address…',
@@ -486,7 +368,7 @@ const I18N = {
     add_without:     'Add without extras',
     // Notes
     special_instructions: '\ud83d\udcdd Special Instructions',
-    note_extra_spicy:'🌶️ Extra spicy',
+    note_extra_spicy:'\ud83c\udf36️ Extra spicy',
     note_no_onions:  '\ud83e\uddc5 No onions',
     note_less_oil:   'Less oil',
     note_no_garlic:  'No garlic',
@@ -499,11 +381,11 @@ const I18N = {
     edit_cart:       '✏️ Edit Cart',
     add_more:        '+ Add More',
     confirm_place:   '✅ Place Order →',
-    dine_in_label:   '🍽️ Dine-in order',
-    takeaway_label:  '🏃 Takeaway — collect at counter',
-    delivering_to:   '📍 Delivering to:',
+    dine_in_label:   '\ud83c\udf7d️ Dine-in order',
+    takeaway_label:  '\ud83c\udfc3 Takeaway — collect at counter',
+    delivering_to:   '\ud83d\udccd Delivering to:',
     // Upsell
-    upsell_title:    '🔥 Wait — you might like this!',
+    upsell_title:    '\ud83d\udd25 Wait — you might like this!',
     upsell_loading:  'Checking what pairs well…',
     upsell_add:      '＋ Add',
     skip:            'Skip',
@@ -525,7 +407,7 @@ const I18N = {
     mode_takeaway:   'Takeaway',
     mode_table:      'Table',
     // Language
-    choose_language: '🌐 Choose Language',
+    choose_language: '\ud83c\udf10 Choose Language',
     lang_changed:    'Menu updated in',
     // Info panel
     about:           'ABOUT',
@@ -542,7 +424,7 @@ const I18N = {
     ask_staff:       'Full details not available. Ask our staff.',
     allergen_warning:'⚠️ Allergen info depends on what the restaurant has confirmed. Please check with staff for allergy concerns.',
     // Popular
-    popular_section: '🔥 Popular',
+    popular_section: '\ud83d\udd25 Popular',
     popular_add:     '+ Add',
     finding_addon: 'Finding the perfect add-on…',
     session_expired: '⚠️ Session expired — scan QR to reorder',
@@ -554,21 +436,21 @@ const I18N = {
   hi: {
     search_placeholder: 'मेनू खोजें…',
     filter_all:      'सभी',
-    filter_veg:      '🟢 शाकाहारी',
-    filter_nonveg:   '🔴 मांसाहारी',
-    filter_mild:     '😊 हल्का',
-    filter_spicy:    '🌶 तीखा',
+    filter_veg:      '\ud83d\udfe2 शाकाहारी',
+    filter_nonveg:   '\ud83d\udd34 मांसाहारी',
+    filter_mild:     '\ud83d\ude0a हल्का',
+    filter_spicy:    '\ud83c\udf36 तीखा',
     filter_popular:  '⭐ लोकप्रिय',
     add:             'जोड़ें',
     item:            'आइटम',
     items:           'आइटम',
     view_cart:       'कार्ट देखें',
-    your_cart:       '🛒 आपका कार्ट',
+    your_cart:       '\ud83d\uded2 आपका कार्ट',
     cart_empty:      'कार्ट खाली है',
     total:           'कुल',
     each:            'प्रत्येक',
     place_order:     'ऑर्डर दें →',
-    delivery_address:'📍 डिलीवरी पता',
+    delivery_address:'\ud83d\udccd डिलीवरी पता',
     recent_addresses:'हाल के पते:',
     new_address:     'या नया पता दर्ज करें:',
     address_placeholder: 'अपना पूरा डिलीवरी पता दर्ज करें…',
@@ -577,7 +459,7 @@ const I18N = {
     add_to_cart:     'कार्ट में जोड़ें',
     add_without:     'बिना एक्स्ट्रा के जोड़ें',
     special_instructions: '\ud83d\udcdd विशेष निर्देश',
-    note_extra_spicy:'🌶️ अतिरिक्त तीखा',
+    note_extra_spicy:'\ud83c\udf36️ अतिरिक्त तीखा',
     note_no_onions:  '\ud83e\uddc5 प्याज नहीं',
     note_less_oil:   'कम तेल',
     note_no_garlic:  'लहसुन नहीं',
@@ -589,10 +471,10 @@ const I18N = {
     edit_cart:       '✏️ कार्ट संपादित करें',
     add_more:        '+ और जोड़ें',
     confirm_place:   '✅ ऑर्डर दें →',
-    dine_in_label:   '🍽️ डाइन-इन ऑर्डर',
-    takeaway_label:  '🏃 टेकअवे — काउंटर से लें',
-    delivering_to:   '📍 डिलीवरी:',
-    upsell_title:    '🔥 रुकिए — आपको यह पसंद आएगा!',
+    dine_in_label:   '\ud83c\udf7d️ डाइन-इन ऑर्डर',
+    takeaway_label:  '\ud83c\udfc3 टेकअवे — काउंटर से लें',
+    delivering_to:   '\ud83d\udccd डिलीवरी:',
+    upsell_title:    '\ud83d\udd25 रुकिए — आपको यह पसंद आएगा!',
     upsell_loading:  'बेस्ट कॉम्बो देख रहे हैं…',
     upsell_add:      '＋ जोड़ें',
     skip:            'छोड़ें',
@@ -610,7 +492,7 @@ const I18N = {
     mode_delivery:   'डिलीवरी',
     mode_takeaway:   'टेकअवे',
     mode_table:      'टेबल',
-    choose_language: '🌐 भाषा चुनें',
+    choose_language: '\ud83c\udf10 भाषा चुनें',
     lang_changed:    'मेनू अपडेट हुआ',
     about:           'के बारे में',
     cuisine:         'व्यंजन',
@@ -625,27 +507,27 @@ const I18N = {
     no_description:  'इस आइटम का विवरण उपलब्ध नहीं है।',
     ask_staff:       'पूरी जानकारी उपलब्ध नहीं। स्टाफ से पूछें।',
     allergen_warning:'⚠️ एलर्जी जानकारी रेस्तरां की पुष्टि पर निर्भर है।',
-    popular_section: '🔥 लोकप्रिय',
+    popular_section: '\ud83d\udd25 लोकप्रिय',
     popular_add:     '+ जोड़ें',
   },
   mr: {
     search_placeholder: 'मेनू शोधा…',
     filter_all:      'सर्व',
-    filter_veg:      '🟢 शाकाहारी',
-    filter_nonveg:   '🔴 मांसाहारी',
-    filter_mild:     '😊 सौम्य',
-    filter_spicy:    '🌶 तिखट',
+    filter_veg:      '\ud83d\udfe2 शाकाहारी',
+    filter_nonveg:   '\ud83d\udd34 मांसाहारी',
+    filter_mild:     '\ud83d\ude0a सौम्य',
+    filter_spicy:    '\ud83c\udf36 तिखट',
     filter_popular:  '⭐ लोकप्रिय',
     add:             'जोडा',
     item:            'आयटम',
     items:           'आयटम',
     view_cart:       'कार्ट पाहा',
-    your_cart:       '🛒 तुमची कार्ट',
+    your_cart:       '\ud83d\uded2 तुमची कार्ट',
     cart_empty:      'कार्ट रिकामी आहे',
     total:           'एकूण',
     each:            'प्रत्येक',
     place_order:     'ऑर्डर द्या →',
-    delivery_address:'📍 डिलिव्हरी पत्ता',
+    delivery_address:'\ud83d\udccd डिलिव्हरी पत्ता',
     recent_addresses:'अलीकडील पत्ते:',
     new_address:     'किंवा नवीन पत्ता टाका:',
     address_placeholder: 'तुमचा पूर्ण डिलिव्हरी पत्ता टाका…',
@@ -654,7 +536,7 @@ const I18N = {
     add_to_cart:     'कार्टमध्ये जोडा',
     add_without:     'अतिरिक्तशिवाय जोडा',
     special_instructions: '\ud83d\udcdd विशेष सूचना',
-    note_extra_spicy:'🌶️ जास्त तिखट',
+    note_extra_spicy:'\ud83c\udf36️ जास्त तिखट',
     note_no_onions:  '\ud83e\uddc5 कांदा नको',
     note_less_oil:   'कमी तेल',
     note_no_garlic:  'लसूण नको',
@@ -666,10 +548,10 @@ const I18N = {
     edit_cart:       '✏️ कार्ट संपादित करा',
     add_more:        '+ आणखी जोडा',
     confirm_place:   '✅ ऑर्डर द्या →',
-    dine_in_label:   '🍽️ डाइन-इन ऑर्डर',
-    takeaway_label:  '🏃 टेकअवे — काउंटरवरून घ्या',
-    delivering_to:   '📍 डिलिव्हरी:',
-    upsell_title:    '🔥 थांबा — हे तुम्हाला आवडेल!',
+    dine_in_label:   '\ud83c\udf7d️ डाइन-इन ऑर्डर',
+    takeaway_label:  '\ud83c\udfc3 टेकअवे — काउंटरवरून घ्या',
+    delivering_to:   '\ud83d\udccd डिलिव्हरी:',
+    upsell_title:    '\ud83d\udd25 थांबा — हे तुम्हाला आवडेल!',
     upsell_loading:  'सर्वोत्तम जोडी पाहत आहोत…',
     upsell_add:      '＋ जोडा',
     skip:            'वगळा',
@@ -687,7 +569,7 @@ const I18N = {
     mode_delivery:   'डिलिव्हरी',
     mode_takeaway:   'टेकअवे',
     mode_table:      'टेबल',
-    choose_language: '🌐 भाषा निवडा',
+    choose_language: '\ud83c\udf10 भाषा निवडा',
     lang_changed:    'मेनू अपडेट झाला',
     about:           'बद्दल',
     cuisine:         'पाककृती',
@@ -702,27 +584,27 @@ const I18N = {
     no_description:  'या आयटमचे वर्णन उपलब्ध नाही.',
     ask_staff:       'पूर्ण माहिती उपलब्ध नाही. स्टाफला विचारा.',
     allergen_warning:'⚠️ ऍलर्जी माहिती रेस्टॉरंटने दिलेल्या माहितीवर अवलंबून आहे.',
-    popular_section: '🔥 लोकप्रिय',
+    popular_section: '\ud83d\udd25 लोकप्रिय',
     popular_add:     '+ जोडा',
   },
   ru: {
     search_placeholder: 'Поиск в меню…',
     filter_all:      'Все',
-    filter_veg:      '🟢 Вегетарианское',
-    filter_nonveg:   '🔴 Мясное',
-    filter_mild:     '😊 Нежное',
-    filter_spicy:    '🌶 Острое',
+    filter_veg:      '\ud83d\udfe2 Вегетарианское',
+    filter_nonveg:   '\ud83d\udd34 Мясное',
+    filter_mild:     '\ud83d\ude0a Нежное',
+    filter_spicy:    '\ud83c\udf36 Острое',
     filter_popular:  '⭐ Популярное',
     add:             'Добавить',
     item:            'позиция',
     items:           'позиции',
     view_cart:       'Корзина',
-    your_cart:       '🛒 Ваша корзина',
+    your_cart:       '\ud83d\uded2 Ваша корзина',
     cart_empty:      'Корзина пуста',
     total:           'Итого',
     each:            'за шт.',
     place_order:     'Оформить заказ →',
-    delivery_address:'📍 Адрес доставки',
+    delivery_address:'\ud83d\udccd Адрес доставки',
     recent_addresses:'Недавние адреса:',
     new_address:     'Или введите новый адрес:',
     address_placeholder: 'Введите полный адрес доставки…',
@@ -731,7 +613,7 @@ const I18N = {
     add_to_cart:     'В корзину',
     add_without:     'Добавить без дополнений',
     special_instructions: '\ud83d\udcdd Особые пожелания',
-    note_extra_spicy:'🌶️ Очень острое',
+    note_extra_spicy:'\ud83c\udf36️ Очень острое',
     note_no_onions:  '\ud83e\uddc5 Без лука',
     note_less_oil:   'Меньше масла',
     note_no_garlic:  'Без чеснока',
@@ -743,10 +625,10 @@ const I18N = {
     edit_cart:       '✏️ Изменить корзину',
     add_more:        '+ Добавить ещё',
     confirm_place:   '✅ Оформить заказ →',
-    dine_in_label:   '🍽️ Заказ в ресторане',
-    takeaway_label:  '🏃 Навынос — заберите на стойке',
-    delivering_to:   '📍 Доставка:',
-    upsell_title:    '🔥 Подождите — вам может понравиться!',
+    dine_in_label:   '\ud83c\udf7d️ Заказ в ресторане',
+    takeaway_label:  '\ud83c\udfc3 Навынос — заберите на стойке',
+    delivering_to:   '\ud83d\udccd Доставка:',
+    upsell_title:    '\ud83d\udd25 Подождите — вам может понравиться!',
     upsell_loading:  'Ищем лучшее дополнение…',
     upsell_add:      '＋ Добавить',
     skip:            'Пропустить',
@@ -764,7 +646,7 @@ const I18N = {
     mode_delivery:   'Доставка',
     mode_takeaway:   'Навынос',
     mode_table:      'Стол',
-    choose_language: '🌐 Выберите язык',
+    choose_language: '\ud83c\udf10 Выберите язык',
     lang_changed:    'Меню обновлено на',
     about:           'О блюде',
     cuisine:         'Кухня',
@@ -779,27 +661,27 @@ const I18N = {
     no_description:  'Описание недоступно для этого блюда.',
     ask_staff:       'Полная информация недоступна. Спросите персонал.',
     allergen_warning:'⚠️ Информация об аллергенах зависит от данных ресторана. Уточните у персонала.',
-    popular_section: '🔥 Популярное',
+    popular_section: '\ud83d\udd25 Популярное',
     popular_add:     '+ Добавить',
   },
   zh: {
     search_placeholder: '搜索菜单…',
     filter_all:      '全部',
-    filter_veg:      '🟢 素食',
-    filter_nonveg:   '🔴 荤菜',
-    filter_mild:     '😊 不辣',
-    filter_spicy:    '🌶 辣',
+    filter_veg:      '\ud83d\udfe2 素食',
+    filter_nonveg:   '\ud83d\udd34 荤菜',
+    filter_mild:     '\ud83d\ude0a 不辣',
+    filter_spicy:    '\ud83c\udf36 辣',
     filter_popular:  '⭐ 热门',
     add:             '添加',
     item:            '项',
     items:           '项',
     view_cart:       '查看购物车',
-    your_cart:       '🛒 您的购物车',
+    your_cart:       '\ud83d\uded2 您的购物车',
     cart_empty:      '购物车为空',
     total:           '总计',
     each:            '每份',
     place_order:     '下单 →',
-    delivery_address:'📍 配送地址',
+    delivery_address:'\ud83d\udccd 配送地址',
     recent_addresses:'最近地址：',
     new_address:     '或输入新地址：',
     address_placeholder: '请输入完整配送地址…',
@@ -808,7 +690,7 @@ const I18N = {
     add_to_cart:     '加入购物车',
     add_without:     '不添加额外选项',
     special_instructions: '\ud83d\udcdd 特殊要求',
-    note_extra_spicy:'🌶️ 加辣',
+    note_extra_spicy:'\ud83c\udf36️ 加辣',
     note_no_onions:  '\ud83e\uddc5 不要洋葱',
     note_less_oil:   '少油',
     note_no_garlic:  '不要大蒜',
@@ -820,10 +702,10 @@ const I18N = {
     edit_cart:       '✏️ 编辑购物车',
     add_more:        '+ 继续点餐',
     confirm_place:   '✅ 下单 →',
-    dine_in_label:   '🍽️ 堂食订单',
-    takeaway_label:  '🏃 外带 — 在柜台取餐',
-    delivering_to:   '📍 配送至：',
-    upsell_title:    '🔥 稍等 — 您可能喜欢这个！',
+    dine_in_label:   '\ud83c\udf7d️ 堂食订单',
+    takeaway_label:  '\ud83c\udfc3 外带 — 在柜台取餐',
+    delivering_to:   '\ud83d\udccd 配送至：',
+    upsell_title:    '\ud83d\udd25 稍等 — 您可能喜欢这个！',
     upsell_loading:  '正在寻找最佳搭配…',
     upsell_add:      '＋ 添加',
     skip:            '跳过',
@@ -841,7 +723,7 @@ const I18N = {
     mode_delivery:   '外卖',
     mode_takeaway:   '外带',
     mode_table:      '桌',
-    choose_language: '🌐 选择语言',
+    choose_language: '\ud83c\udf10 选择语言',
     lang_changed:    '菜单已更新为',
     about:           '关于',
     cuisine:         '菜系',
@@ -856,27 +738,27 @@ const I18N = {
     no_description:  '此菜品暂无描述。',
     ask_staff:       '详细信息不可用，请询问工作人员。',
     allergen_warning:'⚠️ 过敏原信息取决于餐厅的确认。请向工作人员咨询。',
-    popular_section: '🔥 热门',
+    popular_section: '\ud83d\udd25 热门',
     popular_add:     '+ 添加',
   },
   de: {
     search_placeholder: 'Speisekarte suchen…',
     filter_all:      'Alle',
-    filter_veg:      '🟢 Vegetarisch',
-    filter_nonveg:   '🔴 Mit Fleisch',
-    filter_mild:     '😊 Mild',
-    filter_spicy:    '🌶 Scharf',
+    filter_veg:      '\ud83d\udfe2 Vegetarisch',
+    filter_nonveg:   '\ud83d\udd34 Mit Fleisch',
+    filter_mild:     '\ud83d\ude0a Mild',
+    filter_spicy:    '\ud83c\udf36 Scharf',
     filter_popular:  '⭐ Beliebt',
     add:             'Hinzufügen',
     item:            'Artikel',
     items:           'Artikel',
     view_cart:       'Warenkorb',
-    your_cart:       '🛒 Ihr Warenkorb',
+    your_cart:       '\ud83d\uded2 Ihr Warenkorb',
     cart_empty:      'Warenkorb ist leer',
     total:           'Gesamt',
     each:            'je',
     place_order:     'Bestellen →',
-    delivery_address:'📍 Lieferadresse',
+    delivery_address:'\ud83d\udccd Lieferadresse',
     recent_addresses:'Letzte Adressen:',
     new_address:     'Oder neue Adresse eingeben:',
     address_placeholder: 'Vollständige Lieferadresse eingeben…',
@@ -885,7 +767,7 @@ const I18N = {
     add_to_cart:     'In den Warenkorb',
     add_without:     'Ohne Extras hinzufügen',
     special_instructions: '\ud83d\udcdd Besondere Anweisungen',
-    note_extra_spicy:'🌶️ Extra scharf',
+    note_extra_spicy:'\ud83c\udf36️ Extra scharf',
     note_no_onions:  '\ud83e\uddc5 Ohne Zwiebeln',
     note_less_oil:   'Weniger Öl',
     note_no_garlic:  'Ohne Knoblauch',
@@ -897,10 +779,10 @@ const I18N = {
     edit_cart:       '✏️ Warenkorb bearbeiten',
     add_more:        '+ Mehr hinzufügen',
     confirm_place:   '✅ Bestellen →',
-    dine_in_label:   '🍽️ Restaurantbestellung',
-    takeaway_label:  '🏃 Zum Mitnehmen — an der Theke abholen',
-    delivering_to:   '📍 Lieferung an:',
-    upsell_title:    '🔥 Warten Sie — das könnte Ihnen gefallen!',
+    dine_in_label:   '\ud83c\udf7d️ Restaurantbestellung',
+    takeaway_label:  '\ud83c\udfc3 Zum Mitnehmen — an der Theke abholen',
+    delivering_to:   '\ud83d\udccd Lieferung an:',
+    upsell_title:    '\ud83d\udd25 Warten Sie — das könnte Ihnen gefallen!',
     upsell_loading:  'Beste Ergänzung suchen…',
     upsell_add:      '＋ Hinzufügen',
     skip:            'Überspringen',
@@ -918,7 +800,7 @@ const I18N = {
     mode_delivery:   'Lieferung',
     mode_takeaway:   'Abholung',
     mode_table:      'Tisch',
-    choose_language: '🌐 Sprache wählen',
+    choose_language: '\ud83c\udf10 Sprache wählen',
     lang_changed:    'Menü aktualisiert auf',
     about:           'Über',
     cuisine:         'Küche',
@@ -933,27 +815,27 @@ const I18N = {
     no_description:  'Keine Beschreibung für diesen Artikel.',
     ask_staff:       'Vollständige Details nicht verfügbar. Fragen Sie das Personal.',
     allergen_warning:'⚠️ Allergeninformationen hängen von der Bestätigung des Restaurants ab.',
-    popular_section: '🔥 Beliebt',
+    popular_section: '\ud83d\udd25 Beliebt',
     popular_add:     '+ Hinzufügen',
   },
   fr: {
     search_placeholder: 'Rechercher dans le menu…',
     filter_all:      'Tout',
-    filter_veg:      '🟢 Végétarien',
-    filter_nonveg:   '🔴 Non végétarien',
-    filter_mild:     '😊 Doux',
-    filter_spicy:    '🌶 Épicé',
+    filter_veg:      '\ud83d\udfe2 Végétarien',
+    filter_nonveg:   '\ud83d\udd34 Non végétarien',
+    filter_mild:     '\ud83d\ude0a Doux',
+    filter_spicy:    '\ud83c\udf36 Épicé',
     filter_popular:  '⭐ Populaire',
     add:             'Ajouter',
     item:            'article',
     items:           'articles',
     view_cart:       'Voir le panier',
-    your_cart:       '🛒 Votre panier',
+    your_cart:       '\ud83d\uded2 Votre panier',
     cart_empty:      'Le panier est vide',
     total:           'Total',
     each:            'chacun',
     place_order:     'Commander →',
-    delivery_address:'📍 Adresse de livraison',
+    delivery_address:'\ud83d\udccd Adresse de livraison',
     recent_addresses:'Adresses récentes :',
     new_address:     'Ou entrez une nouvelle adresse :',
     address_placeholder: 'Entrez votre adresse de livraison complète…',
@@ -962,7 +844,7 @@ const I18N = {
     add_to_cart:     'Ajouter au panier',
     add_without:     'Ajouter sans suppléments',
     special_instructions: '\ud83d\udcdd Instructions spéciales',
-    note_extra_spicy:'🌶️ Extra épicé',
+    note_extra_spicy:'\ud83c\udf36️ Extra épicé',
     note_no_onions:  '\ud83e\uddc5 Sans oignons',
     note_less_oil:   'Moins d\'huile',
     note_no_garlic:  'Sans ail',
@@ -974,10 +856,10 @@ const I18N = {
     edit_cart:       '✏️ Modifier le panier',
     add_more:        '+ Ajouter plus',
     confirm_place:   '✅ Commander →',
-    dine_in_label:   '🍽️ Commande sur place',
-    takeaway_label:  '🏃 À emporter — récupérer au comptoir',
-    delivering_to:   '📍 Livraison à :',
-    upsell_title:    '🔥 Attendez — vous pourriez aimer ça !',
+    dine_in_label:   '\ud83c\udf7d️ Commande sur place',
+    takeaway_label:  '\ud83c\udfc3 À emporter — récupérer au comptoir',
+    delivering_to:   '\ud83d\udccd Livraison à :',
+    upsell_title:    '\ud83d\udd25 Attendez — vous pourriez aimer ça !',
     upsell_loading:  'Cherche le meilleur accompagnement…',
     upsell_add:      '＋ Ajouter',
     skip:            'Passer',
@@ -995,7 +877,7 @@ const I18N = {
     mode_delivery:   'Livraison',
     mode_takeaway:   'À emporter',
     mode_table:      'Table',
-    choose_language: '🌐 Choisir la langue',
+    choose_language: '\ud83c\udf10 Choisir la langue',
     lang_changed:    'Menu mis à jour en',
     about:           'À propos',
     cuisine:         'Cuisine',
@@ -1010,27 +892,27 @@ const I18N = {
     no_description:  'Description non disponible pour cet article.',
     ask_staff:       'Détails complets non disponibles. Demandez au personnel.',
     allergen_warning:'⚠️ Les informations sur les allergènes dépendent de la confirmation du restaurant.',
-    popular_section: '🔥 Populaire',
+    popular_section: '\ud83d\udd25 Populaire',
     popular_add:     '+ Ajouter',
   },
   es: {
     search_placeholder: 'Buscar en el menú…',
     filter_all:      'Todo',
-    filter_veg:      '🟢 Vegetariano',
-    filter_nonveg:   '🔴 Con carne',
-    filter_mild:     '😊 Suave',
-    filter_spicy:    '🌶 Picante',
+    filter_veg:      '\ud83d\udfe2 Vegetariano',
+    filter_nonveg:   '\ud83d\udd34 Con carne',
+    filter_mild:     '\ud83d\ude0a Suave',
+    filter_spicy:    '\ud83c\udf36 Picante',
     filter_popular:  '⭐ Popular',
     add:             'Agregar',
     item:            'artículo',
     items:           'artículos',
     view_cart:       'Ver carrito',
-    your_cart:       '🛒 Tu carrito',
+    your_cart:       '\ud83d\uded2 Tu carrito',
     cart_empty:      'El carrito está vacío',
     total:           'Total',
     each:            'c/u',
     place_order:     'Hacer pedido →',
-    delivery_address:'📍 Dirección de entrega',
+    delivery_address:'\ud83d\udccd Dirección de entrega',
     recent_addresses:'Direcciones recientes:',
     new_address:     'O ingresa nueva dirección:',
     address_placeholder: 'Ingresa tu dirección de entrega completa…',
@@ -1039,7 +921,7 @@ const I18N = {
     add_to_cart:     'Agregar al carrito',
     add_without:     'Agregar sin extras',
     special_instructions: '\ud83d\udcdd Instrucciones especiales',
-    note_extra_spicy:'🌶️ Extra picante',
+    note_extra_spicy:'\ud83c\udf36️ Extra picante',
     note_no_onions:  '\ud83e\uddc5 Sin cebollas',
     note_less_oil:   'Menos aceite',
     note_no_garlic:  'Sin ajo',
@@ -1051,10 +933,10 @@ const I18N = {
     edit_cart:       '✏️ Editar carrito',
     add_more:        '+ Agregar más',
     confirm_place:   '✅ Hacer pedido →',
-    dine_in_label:   '🍽️ Pedido en restaurante',
-    takeaway_label:  '🏃 Para llevar — recoger en mostrador',
-    delivering_to:   '📍 Entregando a:',
-    upsell_title:    '🔥 ¡Espera — esto te puede gustar!',
+    dine_in_label:   '\ud83c\udf7d️ Pedido en restaurante',
+    takeaway_label:  '\ud83c\udfc3 Para llevar — recoger en mostrador',
+    delivering_to:   '\ud83d\udccd Entregando a:',
+    upsell_title:    '\ud83d\udd25 ¡Espera — esto te puede gustar!',
     upsell_loading:  'Buscando el mejor complemento…',
     upsell_add:      '＋ Agregar',
     skip:            'Omitir',
@@ -1072,7 +954,7 @@ const I18N = {
     mode_delivery:   'Entrega',
     mode_takeaway:   'Para llevar',
     mode_table:      'Mesa',
-    choose_language: '🌐 Elegir idioma',
+    choose_language: '\ud83c\udf10 Elegir idioma',
     lang_changed:    'Menú actualizado a',
     about:           'Acerca de',
     cuisine:         'Cocina',
@@ -1087,7 +969,7 @@ const I18N = {
     no_description:  'Descripción no disponible para este artículo.',
     ask_staff:       'Detalles completos no disponibles. Consulta al personal.',
     allergen_warning:'⚠️ La información sobre alérgenos depende de la confirmación del restaurante.',
-    popular_section: '🔥 Popular',
+    popular_section: '\ud83d\udd25 Popular',
     popular_add:     '+ Agregar',
   },
 };
@@ -1105,177 +987,177 @@ function t(key) {
 // ── Indian language UI strings generated ──
 I18N['te'] = {
   search_placeholder: 'మెనూ శోధించండి…',
-  filter_all: 'అన్నీ', filter_veg: '🟢 శాకాహారం', filter_nonveg: '🔴 మాంసాహారం',
-  filter_mild: '😊 తక్కువ కారం', filter_spicy: '🌶 కారంగా', filter_popular: '⭐ ప్రసిద్ధి',
+  filter_all: 'అన్నీ', filter_veg: '\ud83d\udfe2 శాకాహారం', filter_nonveg: '\ud83d\udd34 మాంసాహారం',
+  filter_mild: '\ud83d\ude0a తక్కువ కారం', filter_spicy: '\ud83c\udf36 కారంగా', filter_popular: '⭐ ప్రసిద్ధి',
   add: 'జోడించు', item: 'వస్తువు', items: 'వస్తువులు', view_cart: 'కార్ట్ చూడు',
-  your_cart: '🛒 మీ కార్ట్', cart_empty: 'కార్ట్ ఖాళీగా ఉంది', total: 'మొత్తం', each: 'ఒక్కొక్కటి',
-  place_order: 'ఆర్డర్ చేయండి →', delivery_address: '📍 డెలివరీ చిరునామా',
+  your_cart: '\ud83d\uded2 మీ కార్ట్', cart_empty: 'కార్ట్ ఖాళీగా ఉంది', total: 'మొత్తం', each: 'ఒక్కొక్కటి',
+  place_order: 'ఆర్డర్ చేయండి →', delivery_address: '\ud83d\udccd డెలివరీ చిరునామా',
   recent_addresses: 'ఇటీవలి చిరునామాలు:', new_address: 'లేదా కొత్త చిరునామా నమోదు చేయండి:',
   address_placeholder: 'మీ పూర్తి డెలివరీ చిరునామా నమోదు చేయండి…', address_required: '⚠️ దయచేసి డెలివరీ చిరునామా నమోదు చేయండి',
   add_extras: 'అదనపువి జోడించండి (ఐచ్ఛికం)', add_to_cart: 'కార్ట్‌కి జోడించు', add_without: 'అదనపువి లేకుండా జోడించు',
-  special_instructions: '\ud83d\udcdd ప్రత్యేక సూచనలు', note_extra_spicy: '🌶️ అదనపు కారం', note_no_onions: '\ud83e\uddc5 ఉల్లిపాయ వద్దు',
+  special_instructions: '\ud83d\udcdd ప్రత్యేక సూచనలు', note_extra_spicy: '\ud83c\udf36️ అదనపు కారం', note_no_onions: '\ud83e\uddc5 ఉల్లిపాయ వద్దు',
   note_less_oil: 'తక్కువ నూనె', note_no_garlic: 'వెల్లుల్లి వద్దు', note_well_done: 'బాగా వండండి', note_extra_sauce: 'అదనపు సాస్',
   save: 'సేవ్ చేయి', confirm_order: '✅ ఆర్డర్ నిర్ధారించు', review_order: 'ఆర్డర్ చేయడానికి ముందు తనిఖీ చేయండి',
   edit_cart: '✏️ కార్ట్ సవరించు', add_more: '+ మరిన్ని జోడించు', confirm_place: '✅ ఆర్డర్ చేయండి →',
-  dine_in_label: '🍽️ రెస్టారెంట్ ఆర్డర్', takeaway_label: '🏃 టేకవే — కౌంటర్ వద్ద తీసుకోండి',
-  delivering_to: '📍 డెలివరీ:', upsell_title: '🔥 ఆగండి — ఇది మీకు నచ్చవచ్చు!',
+  dine_in_label: '\ud83c\udf7d️ రెస్టారెంట్ ఆర్డర్', takeaway_label: '\ud83c\udfc3 టేకవే — కౌంటర్ వద్ద తీసుకోండి',
+  delivering_to: '\ud83d\udccd డెలివరీ:', upsell_title: '\ud83d\udd25 ఆగండి — ఇది మీకు నచ్చవచ్చు!',
   upsell_loading: 'ఉత్తమ కలయికను చూస్తున్నాం…', upsell_add: '＋ జోడించు', skip: 'దాటవేయి',
   no_items: 'వస్తువులు కనుగొనబడలేదు', try_filter: 'వేరే ఫిల్టర్ ప్రయత్నించండి',
   loading: 'మెనూ లోడ్ అవుతోంది…', invalid_link: 'చెల్లని లింక్. దయచేసి QR కోడ్ మళ్ళీ స్కాన్ చేయండి.',
   link_expired: 'లింక్ గడువు తీరింది', session_ended: 'ఈ ఆర్డర్ సెషన్ ముగిసింది.', scan_again: 'కొత్త ఆర్డర్ కోసం QR కోడ్ స్కాన్ చేయండి.',
   added: 'జోడించబడింది!', note_saved: '\ud83d\udcdd గమనిక సేవ్ అయింది!', order_placed: 'ఆర్డర్ చేయబడింది! బిల్ #',
   order_locked: '✅ ఆర్డర్ చేయబడింది — కార్ట్ లాక్ చేయబడింది', mode_delivery: 'డెలివరీ', mode_takeaway: 'టేకవే', mode_table: 'టేబుల్',
-  choose_language: '🌐 భాష ఎంచుకోండి', lang_changed: 'మెనూ అప్‌డేట్ అయింది',
+  choose_language: '\ud83c\udf10 భాష ఎంచుకోండి', lang_changed: 'మెనూ అప్‌డేట్ అయింది',
   about: 'గురించి', cuisine: 'వంటకం', spice: 'మసాలా', flavor: 'రుచి', experience: 'అనుభవం',
   ingredients: 'పదార్థాలు', restrictions: 'పరిమితులు', allergens: 'అలెర్జీలు', bar_info: 'బార్ సమాచారం', contains: 'కలిగి ఉంది',
   no_description: 'ఈ వస్తువుకు వివరణ అందుబాటులో లేదు.', ask_staff: 'పూర్తి వివరాలు అందుబాటులో లేవు. సిబ్బందిని అడగండి.',
   allergen_warning: '⚠️ అలెర్జీ సమాచారం రెస్టారెంట్ నిర్ధారణపై ఆధారపడి ఉంటుంది.',
-  popular_section: '🔥 ప్రసిద్ధి', popular_add: '+ జోడించు',
+  popular_section: '\ud83d\udd25 ప్రసిద్ధి', popular_add: '+ జోడించు',
 };
 I18N['ta'] = {
   search_placeholder: 'மெனு தேடுங்கள்…',
-  filter_all: 'அனைத்தும்', filter_veg: '🟢 சைவம்', filter_nonveg: '🔴 அசைவம்',
-  filter_mild: '😊 சாதாரண காரம்', filter_spicy: '🌶 காரமாக', filter_popular: '⭐ பிரபலம்',
+  filter_all: 'அனைத்தும்', filter_veg: '\ud83d\udfe2 சைவம்', filter_nonveg: '\ud83d\udd34 அசைவம்',
+  filter_mild: '\ud83d\ude0a சாதாரண காரம்', filter_spicy: '\ud83c\udf36 காரமாக', filter_popular: '⭐ பிரபலம்',
   add: 'சேர்க்கவும்', item: 'பொருள்', items: 'பொருட்கள்', view_cart: 'கார்ட் பார்க்க',
-  your_cart: '🛒 உங்கள் கார்ட்', cart_empty: 'கார்ட் காலியாக உள்ளது', total: 'மொத்தம்', each: 'ஒவ்வொன்றும்',
-  place_order: 'ஆர்டர் செய்யுங்கள் →', delivery_address: '📍 டெலிவரி முகவரி',
+  your_cart: '\ud83d\uded2 உங்கள் கார்ட்', cart_empty: 'கார்ட் காலியாக உள்ளது', total: 'மொத்தம்', each: 'ஒவ்வொன்றும்',
+  place_order: 'ஆர்டர் செய்யுங்கள் →', delivery_address: '\ud83d\udccd டெலிவரி முகவரி',
   recent_addresses: 'சமீபத்திய முகவரிகள்:', new_address: 'அல்லது புதிய முகவரி உள்ளிடவும்:',
   address_placeholder: 'உங்கள் முழு டெலிவரி முகவரியை உள்ளிடவும்…', address_required: '⚠️ டெலிவரி முகவரியை உள்ளிடவும்',
   add_extras: 'கூடுதல் சேர்க்கவும் (விருப்பத்தேர்வு)', add_to_cart: 'கார்டில் சேர்க்கவும்', add_without: 'கூடுதல் இல்லாமல் சேர்க்கவும்',
-  special_instructions: '\ud83d\udcdd சிறப்பு அறிவுறுத்தல்கள்', note_extra_spicy: '🌶️ மிகவும் காரமாக', note_no_onions: '\ud83e\uddc5 வெங்காயம் வேண்டாம்',
+  special_instructions: '\ud83d\udcdd சிறப்பு அறிவுறுத்தல்கள்', note_extra_spicy: '\ud83c\udf36️ மிகவும் காரமாக', note_no_onions: '\ud83e\uddc5 வெங்காயம் வேண்டாம்',
   note_less_oil: 'குறைந்த எண்ணெய்', note_no_garlic: 'பூண்டு வேண்டாம்', note_well_done: 'நன்கு சமையுங்கள்', note_extra_sauce: 'கூடுதல் சாஸ்',
   save: 'சேமிக்கவும்', confirm_order: '✅ ஆர்டர் உறுதிசெய்யவும்', review_order: 'ஆர்டர் செய்வதற்கு முன் சரிபார்க்கவும்',
   edit_cart: '✏️ கார்ட் திருத்தவும்', add_more: '+ மேலும் சேர்க்கவும்', confirm_place: '✅ ஆர்டர் செய்யுங்கள் →',
-  dine_in_label: '🍽️ உணவகத்தில் ஆர்டர்', takeaway_label: '🏃 எடுத்துச் செல்ல — கவுண்டரில் பெறவும்',
-  delivering_to: '📍 டெலிவரி:', upsell_title: '🔥 நிறுத்துங்கள் — இது உங்களுக்கு பிடிக்கலாம்!',
+  dine_in_label: '\ud83c\udf7d️ உணவகத்தில் ஆர்டர்', takeaway_label: '\ud83c\udfc3 எடுத்துச் செல்ல — கவுண்டரில் பெறவும்',
+  delivering_to: '\ud83d\udccd டெலிவரி:', upsell_title: '\ud83d\udd25 நிறுத்துங்கள் — இது உங்களுக்கு பிடிக்கலாம்!',
   upsell_loading: 'சிறந்த சேர்க்கை தேடுகிறோம்…', upsell_add: '＋ சேர்க்கவும்', skip: 'தவிர்க்கவும்',
   no_items: 'பொருட்கள் கிடைக்கவில்லை', try_filter: 'வேறு வடிகட்டி முயற்சிக்கவும்',
   loading: 'மெனு ஏற்றப்படுகிறது…', invalid_link: 'தவறான இணைப்பு. QR குறியீட்டை மீண்டும் ஸ்கேன் செய்யவும்.',
   link_expired: 'இணைப்பின் காலாவதியாகிவிட்டது', session_ended: 'இந்த ஆர்டர் அமர்வு முடிந்தது.', scan_again: 'புதிய ஆர்டருக்கு QR குறியீட்டை ஸ்கேன் செய்யவும்.',
   added: 'சேர்க்கப்பட்டது!', note_saved: '\ud83d\udcdd குறிப்பு சேமிக்கப்பட்டது!', order_placed: 'ஆர்டர் வழங்கப்பட்டது! பில் #',
   order_locked: '✅ ஆர்டர் வழங்கப்பட்டது — கார்ட் பூட்டப்பட்டுள்ளது', mode_delivery: 'டெலிவரி', mode_takeaway: 'எடுத்துச் செல்ல', mode_table: 'மேசை',
-  choose_language: '🌐 மொழி தேர்ந்தெடுக்கவும்', lang_changed: 'மெனு புதுப்பிக்கப்பட்டது',
+  choose_language: '\ud83c\udf10 மொழி தேர்ந்தெடுக்கவும்', lang_changed: 'மெனு புதுப்பிக்கப்பட்டது',
   about: 'பற்றி', cuisine: 'உணவு வகை', spice: 'மசாலா', flavor: 'சுவை', experience: 'அனுபவம்',
   ingredients: 'பொருட்கள்', restrictions: 'கட்டுப்பாடுகள்', allergens: 'ஒவ்வாமைகள்', bar_info: 'பார் தகவல்', contains: 'உள்ளது',
   no_description: 'இந்த பொருளுக்கு விளக்கம் கிடைக்கவில்லை.', ask_staff: 'முழு விவரங்கள் இல்லை. ஊழியர்களிடம் கேளுங்கள்.',
   allergen_warning: '⚠️ ஒவ்வாமை தகவல் உணவகத்தின் உறுதிப்படுத்தலைப் பொறுத்தது.',
-  popular_section: '🔥 பிரபலம்', popular_add: '+ சேர்க்கவும்',
+  popular_section: '\ud83d\udd25 பிரபலம்', popular_add: '+ சேர்க்கவும்',
 };
 I18N['gu'] = {
   search_placeholder: 'મેનૂ શોધો…',
-  filter_all: 'બધા', filter_veg: '🟢 શાકાહારી', filter_nonveg: '🔴 માંસાહારી',
-  filter_mild: '😊 હળવો', filter_spicy: '🌶 તીખો', filter_popular: '⭐ લોકપ્રિય',
+  filter_all: 'બધા', filter_veg: '\ud83d\udfe2 શાકાહારી', filter_nonveg: '\ud83d\udd34 માંસાહારી',
+  filter_mild: '\ud83d\ude0a હળવો', filter_spicy: '\ud83c\udf36 તીખો', filter_popular: '⭐ લોકપ્રિય',
   add: 'ઉમેરો', item: 'આઇટમ', items: 'આઇટમ', view_cart: 'કાર્ટ જુઓ',
-  your_cart: '🛒 તમારી કાર્ટ', cart_empty: 'કાર્ટ ખાલી છે', total: 'કુલ', each: 'દરેક',
-  place_order: 'ઓર્ડર આપો →', delivery_address: '📍 ડિલિવરી સરનામું',
+  your_cart: '\ud83d\uded2 તમારી કાર્ટ', cart_empty: 'કાર્ટ ખાલી છે', total: 'કુલ', each: 'દરેક',
+  place_order: 'ઓર્ડર આપો →', delivery_address: '\ud83d\udccd ડિલિવરી સરનામું',
   recent_addresses: 'તાજેતરના સરનામાં:', new_address: 'અથવા નવું સરનામું દાખલ કરો:',
   address_placeholder: 'તમારું સંપૂર્ણ ડિલિવરી સરનામું દાખલ કરો…', address_required: '⚠️ કૃપા કરી ડિલિવરી સરનામું દાખલ કરો',
   add_extras: 'વધારાની ચીજો ઉમેરો (વૈકલ્પિક)', add_to_cart: 'કાર્ટમાં ઉમેરો', add_without: 'વધારા વિના ઉમેરો',
-  special_instructions: '\ud83d\udcdd વિશેષ સૂચના', note_extra_spicy: '🌶️ વધુ તીખો', note_no_onions: '\ud83e\uddc5 ડુંગળી નહીં',
+  special_instructions: '\ud83d\udcdd વિશેષ સૂચના', note_extra_spicy: '\ud83c\udf36️ વધુ તીખો', note_no_onions: '\ud83e\uddc5 ડુંગળી નહીં',
   note_less_oil: 'ઓછું તેલ', note_no_garlic: 'લસણ નહીં', note_well_done: 'સારી રીતે રાંધો', note_extra_sauce: 'વધારાની ચટણી',
   save: 'સાચવો', confirm_order: '✅ ઓર્ડર પુષ્ટિ કરો', review_order: 'ઓર્ડર આપતા પહેલા તપાસ કરો',
   edit_cart: '✏️ કાર્ટ સંપાદિત કરો', add_more: '+ વધુ ઉમેરો', confirm_place: '✅ ઓર્ડર આપો →',
-  dine_in_label: '🍽️ રેસ્ટોરન્ટ ઓર્ડર', takeaway_label: '🏃 ટેકઅવે — કાઉન્ટર પર લો',
-  delivering_to: '📍 ડિલિવરી:', upsell_title: '🔥 રોકો — તમને આ ગમી શકે!',
+  dine_in_label: '\ud83c\udf7d️ રેસ્ટોરન્ટ ઓર્ડર', takeaway_label: '\ud83c\udfc3 ટેકઅવે — કાઉન્ટર પર લો',
+  delivering_to: '\ud83d\udccd ડિલિવરી:', upsell_title: '\ud83d\udd25 રોકો — તમને આ ગમી શકે!',
   upsell_loading: 'શ્રેષ્ઠ સંયોજન શોધી રહ્યા છીએ…', upsell_add: '＋ ઉમેરો', skip: 'છોડો',
   no_items: 'કોઈ આઇટમ મળી નથી', try_filter: 'અલગ ફિલ્ટર અજમાવો',
   loading: 'મેનૂ લોડ થઈ રહ્યું છે…', invalid_link: 'અમાન્ય લિંક. QR કોડ ફરીથી સ્કેન કરો.',
   link_expired: 'લિંક સમાપ્ત', session_ended: 'આ ઓર્ડર સત્ર સમાપ્ત થઈ ગયું છે.', scan_again: 'નવા ઓર્ડર માટે QR કોડ સ્કેન કરો.',
   added: 'ઉમેરાયું!', note_saved: '\ud83d\udcdd નોંધ સાચવાઈ!', order_placed: 'ઓર્ડર અપાઈ! બિલ #',
   order_locked: '✅ ઓર્ડર અપાઈ — કાર્ટ લૉક', mode_delivery: 'ડિલિવરી', mode_takeaway: 'ટેકઅવે', mode_table: 'ટેબલ',
-  choose_language: '🌐 ભાષા પસંદ કરો', lang_changed: 'મેનૂ અપડેટ થઈ',
+  choose_language: '\ud83c\udf10 ભાષા પસંદ કરો', lang_changed: 'મેનૂ અપડેટ થઈ',
   about: 'વિશે', cuisine: 'ભોજન', spice: 'મસાલો', flavor: 'સ્વાદ', experience: 'અનુભવ',
   ingredients: 'સામગ્રી', restrictions: 'પ્રતિબંધ', allergens: 'એલર્જી', bar_info: 'બાર માહિતી', contains: 'ધરાવે છે',
   no_description: 'આ આઇટમ માટે વર્ણન ઉપલબ્ધ નથી.', ask_staff: 'સંપૂર્ણ વિગતો ઉપલબ્ધ નથી. સ્ટાફ ને પૂછો.',
   allergen_warning: '⚠️ એલર્જી માહિતી રેસ્ટોરન્ટ ની પુષ્ટિ પર આધાર રાખે છે.',
-  popular_section: '🔥 લોકપ્રિય', popular_add: '+ ઉમેરો',
+  popular_section: '\ud83d\udd25 લોકપ્રિય', popular_add: '+ ઉમેરો',
 };
 I18N['ml'] = {
   search_placeholder: 'മെനു തിരയുക…',
-  filter_all: 'എല്ലാം', filter_veg: '🟢 സസ്യഭക്ഷണം', filter_nonveg: '🔴 മാംസഭക്ഷണം',
-  filter_mild: '😊 കുറഞ്ഞ എരിവ്', filter_spicy: '🌶 എരിവുള്ളത്', filter_popular: '⭐ ജനപ്രിയം',
+  filter_all: 'എല്ലാം', filter_veg: '\ud83d\udfe2 സസ്യഭക്ഷണം', filter_nonveg: '\ud83d\udd34 മാംസഭക്ഷണം',
+  filter_mild: '\ud83d\ude0a കുറഞ്ഞ എരിവ്', filter_spicy: '\ud83c\udf36 എരിവുള്ളത്', filter_popular: '⭐ ജനപ്രിയം',
   add: 'ചേർക്കുക', item: 'ഇനം', items: 'ഇനങ്ങൾ', view_cart: 'കാർട്ട് കാണുക',
-  your_cart: '🛒 നിങ്ങളുടെ കാർട്ട്', cart_empty: 'കാർട്ട് ശൂന്യമാണ്', total: 'ആകെ', each: 'ഒന്നിന്',
-  place_order: 'ഓർഡർ ചെയ്യുക →', delivery_address: '📍 ഡെലിവറി വിലാസം',
+  your_cart: '\ud83d\uded2 നിങ്ങളുടെ കാർട്ട്', cart_empty: 'കാർട്ട് ശൂന്യമാണ്', total: 'ആകെ', each: 'ഒന്നിന്',
+  place_order: 'ഓർഡർ ചെയ്യുക →', delivery_address: '\ud83d\udccd ഡെലിവറി വിലാസം',
   recent_addresses: 'സമീപകാല വിലാസങ്ങൾ:', new_address: 'അല്ലെങ്കിൽ പുതിയ വിലാസം നൽകുക:',
   address_placeholder: 'നിങ്ങളുടെ പൂർണ്ണ ഡെലിവറി വിലാസം നൽകുക…', address_required: '⚠️ ഡെലിവറി വിലാസം നൽകുക',
   add_extras: 'അധിക ഇനങ്ങൾ ചേർക്കുക (ഐച്ഛികം)', add_to_cart: 'കാർട്ടിൽ ചേർക്കുക', add_without: 'അധികം ഇല്ലാതെ ചേർക്കുക',
-  special_instructions: '\ud83d\udcdd പ്രത്യേക നിർദ്ദേശങ്ങൾ', note_extra_spicy: '🌶️ കൂടുതൽ എരിവ്', note_no_onions: '\ud83e\uddc5 സവോള വേണ്ട',
+  special_instructions: '\ud83d\udcdd പ്രത്യേക നിർദ്ദേശങ്ങൾ', note_extra_spicy: '\ud83c\udf36️ കൂടുതൽ എരിവ്', note_no_onions: '\ud83e\uddc5 സവോള വേണ്ട',
   note_less_oil: 'കുറഞ്ഞ എണ്ണ', note_no_garlic: 'വെളുത്തുള്ളി വേണ്ട', note_well_done: 'നന്നായി വേവിക്കുക', note_extra_sauce: 'അധിക സോസ്',
   save: 'സേവ് ചെയ്യുക', confirm_order: '✅ ഓർഡർ സ്ഥിരീകരിക്കുക', review_order: 'ഓർഡർ ചെയ്യുന്നതിന് മുമ്പ് പരിശോധിക്കുക',
   edit_cart: '✏️ കാർട്ട് എഡിറ്റ് ചെയ്യുക', add_more: '+ കൂടുതൽ ചേർക്കുക', confirm_place: '✅ ഓർഡർ ചെയ്യുക →',
-  dine_in_label: '🍽️ റെസ്റ്റോറന്റ് ഓർഡർ', takeaway_label: '🏃 ടേക്ക്‌അവേ — കൗണ്ടറിൽ നിന്ന് ശേഖരിക്കുക',
-  delivering_to: '📍 ഡെലിവറി:', upsell_title: '🔥 നിർത്തൂ — ഇത് നിങ്ങൾക്ക് ഇഷ്ടമാകും!',
+  dine_in_label: '\ud83c\udf7d️ റെസ്റ്റോറന്റ് ഓർഡർ', takeaway_label: '\ud83c\udfc3 ടേക്ക്‌അവേ — കൗണ്ടറിൽ നിന്ന് ശേഖരിക്കുക',
+  delivering_to: '\ud83d\udccd ഡെലിവറി:', upsell_title: '\ud83d\udd25 നിർത്തൂ — ഇത് നിങ്ങൾക്ക് ഇഷ്ടമാകും!',
   upsell_loading: 'മികച്ച കോമ്പിനേഷൻ കണ്ടെത്തുന്നു…', upsell_add: '＋ ചേർക്കുക', skip: 'ഒഴിവാക്കുക',
   no_items: 'ഇനങ്ങൾ കണ്ടെത്തിയില്ല', try_filter: 'മറ്റൊരു ഫിൽട്ടർ പരീക്ഷിക്കുക',
   loading: 'മെനു ലോഡ് ചെയ്യുന്നു…', invalid_link: 'അസാധുവായ ലിങ്ക്. QR കോഡ് വീണ്ടും സ്കാൻ ചെയ്യുക.',
   link_expired: 'ലിങ്ക് കാലഹരണപ്പെട്ടു', session_ended: 'ഈ ഓർഡർ സെഷൻ അവസാനിച്ചു.', scan_again: 'പുതിയ ഓർഡറിനായി QR കോഡ് സ്കാൻ ചെയ്യുക.',
   added: 'ചേർത്തു!', note_saved: '\ud83d\udcdd കുറിപ്പ് സംരക്ഷിച്ചു!', order_placed: 'ഓർഡർ ചെയ്തു! ബിൽ #',
   order_locked: '✅ ഓർഡർ ചെയ്തു — കാർട്ട് ലോക്ക് ചെയ്തു', mode_delivery: 'ഡെലിവറി', mode_takeaway: 'ടേക്ക്‌അവേ', mode_table: 'ടേബിൾ',
-  choose_language: '🌐 ഭാഷ തിരഞ്ഞെടുക്കുക', lang_changed: 'മെനു അപ്ഡേറ്റ് ചെയ്തു',
+  choose_language: '\ud83c\udf10 ഭാഷ തിരഞ്ഞെടുക്കുക', lang_changed: 'മെനു അപ്ഡേറ്റ് ചെയ്തു',
   about: 'കുറിച്ച്', cuisine: 'പാചകരീതി', spice: 'മസാല', flavor: 'രുചി', experience: 'അനുഭവം',
   ingredients: 'ചേരുവകൾ', restrictions: 'നിയന്ത്രണങ്ങൾ', allergens: 'അലർജികൾ', bar_info: 'ബാർ വിവരം', contains: 'അടങ്ങിയിരിക്കുന്നു',
   no_description: 'ഈ ഇനത്തിന് വിവരണം ലഭ്യമല്ല.', ask_staff: 'പൂർണ്ണ വിവരങ്ങൾ ലഭ്യമല്ല. ജീവനക്കാരോട് ചോദിക്കുക.',
   allergen_warning: '⚠️ അലർജി വിവരങ്ങൾ റെസ്റ്റോറന്റ് സ്ഥിരീകരണത്തെ ആശ്രയിക്കുന്നു.',
-  popular_section: '🔥 ജനപ്രിയം', popular_add: '+ ചേർക്കുക',
+  popular_section: '\ud83d\udd25 ജനപ്രിയം', popular_add: '+ ചേർക്കുക',
 };
 I18N['kn'] = {
   search_placeholder: 'ಮೆನು ಹುಡುಕಿ…',
-  filter_all: 'ಎಲ್ಲಾ', filter_veg: '🟢 ಸಸ್ಯಾಹಾರ', filter_nonveg: '🔴 ಮಾಂಸಾಹಾರ',
-  filter_mild: '😊 ಕಡಿಮೆ ಖಾರ', filter_spicy: '🌶 ಖಾರ', filter_popular: '⭐ ಜನಪ್ರಿಯ',
+  filter_all: 'ಎಲ್ಲಾ', filter_veg: '\ud83d\udfe2 ಸಸ್ಯಾಹಾರ', filter_nonveg: '\ud83d\udd34 ಮಾಂಸಾಹಾರ',
+  filter_mild: '\ud83d\ude0a ಕಡಿಮೆ ಖಾರ', filter_spicy: '\ud83c\udf36 ಖಾರ', filter_popular: '⭐ ಜನಪ್ರಿಯ',
   add: 'ಸೇರಿಸಿ', item: 'ಐಟಂ', items: 'ಐಟಂಗಳು', view_cart: 'ಕಾರ್ಟ್ ನೋಡಿ',
-  your_cart: '🛒 ನಿಮ್ಮ ಕಾರ್ಟ್', cart_empty: 'ಕಾರ್ಟ್ ಖಾಲಿಯಾಗಿದೆ', total: 'ಒಟ್ಟು', each: 'ಪ್ರತಿಯೊಂದು',
-  place_order: 'ಆರ್ಡರ್ ಮಾಡಿ →', delivery_address: '📍 ಡೆಲಿವರಿ ವಿಳಾಸ',
+  your_cart: '\ud83d\uded2 ನಿಮ್ಮ ಕಾರ್ಟ್', cart_empty: 'ಕಾರ್ಟ್ ಖಾಲಿಯಾಗಿದೆ', total: 'ಒಟ್ಟು', each: 'ಪ್ರತಿಯೊಂದು',
+  place_order: 'ಆರ್ಡರ್ ಮಾಡಿ →', delivery_address: '\ud83d\udccd ಡೆಲಿವರಿ ವಿಳಾಸ',
   recent_addresses: 'ಇತ್ತೀಚಿನ ವಿಳಾಸಗಳು:', new_address: 'ಅಥವಾ ಹೊಸ ವಿಳಾಸ ನಮೂದಿಸಿ:',
   address_placeholder: 'ನಿಮ್ಮ ಸಂಪೂರ್ಣ ಡೆಲಿವರಿ ವಿಳಾಸ ನಮೂದಿಸಿ…', address_required: '⚠️ ಡೆಲಿವರಿ ವಿಳಾಸ ನಮೂದಿಸಿ',
   add_extras: 'ಹೆಚ್ಚುವರಿ ಸೇರಿಸಿ (ಐಚ್ಛಿಕ)', add_to_cart: 'ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಿ', add_without: 'ಹೆಚ್ಚುವರಿ ಇಲ್ಲದೆ ಸೇರಿಸಿ',
-  special_instructions: '\ud83d\udcdd ವಿಶೇಷ ಸೂಚನೆಗಳು', note_extra_spicy: '🌶️ ಹೆಚ್ಚು ಖಾರ', note_no_onions: '\ud83e\uddc5 ಈರುಳ್ಳಿ ಬೇಡ',
+  special_instructions: '\ud83d\udcdd ವಿಶೇಷ ಸೂಚನೆಗಳು', note_extra_spicy: '\ud83c\udf36️ ಹೆಚ್ಚು ಖಾರ', note_no_onions: '\ud83e\uddc5 ಈರುಳ್ಳಿ ಬೇಡ',
   note_less_oil: 'ಕಡಿಮೆ ಎಣ್ಣೆ', note_no_garlic: 'ಬೆಳ್ಳುಳ್ಳಿ ಬೇಡ', note_well_done: 'ಚೆನ್ನಾಗಿ ಬೇಯಿಸಿ', note_extra_sauce: 'ಹೆಚ್ಚುವರಿ ಸಾಸ್',
   save: 'ಉಳಿಸಿ', confirm_order: '✅ ಆರ್ಡರ್ ದೃಢಪಡಿಸಿ', review_order: 'ಆರ್ಡರ್ ಮಾಡುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ',
   edit_cart: '✏️ ಕಾರ್ಟ್ ಸಂಪಾದಿಸಿ', add_more: '+ ಇನ್ನಷ್ಟು ಸೇರಿಸಿ', confirm_place: '✅ ಆರ್ಡರ್ ಮಾಡಿ →',
-  dine_in_label: '🍽️ ರೆಸ್ಟೋರೆಂಟ್ ಆರ್ಡರ್', takeaway_label: '🏃 ಟೇಕ್‌ಅವೇ — ಕೌಂಟರ್‌ನಲ್ಲಿ ತೆಗೆದುಕೊಳ್ಳಿ',
-  delivering_to: '📍 ಡೆಲಿವರಿ:', upsell_title: '🔥 ನಿಲ್ಲಿ — ಇದು ನಿಮಗೆ ಇಷ್ಟವಾಗಬಹುದು!',
+  dine_in_label: '\ud83c\udf7d️ ರೆಸ್ಟೋರೆಂಟ್ ಆರ್ಡರ್', takeaway_label: '\ud83c\udfc3 ಟೇಕ್‌ಅವೇ — ಕೌಂಟರ್‌ನಲ್ಲಿ ತೆಗೆದುಕೊಳ್ಳಿ',
+  delivering_to: '\ud83d\udccd ಡೆಲಿವರಿ:', upsell_title: '\ud83d\udd25 ನಿಲ್ಲಿ — ಇದು ನಿಮಗೆ ಇಷ್ಟವಾಗಬಹುದು!',
   upsell_loading: 'ಉತ್ತಮ ಸಂಯೋಜನೆ ಹುಡುಕುತ್ತಿದ್ದೇವೆ…', upsell_add: '＋ ಸೇರಿಸಿ', skip: 'ಬಿಡಿ',
   no_items: 'ಯಾವುದೇ ಐಟಂ ಕಂಡುಬಂದಿಲ್ಲ', try_filter: 'ಬೇರೆ ಫಿಲ್ಟರ್ ಪ್ರಯತ್ನಿಸಿ',
   loading: 'ಮೆನು ಲೋಡ್ ಆಗುತ್ತಿದೆ…', invalid_link: 'ಅಮಾನ್ಯ ಲಿಂಕ್. QR ಕೋಡ್ ಮತ್ತೆ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.',
   link_expired: 'ಲಿಂಕ್ ಅವಧಿ ಮೀರಿದೆ', session_ended: 'ಈ ಆರ್ಡರ್ ಸೆಷನ್ ಮುಗಿದಿದೆ.', scan_again: 'ಹೊಸ ಆರ್ಡರ್‌ಗಾಗಿ QR ಕೋಡ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.',
   added: 'ಸೇರಿಸಲಾಗಿದೆ!', note_saved: '\ud83d\udcdd ಟಿಪ್ಪಣಿ ಉಳಿಸಲಾಗಿದೆ!', order_placed: 'ಆರ್ಡರ್ ಮಾಡಲಾಗಿದೆ! ಬಿಲ್ #',
   order_locked: '✅ ಆರ್ಡರ್ ಮಾಡಲಾಗಿದೆ — ಕಾರ್ಟ್ ಲಾಕ್', mode_delivery: 'ಡೆಲಿವರಿ', mode_takeaway: 'ಟೇಕ್‌ಅವೇ', mode_table: 'ಟೇಬಲ್',
-  choose_language: '🌐 ಭಾಷೆ ಆರಿಸಿ', lang_changed: 'ಮೆನು ಅಪ್‌ಡೇಟ್ ಆಯಿತು',
+  choose_language: '\ud83c\udf10 ಭಾಷೆ ಆರಿಸಿ', lang_changed: 'ಮೆನು ಅಪ್‌ಡೇಟ್ ಆಯಿತು',
   about: 'ಕುರಿತು', cuisine: 'ಅಡುಗೆ', spice: 'ಮಸಾಲೆ', flavor: 'ರುಚಿ', experience: 'ಅನುಭವ',
   ingredients: 'ಪದಾರ್ಥಗಳು', restrictions: 'ನಿರ್ಬಂಧಗಳು', allergens: 'ಅಲರ್ಜಿಗಳು', bar_info: 'ಬಾರ್ ಮಾಹಿತಿ', contains: 'ಒಳಗೊಂಡಿದೆ',
   no_description: 'ಈ ಐಟಂಗೆ ವಿವರಣೆ ಇಲ್ಲ.', ask_staff: 'ಸಂಪೂರ್ಣ ವಿವರ ಇಲ್ಲ. ಸಿಬ್ಬಂದಿಯನ್ನು ಕೇಳಿ.',
   allergen_warning: '⚠️ ಅಲರ್ಜಿ ಮಾಹಿತಿ ರೆಸ್ಟೋರೆಂಟ್ ದೃಢೀಕರಣವನ್ನು ಅವಲಂಬಿಸಿದೆ.',
-  popular_section: '🔥 ಜನಪ್ರಿಯ', popular_add: '+ ಸೇರಿಸಿ',
+  popular_section: '\ud83d\udd25 ಜನಪ್ರಿಯ', popular_add: '+ ಸೇರಿಸಿ',
 };
 I18N['hi_LATN'] = {
   search_placeholder: 'Menu dhundho…',
-  filter_all: 'Sab', filter_veg: '🟢 Veg', filter_nonveg: '🔴 Non-Veg',
-  filter_mild: '😊 Halka', filter_spicy: '🌶 Teekha', filter_popular: '⭐ Popular',
+  filter_all: 'Sab', filter_veg: '\ud83d\udfe2 Veg', filter_nonveg: '\ud83d\udd34 Non-Veg',
+  filter_mild: '\ud83d\ude0a Halka', filter_spicy: '\ud83c\udf36 Teekha', filter_popular: '⭐ Popular',
   add: 'Add karo', item: 'item', items: 'items', view_cart: 'Cart dekho',
-  your_cart: '🛒 Tumhara Cart', cart_empty: 'Cart khali hai', total: 'Total', each: 'ek',
-  place_order: 'Order do →', delivery_address: '📍 Delivery Address',
+  your_cart: '\ud83d\uded2 Tumhara Cart', cart_empty: 'Cart khali hai', total: 'Total', each: 'ek',
+  place_order: 'Order do →', delivery_address: '\ud83d\udccd Delivery Address',
   recent_addresses: 'Purane address:', new_address: 'Ya naya address likho:',
   address_placeholder: 'Apna poora delivery address likho…', address_required: '⚠️ Delivery address likho',
   add_extras: 'Extra add karo (optional)', add_to_cart: 'Cart mein add karo', add_without: 'Bina extra ke add karo',
-  special_instructions: '\ud83d\udcdd Kuch special?', note_extra_spicy: '🌶️ Zyada teekha', note_no_onions: '\ud83e\uddc5 Pyaz nahi',
+  special_instructions: '\ud83d\udcdd Kuch special?', note_extra_spicy: '\ud83c\udf36️ Zyada teekha', note_no_onions: '\ud83e\uddc5 Pyaz nahi',
   note_less_oil: 'Kam tel', note_no_garlic: 'Lehsun nahi', note_well_done: 'Achhe se pakao', note_extra_sauce: 'Extra sauce',
   save: 'Save karo', confirm_order: '✅ Order pakka karo', review_order: 'Order dene se pehle dekho',
   edit_cart: '✏️ Cart theek karo', add_more: '+ Aur add karo', confirm_place: '✅ Order do →',
-  dine_in_label: '🍽️ Restaurant mein khana', takeaway_label: '🏃 Ghar le jao — counter se lo',
-  delivering_to: '📍 Deliver hoga:', upsell_title: '🔥 Ruko — yeh tumhe pasand aayega!',
+  dine_in_label: '\ud83c\udf7d️ Restaurant mein khana', takeaway_label: '\ud83c\udfc3 Ghar le jao — counter se lo',
+  delivering_to: '\ud83d\udccd Deliver hoga:', upsell_title: '\ud83d\udd25 Ruko — yeh tumhe pasand aayega!',
   upsell_loading: 'Best combo dhundh rahe hain…', upsell_add: '＋ Add karo', skip: 'Chhodo',
   no_items: 'Kuch nahi mila', try_filter: 'Alag filter try karo',
   loading: 'Menu load ho raha hai…', invalid_link: 'Link galat hai. QR code dobara scan karo.',
   link_expired: 'Link expire ho gaya', session_ended: 'Yeh session khatam ho gaya.', scan_again: 'Naya order ke liye QR code scan karo.',
   added: 'add ho gaya!', note_saved: '\ud83d\udcdd Note save ho gaya!', order_placed: 'Order de diya! Bill #',
   order_locked: '✅ Order de diya — cart lock hai', mode_delivery: 'Delivery', mode_takeaway: 'Ghar le jao', mode_table: 'Table',
-  choose_language: '🌐 Bhasha chuno', lang_changed: 'Menu update ho gaya',
+  choose_language: '\ud83c\udf10 Bhasha chuno', lang_changed: 'Menu update ho gaya',
   about: 'Ke baare mein', cuisine: 'Cuisine', spice: 'Teekha', flavor: 'Swad', experience: 'Experience',
   ingredients: 'Saamgri', restrictions: 'Restrictions', allergens: 'Allergy', bar_info: 'Bar info', contains: 'Hai isme',
   no_description: 'Is item ki details nahi hain.', ask_staff: 'Puri jankari nahi hai. Staff se poochho.',
   allergen_warning: '⚠️ Allergy info restaurant ne confirm ki hai. Staff se confirm karo.',
-  popular_section: '🔥 Popular', popular_add: '+ Add',
+  popular_section: '\ud83d\udd25 Popular', popular_add: '+ Add',
 };
 // Remove English fallback for Indian languages — now they have proper translations
 // (hi_LATN, ta, te, gu, ml, kn are now all defined above)
@@ -1490,9 +1372,9 @@ function getFilteredItems(search) {
 }
 function spiceBadge(level) {
   if (!level || level === 'none') return '';
-  if (level === 'mild')   return '<span class="item-badge spice">😊 Mild</span>';
-  if (level === 'medium') return '<span class="item-badge spice">🌶 Medium</span>';
-  if (level === 'spicy' || level === 'hot') return '<span class="item-badge spice">🌶🌶 Spicy</span>';
+  if (level === 'mild')   return '<span class="item-badge spice">\ud83d\ude0a Mild</span>';
+  if (level === 'medium') return '<span class="item-badge spice">\ud83c\udf36 Medium</span>';
+  if (level === 'spicy' || level === 'hot') return '<span class="item-badge spice">\ud83c\udf36\ud83c\udf36 Spicy</span>';
   return '';
 }
 function labelBadges(tags) {
@@ -1514,7 +1396,7 @@ function renderMenu(search) {
     var filterMsg = activeFilter !== 'all'
       ? '<p style="margin-top:8px;font-size:13px">' + t('try_filter') + '</p>'
       : '';
-    container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>' + t('no_items') + '</p>' + filterMsg + '</div>';
+    container.innerHTML = '<div class="empty-state"><div class="icon">\ud83d\udd0d</div><p>' + t('no_items') + '</p>' + filterMsg + '</div>';
     return;
   }
   container.innerHTML = items.map(function(item) {
@@ -1610,7 +1492,7 @@ function renderInfoPanelContent(item) {
     lines.push('<div class="info-val" style="font-size:13px;line-height:1.5;margin-bottom:8px">' + item.description + '</div>');
   }
   if (item.spice_level && item.spice_level !== 'none') {
-    var spiceMap = { mild: '😊 Mild', medium: '🌶 Medium', spicy: '🌶🌶 Spicy', hot: '🌶🌶 Spicy' };
+    var spiceMap = { mild: '\ud83d\ude0a Mild', medium: '\ud83c\udf36 Medium', spicy: '\ud83c\udf36\ud83c\udf36 Spicy', hot: '\ud83c\udf36\ud83c\udf36 Spicy' };
     lines.push('<div class="info-row"><span class="info-label">' + t('spice') + '</span><span class="info-val">' + (spiceMap[item.spice_level] || item.spice_level) + '</span></div>');
   }
   if (!lines.length) {
@@ -1632,13 +1514,13 @@ function buildInfoPanelHTML(data) {
   if (data.tags.spice && data.tags.spice.length) {
     data.tags.spice.forEach(function(t) { topTags.push('<span class="info-tag spice">' + t.display_icon + ' ' + t.tag_name + '</span>'); });
   } else if (data.spice_level && data.spice_level !== 'none') {
-    var spiceMap = { mild: '😊 Mild', medium: '🌶 Medium', spicy: '🌶🌶 Spicy', hot: '🌶🌶 Spicy' };
+    var spiceMap = { mild: '\ud83d\ude0a Mild', medium: '\ud83c\udf36 Medium', spicy: '\ud83c\udf36\ud83c\udf36 Spicy', hot: '\ud83c\udf36\ud83c\udf36 Spicy' };
     topTags.push('<span class="info-tag spice">' + spiceMap[data.spice_level] + '</span>');
   }
   if (topTags.length) html += '<div class="info-tag-row">' + topTags.join('') + '</div>';
   // Cuisine
   if (data.cuisine_type) {
-    var cuisineEmoji = { indian:'\ud83c\udf5b', chinese:'\ud83e\udd62', italian:'\ud83c\udf5d', continental:'🍽', mughlai:'\ud83e\uded5', mexican:'\ud83c\udf2e', thai:'\ud83c\udf5c', mediterranean:'\ud83e\udd59' };
+    var cuisineEmoji = { indian:'\ud83c\udf5b', chinese:'\ud83e\udd62', italian:'\ud83c\udf5d', continental:'\ud83c\udf7d', mughlai:'\ud83e\uded5', mexican:'\ud83c\udf2e', thai:'\ud83c\udf5c', mediterranean:'\ud83e\udd59' };
     html += '<div class="info-row"><span class="info-label">' + t('cuisine') + '</span><span class="info-val">' + (cuisineEmoji[data.cuisine_type] || '') + ' ' + data.cuisine_type.charAt(0).toUpperCase() + data.cuisine_type.slice(1) + '</span></div>';
   }
   // Description
@@ -1860,7 +1742,7 @@ async function loadPastAddresses() {
     container.innerHTML =
       '<div style="font-size:11px;color:#888;margin-bottom:4px">' + t('recent_addresses') + '</div>' +
       data.addresses.map(function(addr) {
-        return '<div class="past-addr-chip" onclick="selectPastAddress(\'' + addr.replace(/'/g,"\\'") + '\')">📍 ' + addr + '</div>';
+        return '<div class="past-addr-chip" onclick="selectPastAddress(\'' + addr.replace(/'/g,"\\'") + '\')">\ud83d\udccd ' + addr + '</div>';
       }).join('') +
       '<div style="font-size:11px;color:#888;margin-top:6px;margin-bottom:2px">' + t('new_address') + '</div>';
   } catch(e) { /* ignore */ }
@@ -1924,8 +1806,8 @@ async function placeOrder(skipAddressCheck) {
 // ══════════════════════════════════════════════
 // CART DRAWER
 // ══════════════════════════════════════════════
-function openCart() { document.getElementById('cartDrawer').classList.add('open'); document.getElementById('drawerOverlay').classList.add('open'); renderCartDrawer(); hideBottomNav(); }
-function closeCart() { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('open'); showBottomNav(); }
+function openCart() { document.getElementById('cartDrawer').classList.add('open'); document.getElementById('drawerOverlay').classList.add('open'); renderCartDrawer(); }
+function closeCart() { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('open'); }
 function renderCartDrawer() {
   var items = Object.entries(cart);
   var total = items.reduce(function(s,e) { return s+e[1].price*e[1].qty; }, 0);
@@ -1998,7 +1880,6 @@ function showUpsellModal(msg, item) {
   document.getElementById('upsellOverlay').style.opacity = '1';
   document.getElementById('upsellOverlay').style.pointerEvents = 'all';
   document.getElementById('upsellModal').style.transform = 'translateX(-50%) translateY(0)';
-  hideBottomNav();
   if (item) {
     document.getElementById('upsellMsg').textContent = msg;
     document.getElementById('upsellLoading').style.display = 'none';
@@ -2021,7 +1902,6 @@ function hideUpsellModal() {
   document.getElementById('upsellOverlay').style.pointerEvents = 'none';
   document.getElementById('upsellModal').style.transform = 'translateX(-50%) translateY(100%)';
   _upsellItem = null;
-  showBottomNav();
 }
 function upsellQtyChange(delta) {
   _upsellQty = Math.max(0, _upsellQty + delta);
@@ -2084,7 +1964,9 @@ function openCheckoutModal() {
   var addrSec = document.getElementById('checkoutAddrSection');
   if (sessionMode === 'delivery') {
     addrSec.style.display = 'block';
-    loadCheckoutAddresses();
+    document.getElementById('checkoutAddrInput').value = sessionDeliveryAddress;
+    document.getElementById('checkoutAddrHint').style.display = 'none';
+    document.getElementById('checkoutAddrInput').style.borderColor = '#ede8df';
   } else {
     addrSec.style.display = 'none';
   }
@@ -2108,20 +1990,22 @@ function openCheckoutModal() {
   }
   cBtn.disabled = false;
   document.getElementById('checkoutModal').style.display = 'block';
-  hideBottomNav();
 }
-function closeCheckout() { document.getElementById('checkoutModal').style.display = 'none'; showBottomNav(); }
+function closeCheckout() { document.getElementById('checkoutModal').style.display = 'none'; }
 function closeCheckoutOpenCart() { closeCheckout(); renderMenu(); updateCartUI(); openCart(); }
 async function placeOrderFromCheckout() {
   if (Object.keys(cart).length === 0) { showToast(t('add_items_first')); return; }
   if (sessionMode === 'delivery') {
-    if (!_selectedAddrStr || _selectedAddrStr.length < 5) {
-      document.getElementById('checkoutAddrHint').style.display = 'block'; return;
+    var addr = document.getElementById('checkoutAddrInput').value.trim();
+    if (addr.length < 6) {
+      document.getElementById('checkoutAddrHint').style.display = 'block';
+      document.getElementById('checkoutAddrInput').focus();
+      document.getElementById('checkoutAddrInput').style.borderColor = '#e53e3e'; return;
     }
-    sessionDeliveryAddress = _selectedAddrStr;
+    sessionDeliveryAddress = addr;
     await fetch(API_BASE + '/api/order-ui/address/' + SESSION_ID, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address: _selectedAddrStr })
+      body: JSON.stringify({ address: addr })
     }).catch(function() {});
   }
   var btn = document.getElementById('checkoutPlaceBtn');
@@ -2204,9 +2088,9 @@ function showConfirmModal(skipAddr) {
   var addrEl = document.getElementById('deliveryAddress');
   var addr   = addrEl ? addrEl.value.trim() : '';
   var addrBox = document.getElementById('confirmAddr');
-  if (addr) { addrBox.style.display = 'block'; addrBox.innerHTML = '📍 Delivering to: <strong>' + addr + '</strong>'; }
-  else if (sessionMode === 'dine_in') { addrBox.style.display = 'block'; addrBox.innerHTML = '🍽️ Dine-in order'; }
-  else if (sessionMode === 'takeaway') { addrBox.style.display = 'block'; addrBox.innerHTML = '🏃 Takeaway — collect at counter'; }
+  if (addr) { addrBox.style.display = 'block'; addrBox.innerHTML = '\ud83d\udccd Delivering to: <strong>' + addr + '</strong>'; }
+  else if (sessionMode === 'dine_in') { addrBox.style.display = 'block'; addrBox.innerHTML = '\ud83c\udf7d️ Dine-in order'; }
+  else if (sessionMode === 'takeaway') { addrBox.style.display = 'block'; addrBox.innerHTML = '\ud83c\udfc3 Takeaway — collect at counter'; }
   else { addrBox.style.display = 'none'; }
   document.getElementById('confirmModal').style.display = 'block';
 }
@@ -2332,329 +2216,6 @@ function selectLang(code) {
     })
     .catch(function(e) { console.error('Menu reload failed', e); });
 }
-
-// ══════════════════════════════════════════════
-// STRUCTURED ADDRESS SYSTEM
-// ══════════════════════════════════════════════
-var _selectedAddrId   = null;  // selected address UUID
-var _selectedAddrStr  = '';    // full address string for session
-var _selectedAddrLabel = 'Home'; // label for new address form
-var _savedAddresses   = [];   // cached from API
-
-async function loadCheckoutAddresses() {
-  var cardsEl = document.getElementById('checkoutAddrCards');
-  cardsEl.innerHTML = '<div style="text-align:center;padding:8px;color:#9b8b72;font-size:13px">Loading…</div>';
-  document.getElementById('checkoutAddrHint').style.display = 'none';
-  var phone = '';
-  try {
-    var sessionRes = await fetch(API_BASE + '/api/order-ui/session/' + SESSION_ID);
-    var sess = await sessionRes.json();
-    phone = sess.customer_phone || '';
-  } catch(e) {}
-  if (!phone) { cardsEl.innerHTML = ''; return; }
-  // Strip country code for API
-  var digits = phone.replace(/\D/g,'');
-  var shortPhone = digits.length > 10 ? digits.slice(-10) : digits;
-  try {
-    var res  = await fetch(API_BASE + '/api/order-ui/addresses?phone=' + shortPhone);
-    var data = await res.json();
-    _savedAddresses = data.addresses || [];
-  } catch(e) { _savedAddresses = []; }
-  // If we have a pre-filled address from session but no saved addresses,
-  // render the pre-filled address as the only option
-  if (!_savedAddresses.length && sessionDeliveryAddress) {
-    _selectedAddrId  = 'session';
-    _selectedAddrStr = sessionDeliveryAddress;
-    cardsEl.innerHTML = renderAddrCard({ id:'session', label:'Saved', full_address: sessionDeliveryAddress }, true);
-    return;
-  }
-  if (!_savedAddresses.length) { cardsEl.innerHTML = ''; return; }
-  // Auto-select default or first
-  var defaultAddr = _savedAddresses.find(function(a) { return a.is_default; }) || _savedAddresses[0];
-  _selectedAddrId  = defaultAddr.id;
-  _selectedAddrStr = defaultAddr.full_address;
-  cardsEl.innerHTML = _savedAddresses.map(function(addr) {
-    return renderAddrCard(addr, addr.id === _selectedAddrId);
-  }).join('');
-}
-
-function renderAddrCard(addr, selected) {
-  var labelIcon = addr.label === 'Home' ? '🏠' : addr.label === 'Work' ? '🏢' : '📍';
-  return '<div class="addr-card' + (selected ? ' selected' : '') + '" onclick="selectDeliveryAddress(\'' + addr.id + '\',\'' + addr.full_address.replace(/'/g,"\\'") + '\')">' +
-    '<input type="radio" name="deliveryAddr"' + (selected ? ' checked' : '') + '>' +
-    '<div class="addr-card-body">' +
-    '<div class="addr-card-label">' + labelIcon + ' ' + addr.label + '</div>' +
-    '<div class="addr-card-text">' + addr.full_address + '</div>' +
-    '</div></div>';
-}
-
-function selectDeliveryAddress(addrId, fullAddr) {
-  _selectedAddrId  = addrId;
-  _selectedAddrStr = fullAddr;
-  document.getElementById('checkoutAddrHint').style.display = 'none';
-  // Re-render cards
-  var cardsEl = document.getElementById('checkoutAddrCards');
-  if (_savedAddresses.length) {
-    cardsEl.innerHTML = _savedAddresses.map(function(addr) {
-      return renderAddrCard(addr, addr.id === addrId);
-    }).join('');
-  } else if (addrId === 'session') {
-    cardsEl.innerHTML = renderAddrCard({ id:'session', label:'Saved', full_address: fullAddr }, true);
-  }
-}
-
-function selectAddrLabel(el) {
-  document.querySelectorAll('.addr-label-chip').forEach(function(c) { c.classList.remove('active'); });
-  el.classList.add('active');
-  _selectedAddrLabel = el.dataset.label;
-}
-
-function openAddAddressForm() {
-  // Reset form
-  ['addrLine1','addrLine2','addrArea','addrCity','addrPincode'].forEach(function(id) {
-    var el = document.getElementById(id); if (el) el.value = '';
-  });
-  document.querySelectorAll('.addr-label-chip').forEach(function(c) { c.classList.remove('active'); });
-  var homeChip = document.querySelector('.addr-label-chip[data-label="Home"]');
-  if (homeChip) homeChip.classList.add('active');
-  _selectedAddrLabel = 'Home';
-  document.getElementById('addrFormErr').style.display = 'none';
-  document.getElementById('addrFormModal').style.display = 'block';
-  setTimeout(function() { var el = document.getElementById('addrLine1'); if(el) el.focus(); }, 300);
-}
-
-function closeAddAddressForm() { document.getElementById('addrFormModal').style.display = 'none'; }
-
-async function saveNewAddress() {
-  var line1   = (document.getElementById('addrLine1').value || '').trim();
-  var line2   = (document.getElementById('addrLine2').value || '').trim();
-  var area    = (document.getElementById('addrArea').value  || '').trim();
-  var city    = (document.getElementById('addrCity').value  || '').trim();
-  var pincode = (document.getElementById('addrPincode').value || '').trim();
-  if (!line1) {
-    document.getElementById('addrFormErr').style.display = 'block'; return;
-  }
-  // Build full address string
-  var parts = [line1, line2, area, city, pincode].filter(Boolean);
-  var fullAddr = parts.join(', ');
-  // Get phone from session
-  var phone = '';
-  try {
-    var sessionRes = await fetch(API_BASE + '/api/order-ui/session/' + SESSION_ID);
-    var sess = await sessionRes.json();
-    phone = sess.customer_phone || '';
-  } catch(e) {}
-  var digits = phone.replace(/\D/g,'');
-  var shortPhone = digits.length > 10 ? digits.slice(-10) : digits;
-  try {
-    var saveRes = await fetch(API_BASE + '/api/order-ui/addresses', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: shortPhone, label: _selectedAddrLabel, line1, line2, area, city, pincode })
-    });
-    var saved = await saveRes.json();
-    closeAddAddressForm();
-    // Reload addresses and auto-select new one
-    await loadCheckoutAddresses();
-    // Select the newly saved address
-    if (saved.id) {
-      selectDeliveryAddress(saved.id, fullAddr);
-    }
-    showToast('✅ Address saved!');
-  } catch(e) {
-    // Save failed — use address inline without persisting
-    closeAddAddressForm();
-    _selectedAddrId  = 'temp';
-    _selectedAddrStr = fullAddr;
-    var cardsEl = document.getElementById('checkoutAddrCards');
-    cardsEl.innerHTML = renderAddrCard({ id:'temp', label: _selectedAddrLabel, full_address: fullAddr }, true);
-    showToast('✅ Address added');
-  }
-}
-
-
-// ══════════════════════════════════════════════
-// BOTTOM NAV HELPERS
-// ══════════════════════════════════════════════
-function hideBottomNav() {
-  var nav = document.getElementById('bottomNav');
-  if (nav) nav.style.display = 'none';
-}
-function showBottomNav() {
-  var nav = document.getElementById('bottomNav');
-  if (nav) nav.style.display = 'flex';
-}
-
-// ══════════════════════════════════════════════
-// GPS — USE MY LOCATION
-// ══════════════════════════════════════════════
-function useMyLocation() {
-  var btn    = document.getElementById('gpsBtn');
-  var status = document.getElementById('gpsStatus');
-  if (!navigator.geolocation) {
-    showToast('GPS not supported on this browser');
-    return;
-  }
-  btn.textContent = '⏳ Getting location…';
-  btn.style.opacity = '0.7';
-  btn.disabled = true;
-  status.style.display = 'block';
-  status.textContent = 'Accessing your location…';
-
-  navigator.geolocation.getCurrentPosition(
-    async function(pos) {
-      var lat = pos.coords.latitude;
-      var lng = pos.coords.longitude;
-      status.textContent = 'Finding address…';
-      try {
-        var res  = await fetch(API_BASE + '/api/order-ui/reverse-geocode?lat=' + lat + '&lng=' + lng);
-        var data = await res.json();
-        if (data.ok) {
-          if (data.area) document.getElementById('addrArea').value = data.area;
-          if (data.city) document.getElementById('addrCity').value = data.city;
-          // Note: pincode NOT auto-filled — GPS pincode detection is approximate in India
-          // Customer must type their exact pincode
-          status.textContent = '✅ Area & city filled. Please add flat no. and verify pincode.';
-          status.style.color = '#16a34a';
-          document.getElementById('addrLine1').focus();
-        } else {
-          status.textContent = 'Could not detect address. Please type manually.';
-        }
-      } catch(e) {
-        status.textContent = 'Location lookup failed. Please type manually.';
-      }
-      btn.textContent = '📍 Use My Current Location';
-      btn.style.opacity = '1';
-      btn.disabled = false;
-    },
-    function(err) {
-      var msg = err.code === 1 ? 'Location access denied. Please type address manually.'
-              : 'Could not get location. Please type manually.';
-      status.textContent = msg;
-      status.style.color = '#e53e3e';
-      btn.textContent = '📍 Use My Current Location';
-      btn.style.opacity = '1';
-      btn.disabled = false;
-    },
-    { timeout: 10000, enableHighAccuracy: true }
-  );
-}
-
-// ══════════════════════════════════════════════
-// TAB SWITCHER — Menu / My Orders
-// ══════════════════════════════════════════════
-var _currentTab = 'menu';
-var _ordersLoaded = false;
-
-function switchTab(tab) {
-  _currentTab = tab;
-  var menuContent   = document.getElementById('menuContent');
-  var ordersScreen  = document.getElementById('ordersScreen');
-  var catTabs       = document.getElementById('catTabs');
-  var filterChips   = document.getElementById('filterChips');
-  var popularSec    = document.getElementById('popularSection');
-  var navMenu       = document.getElementById('navMenu');
-  var navOrders     = document.getElementById('navOrders');
-  var cartPill      = document.getElementById('cartPill');
-  var header        = document.querySelector('.header');
-
-  if (tab === 'menu') {
-    menuContent.style.display  = 'block';
-    ordersScreen.classList.remove('active');
-    catTabs.style.display      = 'flex';
-    filterChips.style.display  = filterChips.innerHTML ? 'flex' : 'none';
-    if (popularSec) popularSec.style.display = 'block';
-    navMenu.classList.add('active');
-    navOrders.classList.remove('active');
-    cartPill.style.display = Object.keys(cart).length > 0 ? 'flex' : 'none';
-  } else {
-    menuContent.style.display  = 'none';
-    ordersScreen.classList.add('active');
-    catTabs.style.display      = 'none';
-    filterChips.style.display  = 'none';
-    if (popularSec) popularSec.style.display = 'none';
-    navMenu.classList.remove('active');
-    navOrders.classList.add('active');
-    cartPill.style.display = 'none';
-    loadMyOrders();
-  }
-}
-
-async function loadMyOrders() {
-  var content = document.getElementById('ordersContent');
-  content.innerHTML = '<div class="orders-loading">Loading your orders…</div>';
-
-  // Get phone from session
-  try {
-    var sessRes  = await fetch(API_BASE + '/api/order-ui/session/' + SESSION_ID);
-    var sessData = await sessRes.json();
-    var phone    = sessData.customer_phone || '';
-    var restId   = sessData.restaurant_id  || '';
-    if (!phone || !restId) throw new Error('No phone');
-
-    var digits = phone.replace(/\D/g, '');
-    var short  = digits.length > 10 ? digits.slice(-10) : digits;
-
-    var res  = await fetch(API_BASE + '/api/order-ui/my-orders?phone=' + short + '&r=' + restId);
-    var data = await res.json();
-    var orders = data.orders || [];
-
-    if (!orders.length) {
-      content.innerHTML = '<div class="orders-empty"><div style="font-size:48px;margin-bottom:16px">📋</div><p style="font-size:15px;font-weight:600;margin-bottom:8px">No orders yet</p><p style="font-size:13px">Your order history will appear here</p></div>';
-      _ordersLoaded = true;
-      return;
-    }
-
-    var html = '';
-    // IST timezone fix — server stores UTC, compare dates in IST (+5:30)
-      var IST_OFFSET = 5.5 * 60 * 60 * 1000;
-      var nowIST     = new Date(Date.now() + IST_OFFSET);
-      var todayIST   = nowIST.toISOString().slice(0, 10);
-
-    orders.forEach(function(order) {
-      var orderDate    = new Date(order.created_at);
-      var orderDateIST = new Date(orderDate.getTime() + IST_OFFSET);
-      var orderDayIST  = orderDateIST.toISOString().slice(0, 10);
-      var isToday      = orderDayIST === todayIST;
-      var timeStr     = isToday
-        ? orderDate.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', timeZone:'Asia/Kolkata' })
-        : orderDate.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric', timeZone:'Asia/Kolkata' }) +
-          ' ' + orderDate.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', timeZone:'Asia/Kolkata' });
-
-      var modeIcon = order.mode === 'delivery' ? '🚗' : order.mode === 'takeaway' ? '🏃' : '🍽️';
-      var modeLabel = order.mode === 'delivery' ? 'Delivery' : order.mode === 'takeaway' ? 'Takeaway' : 'Dine-in';
-
-      var itemsList = '';
-      if (order.items && order.items.length) {
-        itemsList = order.items.map(function(i) {
-          return i.name + ' x' + i.quantity;
-        }).join(', ');
-      }
-
-      var tokenBadge = (order.mode === 'takeaway' && order.pickup_token)
-        ? '<span class="order-token">🎫 ' + order.pickup_token + '</span>'
-        : '<span class="order-mode">' + modeIcon + ' ' + modeLabel + '</span>';
-
-      html += '<div class="order-card">' +
-        '<div class="order-card-header">' +
-        '<div><div class="order-bill">' + (order.bill_number || 'Order') + '</div>' +
-        '<div class="order-time">' + timeStr + '</div></div>' +
-        tokenBadge +
-        '</div>' +
-        (itemsList ? '<div class="order-items">' + itemsList + '</div>' : '') +
-        '<div class="order-footer">' +
-        '<span class="order-total">₹' + order.grand_total + '</span>' +
-        '<span class="order-status confirmed">✅ Confirmed</span>' +
-        '</div></div>';
-    });
-
-    content.innerHTML = html;
-    _ordersLoaded = true;
-  } catch(e) {
-    content.innerHTML = '<div class="orders-empty"><p>Could not load orders.<br>Please try again.</p></div>';
-  }
-}
-
-
 // ══════════════════════════════════════════════
 // TOAST
 // ══════════════════════════════════════════════

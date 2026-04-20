@@ -1,0 +1,447 @@
+// ══════════════════════════════════════════════════════════
+// OrderBuddy — Order UI API Routes
+// Register in server.js: app.register(orderUIRoutes, { prefix: '/api/order-ui' })
+// A4: Added payment_mode support to place-order (cod | online)
+// ══════════════════════════════════════════════════════════
+const db          = require('../database/db');
+const cartSvc     = require('../services/cart');
+// whatsapp notifications handled internally by billing.js
+const billing     = require('../services/billing');
+const deliverySvc = require('../services/delivery');
+
+module.exports = async function orderUIRoutes(fastify, opts) {
+
+  // ── GET /api/order-ui/session/:sessionId ──
+  fastify.get('/session/:sessionId', async (req, reply) => {
+    const session = await db.queryOne(
+      `SELECT s.id, s.mode, s.table_number, s.status, s.customer_phone,
+              s.discount_pct, s.platform, s.restaurant_id,
+              r.name AS restaurant_name
+       FROM sessions s
+       JOIN restaurants r ON r.id = s.restaurant_id
+       WHERE s.id = $1`,
+      [req.params.sessionId]
+    );
+    if (!session) return reply.status(404).send({ error: 'Session not found' });
+    return reply.send(session);
+  });
+
+  // ── GET /api/order-ui/menu/:sessionId ──
+  fastify.get('/menu/:sessionId', async (req, reply) => {
+    const session = await db.queryOne(
+      'SELECT restaurant_id FROM sessions WHERE id = $1',
+      [req.params.sessionId]
+    );
+    if (!session) return reply.status(404).send({ error: 'Session not found' });
+    const lang = req.query.lang || 'en';
+    const [restaurant, categories, modifiers] = await Promise.all([
+      db.queryOne('SELECT id, name, slug, welcome_message FROM restaurants WHERE id = $1', [session.restaurant_id]),
+      lang === 'en'
+        ? db.queryAll(
+            `SELECT id, name, sort_order FROM menu_categories
+             WHERE restaurant_id = $1 AND is_active = true
+             ORDER BY sort_order ASC NULLS LAST, name ASC`,
+            [session.restaurant_id]
+          )
+        : db.queryAll(
+            `SELECT mc.id, mc.sort_order,
+                    COALESCE(ct.translated_name, mc.name) AS name
+             FROM menu_categories mc
+             LEFT JOIN category_translations ct
+               ON ct.category_id = mc.id AND ct.language_code = $2
+             WHERE mc.restaurant_id = $1 AND mc.is_active = true
+             ORDER BY mc.sort_order ASC NULLS LAST, mc.name ASC`,
+            [session.restaurant_id, lang]
+          ),
+      lang === 'en'
+        ? db.queryAll(
+            `SELECT id, name, price, applicable_categories, applicable_item_ids
+             FROM menu_modifiers
+             WHERE restaurant_id = $1 AND is_active = true
+             ORDER BY sort_order ASC`,
+            [session.restaurant_id]
+          ).catch(() => [])
+        : db.queryAll(
+            `SELECT mm.id,
+                    COALESCE(mt.translated_name, mm.name) AS name,
+                    mm.price, mm.applicable_categories, mm.applicable_item_ids
+             FROM menu_modifiers mm
+             LEFT JOIN modifier_translations mt
+               ON mt.modifier_id = mm.id AND mt.language_code = $2
+             WHERE mm.restaurant_id = $1 AND mm.is_active = true
+             ORDER BY mm.sort_order ASC`,
+            [session.restaurant_id, lang]
+          ).catch(() => [])
+    ]);
+    let items;
+    if (lang === 'en') {
+      items = await db.queryAll(
+        `SELECT id, name, price, description, category_id, is_veg, image_url,
+                spice_level, popularity_score, owner_popularity_tier
+         FROM menu_items
+         WHERE restaurant_id = $1 AND is_available = true
+         ORDER BY sort_order ASC NULLS LAST, name ASC`,
+        [session.restaurant_id]
+      );
+    } else {
+      items = await db.queryAll(
+        `SELECT mi.id,
+                COALESCE(mt_name.translated_text, mi.name)        AS name,
+                COALESCE(mt_desc.translated_text, mi.description) AS description,
+                mi.price, mi.category_id, mi.is_veg, mi.image_url,
+                mi.spice_level, mi.popularity_score, mi.owner_popularity_tier
+         FROM menu_items mi
+         LEFT JOIN menu_translations mt_name
+           ON mt_name.item_id = mi.id AND mt_name.language_code = $2 AND mt_name.field = 'name'
+         LEFT JOIN menu_translations mt_desc
+           ON mt_desc.item_id = mi.id AND mt_desc.language_code = $2 AND mt_desc.field = 'description'
+         WHERE mi.restaurant_id = $1 AND mi.is_available = true
+         ORDER BY mi.sort_order ASC NULLS LAST, mi.name ASC`,
+        [session.restaurant_id, lang]
+      );
+    }
+    const itemIds = items.map(i => i.id);
+    let tagsByItem = {};
+    if (itemIds.length > 0) {
+      const tags = await db.queryAll(
+        `SELECT it.item_id, t.type, t.tag_code, t.name AS tag_name, t.display_icon
+         FROM item_tags it JOIN tags t ON t.id = it.tag_id
+         WHERE it.item_id = ANY($1::uuid[])`,
+        [itemIds]
+      ).catch(() => []);
+      tags.forEach(tag => {
+        if (!tagsByItem[tag.item_id]) tagsByItem[tag.item_id] = [];
+        tagsByItem[tag.item_id].push(tag);
+      });
+    }
+    const itemsWithTags = items.map(item => ({ ...item, tags: tagsByItem[item.id] || [] }));
+    return reply.send({ restaurant, categories, items: itemsWithTags, modifiers });
+  });
+
+  // ── GET /api/order-ui/menu/items/:itemId/info ──
+  fastify.get('/menu/items/:itemId/info', async (req, reply) => {
+    const { itemId } = req.params;
+    const lang = req.query.lang || 'en';
+    const [item, tags] = await Promise.all([
+      db.queryOne(
+        `SELECT mi.id,
+                COALESCE(mt_name.translated_text, mi.name)        AS name,
+                COALESCE(mt_desc.translated_text, mi.description) AS description,
+                mi.price, mi.is_veg, mi.spice_level, mi.ingredients_text, mi.is_alcoholic,
+                mi.cuisine_type, mi.popularity_score, mi.owner_popularity_tier,
+                mi.system_generated, mi.restaurant_verified,
+                mc.name AS category_name
+         FROM menu_items mi
+         LEFT JOIN menu_categories mc ON mc.id = mi.category_id
+         LEFT JOIN menu_translations mt_name
+           ON mt_name.item_id = mi.id AND mt_name.language_code = $2 AND mt_name.field = 'name'
+         LEFT JOIN menu_translations mt_desc
+           ON mt_desc.item_id = mi.id AND mt_desc.language_code = $2 AND mt_desc.field = 'description'
+         WHERE mi.id = $1 AND mi.is_available = true`,
+        [itemId, lang]
+      ),
+      db.queryAll(
+        `SELECT t.type, t.tag_code, t.name AS tag_name, t.display_icon
+         FROM item_tags it JOIN tags t ON t.id = it.tag_id
+         WHERE it.item_id = $1 ORDER BY t.type, t.tag_code`,
+        [itemId]
+      ).catch(() => [])
+    ]);
+    if (!item) return reply.status(404).send({ error: 'Item not found' });
+    let bestsellerBadge = null;
+    if (item.popularity_score > 0) {
+      if (item.popularity_score >= 50)      bestsellerBadge = { stars: 3, label: '🔥 Highly Ordered' };
+      else if (item.popularity_score >= 20) bestsellerBadge = { stars: 2, label: '🏆 Bestseller' };
+      else if (item.popularity_score >= 5)  bestsellerBadge = { stars: 1, label: '⭐ Popular' };
+    } else if (item.owner_popularity_tier) {
+      const tierMap = { 1: { stars: 1, label: '⭐ Popular' }, 2: { stars: 2, label: '🏆 Bestseller' }, 3: { stars: 3, label: '🔥 Highly Ordered' } };
+      bestsellerBadge = tierMap[item.owner_popularity_tier] || null;
+    }
+    const groupedTags = {};
+    tags.forEach(t => { if (!groupedTags[t.type]) groupedTags[t.type] = []; groupedTags[t.type].push(t); });
+    return reply.send({
+      id: item.id, name: item.name, category: item.category_name,
+      description: item.description || null, is_veg: item.is_veg,
+      spice_level: item.spice_level || null, cuisine_type: item.cuisine_type || null,
+      ingredients_text: item.ingredients_text || null, is_alcoholic: item.is_alcoholic || false,
+      bestseller_badge: bestsellerBadge, safe_tone: item.system_generated && !item.restaurant_verified,
+      tags: {
+        diet: groupedTags['DIET'] || [], spice: groupedTags['SPICE'] || [],
+        label: groupedTags['LABEL'] || [], flavor: groupedTags['FLAVOR'] || [],
+        experience: groupedTags['EXPERIENCE'] || [], functional: groupedTags['FUNCTIONAL'] || [],
+        restriction: groupedTags['RESTRICTION'] || [], allergen: groupedTags['ALLERGEN'] || [],
+        drink_style: groupedTags['DRINK_STYLE'] || [],
+      }
+    });
+  });
+
+  // ── GET /api/order-ui/cart/:sessionId ──
+  fastify.get('/cart/:sessionId', async (req, reply) => {
+    try { return reply.send(await cartSvc.getCart(req.params.sessionId)); }
+    catch (e) { return reply.send({ items: [], subtotal: 0 }); }
+  });
+
+  // ── POST /api/order-ui/cart/:sessionId ──
+  fastify.post('/cart/:sessionId', async (req, reply) => {
+    const { sessionId } = req.params;
+    const { items } = req.body;
+    const session = await db.queryOne('SELECT restaurant_id FROM sessions WHERE id = $1', [sessionId]);
+    if (!session) return reply.status(404).send({ error: 'Session not found' });
+    const menuItems = await db.queryAll(
+      'SELECT id, name, price, kot_type, tax_category FROM menu_items WHERE restaurant_id = $1',
+      [session.restaurant_id]
+    );
+    const menuMap = {};
+    menuItems.forEach(i => { menuMap[i.id] = i; });
+    for (const item of (items || [])) {
+      if (!item.menu_item_id || !item.quantity || item.quantity < 1) continue;
+      const mi = menuMap[item.menu_item_id];
+      if (!mi) continue;
+      await db.query(
+        `INSERT INTO cart_items (session_id, menu_item_id, quantity, name, price, notes, kot_type, tax_category)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         ON CONFLICT (session_id, menu_item_id) DO UPDATE SET quantity=$3, notes=$6`,
+        [sessionId, item.menu_item_id, item.quantity, mi.name, mi.price, item.notes || null, 'food', 'standard']
+      );
+    }
+    return reply.send({ ok: true });
+  });
+
+  // ── POST /api/order-ui/cart-item/:sessionId ──
+  fastify.post('/cart-item/:sessionId', async (req, reply) => {
+    const { sessionId } = req.params;
+    const { menu_item_id, quantity, name, price, notes } = req.body;
+    const session = await db.queryOne(`SELECT id, status FROM sessions WHERE id = $1`, [sessionId]);
+    if (!session) return reply.status(404).send({ error: 'Session not found' });
+    if (['closed','paid','delivered','ordered'].includes(session.status))
+      return reply.status(409).send({ error: 'Order already placed' });
+    if (!menu_item_id || quantity === undefined) return reply.status(400).send({ error: 'Missing fields' });
+    if (quantity <= 0) {
+      await db.query('DELETE FROM cart_items WHERE session_id=$1 AND menu_item_id=$2', [sessionId, menu_item_id]);
+    } else {
+      const menuItem = await db.queryOne(`SELECT kot_type, tax_category FROM menu_items WHERE id = $1`, [menu_item_id]);
+      await db.query(
+        `INSERT INTO cart_items (session_id, menu_item_id, quantity, name, price, notes, kot_type, tax_category)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         ON CONFLICT (session_id, menu_item_id)
+         DO UPDATE SET quantity=$3, name=$4, price=$5, notes=$6, kot_type=$7, tax_category=$8`,
+        [sessionId, menu_item_id, quantity, name, price, notes || null,
+         menuItem?.kot_type || 'kitchen', menuItem?.tax_category || 'food']
+      );
+    }
+    return reply.send({ ok: true });
+  });
+
+  // ── POST /api/order-ui/address/:sessionId ──
+  fastify.post('/address/:sessionId', async (req, reply) => {
+    await db.query('UPDATE sessions SET delivery_address=$1 WHERE id=$2', [req.body.address, req.params.sessionId]);
+    return reply.send({ ok: true });
+  });
+
+  // ── GET /api/order-ui/past-addresses/:sessionId ──
+  fastify.get('/past-addresses/:sessionId', async (req, reply) => {
+    const session = await db.queryOne('SELECT customer_phone, restaurant_id FROM sessions WHERE id=$1', [req.params.sessionId]);
+    if (!session) return reply.send({ addresses: [] });
+    const rows = await db.queryAll(
+      `SELECT DISTINCT delivery_address FROM sessions
+       WHERE customer_phone=$1 AND restaurant_id=$2
+         AND delivery_address IS NOT NULL AND delivery_address != ''
+       ORDER BY delivery_address LIMIT 3`,
+      [session.customer_phone, session.restaurant_id]
+    );
+    return reply.send({ addresses: rows.map(r => r.delivery_address) });
+  });
+
+  // ── POST /api/order-ui/place-order/:sessionId ──
+  // A4: payment_mode support — 'cod' | 'online'
+  // COD:    order confirmed + KOT fires, no payment gateway needed
+  // Online: order confirmed + KOT fires, Paytm PG initiated (pending MID)
+  fastify.post('/place-order/:sessionId', async (req, reply) => {
+    const { sessionId } = req.params;
+    const payment_mode = req.body?.payment_mode || 'online';
+
+    if (!['cod', 'online'].includes(payment_mode)) {
+      return reply.status(400).send({ error: "payment_mode must be 'cod' or 'online'" });
+    }
+
+    try {
+      const session = await db.queryOne(
+        `SELECT s.*, r.name AS restaurant_name, r.owner_phone,
+                r.delivery_phones, r.delivery_fee, r.free_delivery_above
+         FROM sessions s JOIN restaurants r ON r.id = s.restaurant_id
+         WHERE s.id = $1`,
+        [sessionId]
+      );
+      if (!session) return reply.status(404).send({ error: 'Session not found' });
+      if (session.status === 'closed') return reply.status(410).send({ error: 'Session expired' });
+
+      // COD only valid for home delivery
+      if (payment_mode === 'cod' && session.mode !== 'delivery') {
+        return reply.status(400).send({ error: 'COD is only available for home delivery orders' });
+      }
+
+      const cart = await cartSvc.getCart(sessionId);
+      if (!cart.items || cart.items.length === 0) {
+        return reply.status(400).send({ error: 'Cart is empty' });
+      }
+
+      // Create order + fire KOT — same for both COD and online
+      const result = await billing.createOrder(session, cart);
+
+      // Store payment mode on the order (column already exists)
+      await db.query(
+        `UPDATE orders SET payment_mode_selected = $1
+         WHERE session_id = $2 AND status = 'confirmed'
+           AND created_at > NOW() - INTERVAL '30 seconds'`,
+        [payment_mode, sessionId]
+      );
+
+      // ── COD response — done, rider collects cash at door ──
+      if (payment_mode === 'cod') {
+        return reply.send({
+          success:      true,
+          payment_mode: 'cod',
+          bill_number:  result.bill_number,
+          total:        result.grand_total,
+          message:      'Order confirmed. Pay cash on delivery.',
+        });
+      }
+
+      // ── Online — Payment Gateway (routed via payment-service.js) ──
+      // payment-service reads restaurant gateway config
+      // Routes to correct adapter: paytm | razorpay | phonepe
+      // Frontend redirects customer to payment_url
+      try {
+        const paymentSvc = require('../services/payment-service');
+        const bill = await db.queryOne(
+          `SELECT id, grand_total FROM bills
+           WHERE session_id = $1
+           ORDER BY created_at DESC LIMIT 1`,
+          [sessionId]
+        );
+        const payResult = await paymentSvc.initiate({
+          restaurantId:  session.restaurant_id,
+          sessionId,
+          billId:        bill.id,
+          amount:        bill.grand_total,
+          customerPhone: session.customer_phone,
+          billNumber:    result.bill_number,
+          mode:          session.mode,
+        });
+        return reply.send({
+          success:      true,
+          payment_mode: 'online',
+          bill_number:  result.bill_number,
+          total:        result.grand_total,
+          payment_url:  payResult.payment_url,
+          txn_token:    payResult.txn_token,
+        });
+      } catch (payErr) {
+        // Gateway not configured yet (MID pending) — return pending gracefully
+        fastify.log.warn('Payment gateway not configured:', payErr.message);
+        return reply.send({
+          success:        true,
+          payment_mode:   'online',
+          bill_number:    result.bill_number,
+          total:          result.grand_total,
+          payment_status: 'payment_pending',
+          message:        'Order placed. Complete payment to confirm.',
+        });
+      }
+
+    } catch (e) {
+      fastify.log.error(e);
+      return reply.status(500).send({ error: 'Order failed' });
+    }
+  });
+
+  // ── POST /api/order-ui/upsell/:sessionId ──
+  fastify.post('/upsell/:sessionId', async (req, reply) => {
+    try {
+      const session = await db.queryOne('SELECT restaurant_id FROM sessions WHERE id=$1', [req.params.sessionId]);
+      if (!session) return reply.send({ suggestion: null });
+      const cart = await cartSvc.getCart(req.params.sessionId);
+      const intelligence = require('../services/intelligence');
+      const upsell = await intelligence.getUpsellSuggestion(
+        { id: req.params.sessionId, restaurant_id: session.restaurant_id },
+        cart.items || [], session.restaurant_id
+      );
+      if (upsell) return reply.send({ suggestion: upsell.item.name, itemId: upsell.item.id, price: upsell.item.price, message: upsell.message });
+      return reply.send({ suggestion: null });
+    } catch (e) { return reply.send({ suggestion: null }); }
+  });
+
+  // ── POST /api/order-ui/ai-chat/:sessionId ──
+  fastify.post('/ai-chat/:sessionId', async (req, reply) => {
+    const { sessionId } = req.params;
+    const { message } = req.body || {};
+    if (!message || message.trim().length < 2)
+      return reply.send({ reply: 'Please type at least 2 characters.', itemsAdded: [], action: undefined });
+    const session = await db.queryOne('SELECT * FROM sessions WHERE id = $1', [sessionId]);
+    if (!session) return reply.status(404).send({ error: 'Session not found' });
+    const msg = message.trim();
+    const lower = msg.toLowerCase();
+    if (/\b(add|cart|order|place order|confirm|checkout|buy|remove|delete)\b/.test(lower))
+      return reply.send({ reply: 'I can help with menu questions only 🙏\nTo add items, use the + button on each dish!', itemsAdded: [], action: undefined });
+    if (/\b(pay|payment|bill|upi|cash|razorpay)\b/.test(lower))
+      return reply.send({ reply: 'I can help with menu questions only 🙏\nFor billing, please ask our staff.', itemsAdded: [], action: undefined });
+    try {
+      const menuItems = await db.queryAll(
+        `SELECT mi.*, mc.name AS category_name FROM menu_items mi
+         JOIN menu_categories mc ON mc.id = mi.category_id
+         WHERE mi.restaurant_id = $1 AND mi.is_available = true
+         ORDER BY mc.sort_order, mi.sort_order`,
+        [session.restaurant_id]
+      );
+      const categories = await db.queryAll(
+        `SELECT * FROM menu_categories WHERE restaurant_id = $1 AND is_active = true ORDER BY sort_order`,
+        [session.restaurant_id]
+      );
+      function spiceLabel(l) { return !l||l==='none'?'':l==='mild'?'🌶 Mild':l==='medium'?'🌶🌶 Medium':'🌶🌶🌶 Spicy'; }
+      function vegLabel(i)   { return i.is_veg===true?'🟢 Veg':i.is_veg===false?'🔴 Non-veg':''; }
+      function formatItem(i) {
+        const lines = [`*${i.name}*`];
+        const tags = [vegLabel(i), spiceLabel(i.spice_level)].filter(Boolean).join('  ');
+        if (tags) lines.push(tags);
+        if (i.description) lines.push(i.description);
+        return lines.join('\n');
+      }
+      if (/\b(only veg|show veg|veg items|veg only|pure veg)\b/.test(lower)) {
+        const veg = menuItems.filter(i => i.is_veg === true).slice(0, 8);
+        let text = '🟢 *Veg Items*\n\n';
+        veg.forEach(i => { text += `• ${i.name}${spiceLabel(i.spice_level)?'  '+spiceLabel(i.spice_level):''}\n`; });
+        return reply.send({ reply: text + '\nTap ℹ️ on any item to learn more!', itemsAdded: [] });
+      }
+      if (/\b(non.?veg|nonveg)\b/.test(lower)) {
+        const nv = menuItems.filter(i => i.is_veg === false).slice(0, 8);
+        let text = '🔴 *Non-Veg Items*\n\n';
+        nv.forEach(i => { text += `• ${i.name}${spiceLabel(i.spice_level)?'  '+spiceLabel(i.spice_level):''}\n`; });
+        return reply.send({ reply: text + '\nTap ℹ️ on any item to learn more!', itemsAdded: [] });
+      }
+      const SYNONYM_MAP = { 'cold drink':'beverages','soft drink':'beverages','drinks':'beverages','starter':'starter','starters':'starter','snacks':'starter','main':'main course','mains':'main course','dessert':'dessert','sweets':'dessert' };
+      const normQ = SYNONYM_MAP[lower.trim()] || lower.trim();
+      const catMatch = categories.find(c => c.name.toLowerCase()===normQ||c.name.toLowerCase().includes(normQ)||normQ.includes(c.name.toLowerCase()));
+      if (catMatch) {
+        const catItems = menuItems.filter(i => i.category_id === catMatch.id).slice(0, 6);
+        let text = `*${catMatch.name}*\n\n`;
+        catItems.forEach(i => { const tags=[vegLabel(i),spiceLabel(i.spice_level)].filter(Boolean).join(' '); text+=`• ${i.name}${tags?'  '+tags:''}\n`; });
+        return reply.send({ reply: text + '\nTap ℹ️ on any item for description, spice level, allergens!', itemsAdded: [] });
+      }
+      const item = menuItems.find(i => lower.includes(i.name.toLowerCase())) ||
+        menuItems.find(i => { const w=lower.split(' ').filter(w=>w.length>3); return w.some(w=>i.name.toLowerCase().includes(w)); });
+      if (item) return reply.send({ reply: formatItem(item)+'\n\nTap ℹ️ on the item card for full details!', itemsAdded: [] });
+      let text = `Here's our menu 🍔\n\n`;
+      categories.forEach((c,i) => { text+=`${i+1}. ${c.name}\n`; });
+      return reply.send({ reply: text+'\nAsk me about any dish — spice level, ingredients, veg/non-veg!', itemsAdded: [] });
+    } catch (err) {
+      fastify.log.error(err);
+      return reply.send({ reply: 'Sorry, had a hiccup! Try again 😊', itemsAdded: [] });
+    }
+  });
+
+  // ── POST /api/order-ui/ai-chat-v2/:sessionId ──
+  fastify.post('/ai-chat-v2/:sessionId', async (req, reply) => {
+    return reply.send({ reply: 'Ask me about any dish on the menu! Tap ℹ️ on item cards for instant info.', cart_signal: null });
+  });
+
+};

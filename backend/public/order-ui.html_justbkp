@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#1a1207; --cream:#fdf6e9; --amber:#f59e0b; --orange:#ea580c; --green:#16a34a; --red:#dc2626; --muted:#9b8b72; --card:#ffffff; --border:#ede8df; --radius:16px; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;max-width:480px;margin:0 auto;padding-bottom:160px}
+  .header{background:var(--ink);color:white;padding:20px 20px 16px;position:sticky;top:0;z-index:100}
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .restaurant-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:-0.3px}
+  .mode-badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:var(--amber);color:var(--ink);text-transform:uppercase;letter-spacing:0.5px}
+  .mode-badge.dine{background:#22c55e}
+  .mode-badge.takeaway{background:#a78bfa;color:white}
+  .search-wrap{position:relative}
+  .search-input{width:100%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:10px 16px 10px 38px;font-family:'DM Sans',sans-serif;font-size:14px;color:white;outline:none;transition:border-color 0.2s}
+  .search-input::placeholder{color:rgba(255,255,255,0.45)}
+  .search-input:focus{border-color:var(--amber)}
+  .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:0.5;font-size:15px}
+  .filter-chips-wrap{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;background:white;border-bottom:1px solid var(--border)}
+  .filter-chips-wrap::-webkit-scrollbar{display:none}
+  .filter-chip{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;background:var(--cream);border:1.5px solid var(--border);cursor:pointer;transition:all 0.15s;white-space:nowrap;display:flex;align-items:center;gap:4px}
+  .filter-chip.active{background:var(--ink);color:white;border-color:var(--ink)}
+  .cat-tabs{display:flex;gap:8px;padding:14px 20px;overflow-x:auto;scrollbar-width:none;background:white;border-bottom:1px solid var(--border)}
+  .cat-tabs::-webkit-scrollbar{display:none}
+  .cat-tab{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;background:var(--cream);border:1.5px solid var(--border);cursor:pointer;transition:all 0.15s;white-space:nowrap}
+  .cat-tab.active{background:var(--ink);color:white;border-color:var(--ink)}
+  .menu-section{padding:0 16px}
+  .item-card{background:var(--card);border-radius:var(--radius);border:1.5px solid var(--border);padding:14px;margin-bottom:10px;transition:border-color 0.2s}
+  .item-card.in-cart{border-color:var(--orange)}
+  .item-card-top{display:flex;gap:12px;align-items:flex-start}
+  .item-info{flex:1;min-width:0}
+  .item-name{font-weight:600;font-size:15px;margin-bottom:3px}
+  .item-badges{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;align-items:center}
+  .item-badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px}
+  .item-badge.spice{background:#fff3cd;color:#856404}
+  .item-badge.popular{background:#fff8e1;color:#e65100}
+  .item-badge.chef{background:#f3e5f5;color:#6a1b9a}
+  .item-desc{font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .item-footer{display:flex;align-items:center;justify-content:space-between}
+  .item-price{font-weight:700;font-size:16px;color:var(--orange)}
+  .veg-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle;flex-shrink:0}
+  .veg-dot.veg{background:var(--green)}
+  .veg-dot.nonveg{background:var(--red)}
+  .qty-control{display:flex;align-items:center;gap:8px}
+  .qty-btn{width:28px;height:28px;border-radius:50%;border:none;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;background:var(--orange);color:white}
+  .qty-btn:active{transform:scale(0.9)}
+  .qty-num{font-weight:700;font-size:15px;min-width:20px;text-align:center}
+  .add-btn{padding:6px 16px;border-radius:20px;border:1.5px solid var(--orange);background:white;color:var(--orange);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s}
+  .add-btn:active{background:var(--orange);color:white}
+  .item-img{width:80px;height:80px;border-radius:12px;object-fit:cover;flex-shrink:0;background:var(--cream)}
+  .info-btn{background:none;border:1.5px solid var(--border);border-radius:50%;width:28px;height:28px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;color:var(--muted);margin-left:6px}
+  .info-btn.open{background:var(--ink);color:white;border-color:var(--ink)}
+  .info-panel{overflow:hidden;max-height:0;transition:max-height 0.3s ease}
+  .info-panel.open{max-height:800px}
+  .info-panel-inner{border-top:1px solid var(--border);margin-top:12px;padding-top:12px}
+  .info-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:13px}
+  .info-label{font-weight:600;color:var(--ink);min-width:80px;flex-shrink:0}
+  .info-val{color:#444;line-height:1.5}
+  .info-tag-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+  .info-tag{font-size:11px;padding:3px 8px;border-radius:10px;font-weight:600}
+  .info-tag.diet{background:#e8f5e9;color:#2e7d32}
+  .info-tag.spice{background:#fff3e0;color:#e65100}
+  .info-tag.label{background:#f3e5f5;color:#6a1b9a}
+  .info-tag.allergen{background:#fff8e1;color:#f57f17}
+  .info-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:5px;margin-top:8px}
+  .info-warn{font-size:11px;color:#c0392b;background:#fff5f5;border-radius:6px;padding:4px 8px;margin-top:4px}
+  .info-bestseller{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--orange);margin-bottom:8px}
+  .empty-state{text-align:center;padding:60px 24px;color:var(--muted)}
+  .empty-state .icon{font-size:48px;margin-bottom:16px}
+  /* Cart pill */
+  .cart-pill{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:white;padding:14px 28px;border-radius:50px;font-weight:600;font-size:15px;cursor:pointer;box-shadow:0 8px 32px rgba(0,0,0,0.25);display:none;align-items:center;gap:12px;z-index:90;transition:all 0.3s;white-space:nowrap}
+  .cart-pill.visible{display:flex}
+  .cart-pill-count{background:var(--orange);color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  /* Cart drawer */
+  .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;opacity:0;pointer-events:none;transition:opacity 0.25s}
+  .drawer-overlay.open{opacity:1;pointer-events:all}
+  .cart-drawer{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;z-index:201;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);max-height:85vh;overflow-y:auto;padding:24px 20px 32px}
+  .cart-drawer.open{transform:translateX(-50%) translateY(0)}
+  .drawer-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+  .drawer-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:16px}
+  .cart-item-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+  .cart-item-name{font-size:14px;font-weight:500}
+  .cart-item-price{font-size:14px;color:var(--muted)}
+  .cart-item-qty{display:flex;align-items:center;gap:8px}
+  .cart-total-row{display:flex;justify-content:space-between;padding:14px 0 4px;font-weight:700;font-size:16px}
+  .proceed-btn{width:100%;padding:16px;background:var(--ink);color:white;border:none;border-radius:14px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-top:16px;transition:all 0.2s}
+  .proceed-btn:active{transform:scale(0.99)}
+  /* Checkout modal */
+  .checkout-modal{position:fixed;inset:0;z-index:450;display:none}
+  .checkout-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.55)}
+  .checkout-panel{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box;max-height:92vh;overflow-y:auto}
+  .checkout-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px}
+  .checkout-items{border:1.5px solid #ede8df;border-radius:12px;overflow:hidden;margin-bottom:12px}
+  .checkout-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f5f0e8;font-size:14px}
+  .checkout-item:last-child{border-bottom:none}
+  .checkout-item-name{font-weight:600;flex:1}
+  .checkout-item-note{font-size:11px;color:#9b8b72;margin-top:2px}
+  .checkout-item-price{color:#ea580c;font-weight:700;margin-left:12px;white-space:nowrap}
+  .checkout-pricing{background:#f9f6f0;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:14px}
+  .checkout-pricing-row{display:flex;justify-content:space-between;padding:3px 0;color:#666}
+  .checkout-pricing-row.total{font-weight:800;font-size:16px;color:var(--ink);border-top:1.5px solid var(--border);margin-top:6px;padding-top:8px}
+  /* Address in checkout */
+  .checkout-addr-section{margin-bottom:14px}
+  .checkout-addr-label{font-size:12px;font-weight:600;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+  .checkout-addr-input{width:100%;min-height:64px;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;resize:none;background:#faf8f5;box-sizing:border-box;outline:none}
+  .checkout-addr-input:focus{border-color:var(--orange)}
+  .checkout-addr-hint{font-size:11px;color:#e53e3e;margin-top:4px;display:none}
+  /* Payment method in checkout */
+  .checkout-pay-label{font-size:12px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+  .payment-options{display:flex;gap:8px;margin-bottom:16px}
+  .payment-opt{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 8px;cursor:pointer;text-align:center;transition:all .15s;background:white}
+  .payment-opt.selected{border-color:var(--orange);background:#fff7f0}
+  .payment-opt:active{transform:scale(0.97)}
+  .payment-opt-icon{font-size:18px;margin-bottom:2px}
+  .payment-opt-name{font-size:12px;font-weight:700;color:var(--ink)}
+  .payment-opt.selected .payment-opt-name{color:var(--orange)}
+  .payment-opt-sub{font-size:10px;color:var(--muted);margin-top:1px}
+  .place-order-btn{width:100%;padding:16px;background:var(--orange);color:white;border:none;border-radius:14px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.2s}
+  .place-order-btn:active{transform:scale(0.99)}
+  .place-order-btn.loading{opacity:0.7;pointer-events:none}
+  .place-order-btn:disabled{cursor:not-allowed;background:#ccc}
+  /* Notes modal */
+  .notes-modal{position:fixed;inset:0;z-index:460;display:none}
+  .notes-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.5)}
+  .notes-panel{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box}
+  .notes-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:4px}
+  .notes-item-name{font-size:13px;color:#9b8b72;margin-bottom:14px}
+  .notes-textarea{width:100%;border:1.5px solid #ede8df;border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-size:14px;resize:none;outline:none;box-sizing:border-box;height:100px}
+  .notes-textarea:focus{border-color:#ea580c}
+  .notes-hints{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px}
+  .notes-hint-chip{border:1.5px solid #ede8df;border-radius:20px;padding:6px 12px;font-size:12px;cursor:pointer;background:white;transition:all 0.15s}
+  .notes-hint-chip:active{border-color:#ea580c;color:#ea580c}
+  .note-btn{background:none;border:none;font-size:15px;cursor:pointer;padding:2px 4px;opacity:0.5;margin-left:4px}
+  .notes-save-btn{width:100%;padding:14px;background:#1a1207;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer}
+  /* Language */
+  .lang-btn{background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.2);border-radius:20px;padding:5px 10px;font-size:13px;color:white;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.2s}
+  .lang-drawer{position:fixed;inset:0;z-index:500;display:none}
+  .lang-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.5)}
+  .lang-panel{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box}
+  .lang-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:16px;text-align:center}
+  .lang-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .lang-option{padding:14px 12px;border:2px solid #ede8df;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;transition:all 0.15s;background:white}
+  .lang-option.selected{border-color:#ea580c;background:#fff7f0;color:#ea580c}
+  .lang-option .flag{font-size:22px}
+  .lang-option .label{display:flex;flex-direction:column}
+  .lang-option .native{font-size:12px;color:#9b8b72;font-weight:400;margin-top:1px}
+  /* Popular */
+  .popular-chip{flex-shrink:0;background:white;border:1.5px solid #ede8df;border-radius:12px;padding:10px 12px;cursor:pointer;transition:all 0.15s;min-width:120px;max-width:150px}
+  .popular-chip:active{border-color:#ea580c;transform:scale(0.97)}
+  .popular-chip-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .popular-chip-price{font-size:12px;color:#ea580c;font-weight:700;margin-top:2px}
+  .popular-chip-add{font-size:11px;color:#9b8b72;margin-top:4px}
+  /* Toast */
+  .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:white;padding:10px 20px;border-radius:50px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:all 0.3s;z-index:999;white-space:nowrap}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #aiPanel,#aiOverlay,.ai-fab,.ai-toggle{display:none!important}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top">
+    <span class="restaurant-name" id="restName">Loading…</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="lang-btn" onclick="openLangDrawer()" id="langBtn">🌐 EN</button>
+      <span class="mode-badge" id="modeBadge">—</span>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="searchInput" placeholder="Search menu…" autocomplete="off">
+  </div>
+</div>
+<div class="filter-chips-wrap" id="filterChips" style="display:none"></div>
+<div class="cat-tabs" id="catTabs"></div>
+<div id="popularSection" style="display:none;padding:14px 16px 0">
+  <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;color:#9b8b72;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🔥 Popular</div>
+  <div id="popularItems" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none"></div>
+</div>
+<div class="menu-section" id="menuContent">
+  <div class="empty-state"><div class="icon">🍔</div><p id="loadingText">Loading menu…</p></div>
+</div>
+<div class="cart-pill" id="cartPill" onclick="openCart()">
+  <div class="cart-pill-count" id="cartCount">0</div>
+  <span id="cartPillText">View Cart</span>
+  <span id="cartPillTotal"></span>
+</div>
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeCart()"></div>
+<div class="cart-drawer" id="cartDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-title" id="cartDrawerTitle">🛒 Your Cart</div>
+  <div id="cartItems"></div>
+  <div class="cart-total-row" id="cartTotalRow" style="display:none">
+    <span id="cartTotalLabel">Total</span><span id="cartTotal">₹0</span>
+  </div>
+  <button class="proceed-btn" id="proceedBtn" onclick="startUpsell()">Proceed to Checkout →</button>
+</div>
+
+<!-- Checkout Modal (NEW) -->
+<div class="checkout-modal" id="checkoutModal">
+  <div class="checkout-overlay" onclick="closeCheckout()"></div>
+  <div class="checkout-panel">
+    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
+    <div class="checkout-title" id="checkoutTitle">✅ Confirm Order</div>
+    <p style="font-size:13px;color:#9b8b72;margin-bottom:14px" id="checkoutSubtitle">Review before placing</p>
+    <div class="checkout-items" id="checkoutItems"></div>
+    <div class="checkout-pricing" id="checkoutPricing"></div>
+    <!-- Address — delivery only -->
+    <div id="checkoutAddrSection" style="display:none" class="checkout-addr-section">
+      <div class="checkout-addr-label">📍 Delivery Address</div>
+      <textarea class="checkout-addr-input" id="checkoutAddr" placeholder="Enter your delivery address…"></textarea>
+      <div class="checkout-addr-hint" id="checkoutAddrHint">⚠️ Please enter delivery address</div>
+    </div>
+    <!-- Payment method -->
+    <div id="checkoutPaySection">
+      <div class="checkout-pay-label" id="checkoutPayLabel">💳 Payment Method</div>
+      <div class="payment-options" id="checkoutPayOptions">
+        <div class="payment-opt selected" id="cpmCOD" onclick="selectCheckoutPayment('cod')">
+          <div class="payment-opt-icon">💵</div>
+          <div class="payment-opt-name">Cash</div>
+          <div class="payment-opt-sub">Pay on delivery</div>
+        </div>
+        <div class="payment-opt" id="cpmOnline" onclick="selectCheckoutPayment('online')">
+          <div class="payment-opt-icon">📱</div>
+          <div class="payment-opt-name">Pay Online</div>
+          <div class="payment-opt-sub">UPI / Card</div>
+        </div>
+      </div>
+    </div>
+    <button class="place-order-btn" id="checkoutPlaceBtn" onclick="placeOrder()">Place Order →</button>
+    <button onclick="closeCheckoutOpenCart()" style="width:100%;padding:12px;background:none;border:1.5px solid #ede8df;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72;margin-top:8px">✏️ Edit Cart</button>
+  </div>
+</div>
+
+<!-- Notes Modal -->
+<div class="notes-modal" id="notesModal">
+  <div class="notes-overlay" onclick="closeNotes()"></div>
+  <div class="notes-panel">
+    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
+    <div class="notes-title" id="notesTitle">📝 Special Instructions</div>
+    <div class="notes-item-name" id="notesItemName"></div>
+    <textarea class="notes-textarea" id="notesTextarea" placeholder="e.g. Extra spicy, no onions…"></textarea>
+    <div class="notes-hints">
+      <button class="notes-hint-chip" id="hint_spicy" onclick="addNoteHint(t('note_extra_spicy'))">🌶️ Extra spicy</button>
+      <button class="notes-hint-chip" id="hint_onions" onclick="addNoteHint(t('note_no_onions'))">🧅 No onions</button>
+      <button class="notes-hint-chip" id="hint_oil" onclick="addNoteHint(t('note_less_oil'))">Less oil</button>
+      <button class="notes-hint-chip" id="hint_garlic" onclick="addNoteHint(t('note_no_garlic'))">No garlic</button>
+      <button class="notes-hint-chip" id="hint_welldone" onclick="addNoteHint(t('note_well_done'))">Well done</button>
+      <button class="notes-hint-chip" id="hint_sauce" onclick="addNoteHint(t('note_extra_sauce'))">Extra sauce</button>
+    </div>
+    <button class="notes-save-btn" id="notesSaveBtn" onclick="saveNotes()">Save</button>
+  </div>
+</div>
+
+<!-- Language Drawer -->
+<div class="lang-drawer" id="langDrawer">
+  <div class="lang-overlay" onclick="closeLangDrawer()"></div>
+  <div class="lang-panel">
+    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
+    <div class="lang-title" id="langDrawerTitle">🌐 Choose Language</div>
+    <div class="lang-grid" id="langGrid"></div>
+  </div>
+</div>
+
+<!-- Upsell Modal -->
+<div id="upsellOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;opacity:0;pointer-events:none;transition:opacity 0.25s"></div>
+<div id="upsellModal" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;z-index:401;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);padding:24px 20px 32px;box-sizing:border-box">
+  <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
+  <div id="upsellTitle" style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px">🔥 Complete your order!</div>
+  <div id="upsellMsg" style="font-size:14px;color:#9b8b72;margin-bottom:16px;line-height:1.5"></div>
+  <div id="upsellItem" style="display:none;background:#fdf6e9;border:1.5px solid #f59e0b;border-radius:14px;padding:16px;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div id="upsellItemName" style="font-weight:700;font-size:16px;margin-bottom:3px"></div>
+        <div id="upsellItemPrice" style="color:#ea580c;font-weight:700;font-size:14px"></div>
+      </div>
+      <!-- Qty control for upsell -->
+      <div id="upsellQtyWrap" style="display:flex;align-items:center;gap:8px">
+        <button onclick="upsellQtyChange(-1)" style="width:32px;height:32px;border-radius:50%;border:none;background:#ea580c;color:white;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+        <span id="upsellQtyNum" style="font-weight:700;font-size:16px;min-width:24px;text-align:center">0</span>
+        <button onclick="upsellQtyChange(1)" style="width:32px;height:32px;border-radius:50%;border:none;background:#ea580c;color:white;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+      </div>
+    </div>
+  </div>
+  <div id="upsellLoading" style="text-align:center;padding:16px;color:#9b8b72;font-size:13px"><div style="margin-bottom:6px">🤔</div><span id="upsellLoadingText">Finding best add-on…</span></div>
+  <button id="upsellConfirmBtn" onclick="confirmUpsellAndCheckout()" style="width:100%;padding:16px;background:#ea580c;border:none;border-radius:14px;color:white;font-family:'Syne',sans-serif;font-size:16px;font-weight:800;cursor:pointer;margin-top:8px">Confirm Order →</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── i18n (minimal — full version on server) ──
+const I18N_EN = {
+  search_placeholder:'Search menu…',filter_all:'All',filter_veg:'🟢 Veg Only',filter_nonveg:'🔴 Non-Veg',filter_mild:'😊 Mild',filter_spicy:'🌶 Spicy',filter_popular:'⭐ Popular',
+  add:'Add',item:'item',items:'items',view_cart:'View Cart',your_cart:'🛒 Your Cart',cart_empty:'Cart is empty',total:'Total',each:'each',
+  delivery_address:'📍 Delivery Address',address_placeholder:'Enter your delivery address…',address_required:'⚠️ Please enter delivery address',
+  add_extras:'ADD EXTRAS (OPTIONAL)',add_to_cart:'Add to Cart',add_without:'Add without extras',
+  special_instructions:'📝 Special Instructions',note_extra_spicy:'🌶️ Extra spicy',note_no_onions:'🧅 No onions',note_less_oil:'Less oil',note_no_garlic:'No garlic',note_well_done:'Well done',note_extra_sauce:'Extra sauce',save:'Save',
+  dine_in_label:'🍽️ Dine-in order',takeaway_label:'🏃 Takeaway — collect at counter',delivering_to:'📍 Delivering to:',
+  no_items:'No items found',try_filter:'Try a different filter',loading:'Loading menu…',
+  added:'added!',note_saved:'📝 Note saved!',order_placed:'Order placed! Bill #',order_locked:'✅ Order placed — cart is locked',
+  mode_delivery:'Delivery',mode_takeaway:'Takeaway',mode_table:'Table',
+  choose_language:'🌐 Choose Language',lang_changed:'Menu updated in',
+  about:'ABOUT',cuisine:'Cuisine',spice:'Spice',allergens:'Allergens',
+  no_description:'Description not available.',ask_staff:'Ask our staff for details.',
+  popular_section:'🔥 Popular',session_expired:'⚠️ Session expired — scan QR',placing_order:'Placing order…',menu_load_error:'Could not load menu.',add_items_first:'Add items first!',order_failed:'Failed. Try again.',
+};
+// Full i18n would be here — using EN for this template
+function t(key) {
+  var lang = typeof selectedLang !== 'undefined' ? selectedLang : 'en';
+  return (window['I18N_'+lang.toUpperCase()] || I18N_EN)[key] || I18N_EN[key] || key;
+}
+
+const SESSION_ID = (location.pathname.split('/order/')[1]||'').split('?')[0];
+const API_BASE   = '';
+let restaurant=null, allModifiers=[], pendingAddItem=null;
+let categories=[], allItems=[], cart={};
+let sessionMode='delivery', sessionTable='', sessionDeliveryAddress='';
+let activeFilter='all', openInfoId=null;
+let selectedLang = localStorage.getItem('buddy_lang')||'en';
+// Checkout payment mode
+var checkoutPaymentMode = 'cod'; // cod | online
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+async function init() {
+  if (!SESSION_ID) {
+    document.getElementById('menuContent').innerHTML = '<div class="empty-state"><div class="icon">🔗</div><p>Invalid link.</p></div>';
+    return;
+  }
+  try {
+    const [sessionRes, menuRes] = await Promise.all([
+      fetch(API_BASE+'/api/order-ui/session/'+SESSION_ID),
+      fetch(API_BASE+'/api/order-ui/menu/'+SESSION_ID+'?lang='+(localStorage.getItem('buddy_lang')||'en'))
+    ]);
+    if (!sessionRes.ok) throw new Error('Session not found');
+    const sessionData = await sessionRes.json();
+
+    // Session ended
+    if (['closed','paid','delivered'].includes(sessionData.status)) {
+      document.getElementById('menuContent').innerHTML =
+        '<div class="empty-state" style="padding:60px 24px"><div class="icon">🔗</div>' +
+        '<h3 style="font-family:Syne,sans-serif;font-size:18px;margin-bottom:8px">Session Ended</h3>' +
+        '<p>This order session has ended.</p><p>Please <strong>scan the QR code again</strong>.</p></div>';
+      document.getElementById('catTabs').style.display='none';
+      document.getElementById('restName').textContent = sessionData.restaurant_name||'Restaurant';
+      return;
+    }
+
+    const menuData = await menuRes.json();
+    restaurant  = menuData.restaurant;
+    categories  = menuData.categories;
+    allItems    = (menuData.items||[]).map(function(i){ i.orig_name=i.name; return i; });
+    allModifiers= menuData.modifiers||[];
+    document.getElementById('restName').textContent = restaurant.name;
+    document.title = 'Order — '+restaurant.name;
+
+    sessionMode             = sessionData.mode||'delivery';
+    sessionTable            = sessionData.table_number||'—';
+    sessionDeliveryAddress  = sessionData.delivery_address||''; // pre-filled from /start
+
+    // Mode badge
+    var modeEl = document.getElementById('modeBadge');
+    if (sessionMode==='dine_in') {
+      modeEl.textContent = t('mode_table')+' '+sessionTable;
+      modeEl.className   = 'mode-badge dine';
+    } else if (sessionMode==='takeaway') {
+      modeEl.textContent = t('mode_takeaway');
+      modeEl.className   = 'mode-badge takeaway';
+    } else {
+      modeEl.textContent = t('mode_delivery');
+      modeEl.className   = 'mode-badge';
+    }
+
+    // Already ordered — lock UI for all modes
+    if (sessionData.status==='ordered') {
+      const cartRes2 = await fetch(API_BASE+'/api/order-ui/cart/'+SESSION_ID);
+      const cartData2 = await cartRes2.json();
+      if (cartData2.items) {
+        cartData2.items.forEach(function(i){
+          cart[i.menu_item_id]={qty:i.quantity,notes:i.notes||'',name:i.name,price:i.price};
+        });
+      }
+      buildFilterChips(); buildCategoryTabs(); renderMenu(); renderPopular(); updateCartUI();
+      lockUI(''); // lock for ALL modes — no re-ordering on same session
+      return;
+    }
+
+    // Load existing cart
+    const cartRes  = await fetch(API_BASE+'/api/order-ui/cart/'+SESSION_ID);
+    const cartData = await cartRes.json();
+    if (cartData.items) {
+      cartData.items.forEach(function(i){
+        cart[i.menu_item_id]={qty:i.quantity,notes:i.notes||'',name:i.name,price:i.price};
+      });
+    }
+
+    buildFilterChips(); buildCategoryTabs(); renderMenu(); renderPopular(); updateCartUI(); updateUIStrings();
+    document.getElementById('searchInput').addEventListener('input', function(e){
+      activeFilter='all';
+      document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.remove('active');});
+      var allChip=document.querySelector('.filter-chip[data-filter="all"]'); if(allChip) allChip.classList.add('active');
+      renderMenu(e.target.value.toLowerCase().trim());
+    });
+  } catch(err) {
+    console.error(err);
+    document.getElementById('menuContent').innerHTML =
+      '<div class="empty-state"><div class="icon">😕</div><p>'+t('menu_load_error')+'</p></div>';
+  }
+}
+
+// ══════════════════════════════════════════
+// FILTER CHIPS
+// ══════════════════════════════════════════
+function buildFilterChips() {
+  if (allItems.length<4) return;
+  var hasVeg=allItems.some(function(i){return i.is_veg===true;});
+  var hasNonveg=allItems.some(function(i){return i.is_veg===false;});
+  var hasMild=allItems.some(function(i){return i.spice_level==='mild';});
+  var hasSpicy=allItems.some(function(i){return i.spice_level==='spicy'||i.spice_level==='hot';});
+  var hasPopular=allItems.some(function(i){return i.tags&&i.tags.some(function(t){return t.tag_code==='popular';});});
+  var chips=document.getElementById('filterChips');
+  var html='<div class="filter-chip active" data-filter="all" onclick="applyFilter('all',this)">'+t('filter_all')+'</div>';
+  if(hasVeg)     html+='<div class="filter-chip" data-filter="veg" onclick="applyFilter('veg',this)">'+t('filter_veg')+'</div>';
+  if(hasNonveg)  html+='<div class="filter-chip" data-filter="nonveg" onclick="applyFilter('nonveg',this)">'+t('filter_nonveg')+'</div>';
+  if(hasMild)    html+='<div class="filter-chip" data-filter="mild" onclick="applyFilter('mild',this)">'+t('filter_mild')+'</div>';
+  if(hasSpicy)   html+='<div class="filter-chip" data-filter="spicy" onclick="applyFilter('spicy',this)">'+t('filter_spicy')+'</div>';
+  if(hasPopular) html+='<div class="filter-chip" data-filter="popular" onclick="applyFilter('popular',this)">'+t('filter_popular')+'</div>';
+  chips.innerHTML=html; chips.style.display='flex';
+}
+function applyFilter(f,el) {
+  activeFilter=f;
+  document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+  document.getElementById('searchInput').value='';
+  closeAnyOpenInfoPanel(); renderMenu();
+}
+
+// ══════════════════════════════════════════
+// CATEGORY TABS
+// ══════════════════════════════════════════
+function isAddon(cat){ var n=(cat.name||'').toLowerCase(); return n.includes('add-on')||n.includes('addon')||n.includes('extras'); }
+function buildCategoryTabs() {
+  var vis=categories.filter(function(c){return !isAddon(c);});
+  document.getElementById('catTabs').innerHTML=vis.map(function(c,i){
+    return '<div class="cat-tab'+(i===0?' active':'')+'" data-cat="'+c.id+'" onclick="selectCat(''+c.id+'',this)">'+c.name+'</div>';
+  }).join('');
+  activeCat=vis[0]?vis[0].id:null;
+}
+var activeCat=null;
+function selectCat(id,el){
+  document.querySelectorAll('.cat-tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active'); activeCat=id; activeFilter='all';
+  var ac=document.querySelector('.filter-chip[data-filter="all"]'); if(ac) ac.classList.add('active');
+  closeAnyOpenInfoPanel(); renderMenu();
+}
+
+// ══════════════════════════════════════════
+// RENDER MENU
+// ══════════════════════════════════════════
+function getFiltered(search) {
+  var addonIds=categories.filter(isAddon).map(function(c){return c.id;});
+  var items=allItems.filter(function(i){return addonIds.indexOf(i.category_id)===-1;});
+  if(search) return items.filter(function(i){
+    return (i.name||'').toLowerCase().includes(search)||(i.orig_name||'').toLowerCase().includes(search)||(i.description||'').toLowerCase().includes(search);
+  });
+  if(activeCat) items=items.filter(function(i){return i.category_id===activeCat;});
+  switch(activeFilter){
+    case 'veg':     return items.filter(function(i){return i.is_veg===true;});
+    case 'nonveg':  return items.filter(function(i){return i.is_veg===false;});
+    case 'mild':    return items.filter(function(i){return i.spice_level==='mild';});
+    case 'spicy':   return items.filter(function(i){return i.spice_level==='spicy'||i.spice_level==='hot';});
+    case 'popular': return items.filter(function(i){return i.tags&&i.tags.some(function(t){return t.tag_code==='popular';});});
+  }
+  return items;
+}
+function spiceBadge(l){ if(!l||l==='none') return ''; if(l==='mild') return '<span class="item-badge spice">😊 Mild</span>'; if(l==='medium') return '<span class="item-badge spice">🌶 Medium</span>'; return '<span class="item-badge spice">🌶🌶 Spicy</span>'; }
+function labelBadges(tags){ if(!tags||!tags.length) return ''; return tags.filter(function(t){return t.type==='LABEL';}).map(function(t){ if(t.tag_code==='popular') return '<span class="item-badge popular">⭐ Popular</span>'; if(t.tag_code==='chef_special') return '<span class="item-badge chef">👨‍🍳 Chef Special</span>'; return ''; }).join(''); }
+function renderMenu(search) {
+  var items=getFiltered(search);
+  if(!items.length){ document.getElementById('menuContent').innerHTML='<div class="empty-state"><div class="icon">🔍</div><p>'+t('no_items')+'</p></div>'; return; }
+  document.getElementById('menuContent').innerHTML=items.map(function(item){
+    var inCart=cart[item.id];
+    var vegDot=item.is_veg!==null&&item.is_veg!==undefined?'<span class="veg-dot '+(item.is_veg?'veg':'nonveg')+'"></span>':'';
+    var imgHtml=item.image_url?'<img class="item-img" src="'+item.image_url+'" alt="'+item.name+'" onerror="this.style.display='none'">':'';
+    var badges=spiceBadge(item.spice_level)+labelBadges(item.tags||[]);
+    var qtyHtml=inCart
+      ?'<div class="qty-control">'+'<button class="qty-btn" onclick="changeQty(''+item.id+'',''+item.name.replace(/'/g,"\'")+'','+item.price+',-1)">−</button>'+'<span class="qty-num" id="qty_'+item.id+'">'+inCart.qty+'</span>'+'<button class="qty-btn" onclick="changeQty(''+item.id+'',''+item.name.replace(/'/g,"\'")+'','+item.price+',1)">+</button>'+'<button class="note-btn" onclick="openNotes(''+item.id+'')">📝</button>'+'</div>'
+      :'<button class="add-btn" id="addbtn_'+item.id+'" onclick="addItem(''+item.id+'',''+item.name.replace(/'/g,"\'")+'','+item.price+')">'+t('add')+'</button>';
+    var isOpen=openInfoId===item.id;
+    return '<div class="item-card'+(inCart?' in-cart':'')+'" id="card_'+item.id+'">'+
+      '<div class="item-card-top">'+
+      '<div class="item-info">'+
+      '<div class="item-name">'+vegDot+item.name+'</div>'+
+      (badges?'<div class="item-badges">'+badges+'</div>':'')+
+      (item.description?'<div class="item-desc">'+item.description+'</div>':'')+
+      '<div class="item-footer"><span class="item-price">₹'+item.price+'</span>'+
+      '<div style="display:flex;align-items:center">'+qtyHtml+
+      '<button class="info-btn'+(isOpen?' open':'')+'" id="infobtn_'+item.id+'" onclick="toggleInfoPanel(''+item.id+'')">ℹ️</button>'+
+      '</div></div></div>'+imgHtml+'</div>'+
+      '<div class="info-panel'+(isOpen?' open':'')+'" id="info_'+item.id+'">'+
+      '<div class="info-panel-inner" id="infocontent_'+item.id+'">'+(isOpen?renderInfoContent(item):'Loading…')+'</div></div></div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// INFO PANEL
+// ══════════════════════════════════════════
+function closeAnyOpenInfoPanel() {
+  if(!openInfoId) return;
+  var p=document.getElementById('info_'+openInfoId); var b=document.getElementById('infobtn_'+openInfoId);
+  if(p) p.classList.remove('open'); if(b) b.classList.remove('open');
+  openInfoId=null;
+}
+async function toggleInfoPanel(itemId) {
+  if(openInfoId===itemId){closeAnyOpenInfoPanel();return;}
+  closeAnyOpenInfoPanel(); openInfoId=itemId;
+  var p=document.getElementById('info_'+itemId); var b=document.getElementById('infobtn_'+itemId);
+  if(!p||!b) return; b.classList.add('open'); p.classList.add('open');
+  var item=allItems.find(function(i){return i.id===itemId;});
+  try {
+    var res=await fetch(API_BASE+'/api/order-ui/menu/items/'+itemId+'/info?lang='+(selectedLang||'en'));
+    if(res.ok){var data=await res.json(); var c=document.getElementById('infocontent_'+itemId); if(c) c.innerHTML=buildInfoHTML(data); return;}
+  }catch(e){}
+  var c=document.getElementById('infocontent_'+itemId); if(c&&item) c.innerHTML=renderInfoContent(item);
+}
+function renderInfoContent(item){
+  var h='';
+  if(item.description) h+='<div class="info-section-title">'+t('about')+'</div><div class="info-val" style="font-size:13px;line-height:1.5;margin-bottom:8px">'+item.description+'</div>';
+  if(item.spice_level&&item.spice_level!=='none'){var sm={mild:'😊 Mild',medium:'🌶 Medium',spicy:'🌶🌶 Spicy',hot:'🌶🌶 Spicy'}; h+='<div class="info-row"><span class="info-label">'+t('spice')+'</span><span class="info-val">'+(sm[item.spice_level]||item.spice_level)+'</span></div>';}
+  if(!h) h='<div style="text-align:center;padding:8px;color:#9b8b72;font-size:13px">'+t('ask_staff')+'</div>';
+  return h;
+}
+function buildInfoHTML(data){
+  var html='';
+  if(data.bestseller_badge) html+='<div class="info-bestseller">'+data.bestseller_badge.label+'</div>';
+  if(data.description) html+='<div class="info-section-title">'+t('about')+'</div><div class="info-val" style="font-size:13px;line-height:1.5;margin-bottom:8px">'+data.description+'</div>';
+  else html+='<div class="info-section-title">'+t('about')+'</div><div style="color:#9b8b72;font-size:13px;margin-bottom:8px">'+t('no_description')+'</div>';
+  if(data.tags&&data.tags.allergen&&data.tags.allergen.length){
+    html+='<div class="info-section-title">'+t('allergens')+'</div><div class="info-tag-row">';
+    data.tags.allergen.forEach(function(t){html+='<span class="info-tag allergen">⚠️ '+t.tag_name+'</span>';});
+    html+='</div><div class="info-warn">⚠️ Ask staff for allergy concerns.</div>';
+  }
+  if(!html.trim()) html='<div style="text-align:center;padding:8px;color:#9b8b72;font-size:13px">'+t('ask_staff')+'</div>';
+  return html;
+}
+
+// ══════════════════════════════════════════
+// CART OPERATIONS
+// ══════════════════════════════════════════
+function addItem(itemId,name,price){
+  var mi=allItems.find(function(i){return i.id===itemId;});
+  var catId=mi?mi.category_id:'';
+  var applicable=allModifiers.filter(function(m){
+    var catMatch=m.applicable_categories&&m.applicable_categories.some(function(c){return c===catId;});
+    var itemMatch=m.applicable_item_ids&&m.applicable_item_ids.length>0&&m.applicable_item_ids.includes(itemId);
+    return catMatch||itemMatch;
+  });
+  if(applicable.length>0) openModifierModal(itemId,name,price,applicable);
+  else addItemDirect(itemId,name,price,[]);
+}
+function addItemDirect(itemId,name,price,modifiers){
+  var modsTotal=modifiers.reduce(function(s,m){return s+(m.price||0);},0);
+  var unitPrice=price+modsTotal;
+  var newQty=cart[itemId]?cart[itemId].qty+1:1;
+  var mi=allItems.find(function(i){return i.id===itemId;});
+  var engName=mi?(mi.orig_name||mi.name):name;
+  cart[itemId]={qty:newQty,notes:cart[itemId]?cart[itemId].notes:'',name:engName,display_name:name,price:unitPrice,modifiers:modifiers};
+  renderMenu(); updateCartUI(); syncCartItem(itemId,newQty,modifiers);
+  showToast('✅ '+name+' '+t('added'));
+}
+function openModifierModal(itemId,name,price,mods){
+  pendingAddItem={itemId,name,price};
+  document.getElementById('modItemName').textContent=name;
+  document.getElementById('modItemPrice').textContent='₹'+price;
+  document.getElementById('modTotal').textContent=price;
+  var html='';
+  mods.forEach(function(mod){
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f0ebe3">'+
+      '<div style="display:flex;align-items:center;gap:10px">'+
+      '<input type="checkbox" id="mod_'+mod.id+'" style="width:20px;height:20px;accent-color:#ea580c;cursor:pointer" onchange="updateModTotal('+price+')" data-name="'+mod.name+'" data-price="'+mod.price+'">'+
+      '<label for="mod_'+mod.id+'" style="font-size:14px;font-weight:600;cursor:pointer">'+mod.name+'</label>'+
+      '</div><span style="color:#ea580c;font-weight:700;font-size:13px">+₹'+mod.price+'</span></div>';
+  });
+  document.getElementById('modOptions').innerHTML=html;
+  document.getElementById('modifierModal').style.display='block';
+}
+function updateModTotal(base){ var t=base; document.querySelectorAll('[id^="mod_"]:checked').forEach(function(cb){t+=parseInt(cb.dataset.price||0);}); document.getElementById('modTotal').textContent=t; }
+function confirmModifiers(){
+  if(!pendingAddItem) return;
+  var item=pendingAddItem; var sel=[];
+  document.querySelectorAll('[id^="mod_"]:checked').forEach(function(cb){sel.push({id:cb.id.replace('mod_',''),name:cb.dataset.name,price:parseInt(cb.dataset.price||0)});});
+  closeModifierModal(); addItemDirect(item.itemId,item.name,item.price,sel);
+}
+function skipModifiers(){if(!pendingAddItem) return; var item=pendingAddItem; closeModifierModal(); addItemDirect(item.itemId,item.name,item.price,[]);}
+function closeModifierModal(){document.getElementById('modifierModal').style.display='none'; pendingAddItem=null;}
+function changeQty(itemId,name,price,delta){
+  var cur=cart[itemId]?cart[itemId].qty:0;
+  var newQty=cur+delta;
+  if(newQty<=0){delete cart[itemId];}
+  else{cart[itemId]={qty:newQty,notes:cart[itemId]?cart[itemId].notes:'',name,price};}
+  var qEl=document.getElementById('qty_'+itemId); if(qEl) qEl.textContent=newQty>0?newQty:0;
+  var card=document.getElementById('card_'+itemId); if(card){if(newQty<=0) card.classList.remove('in-cart'); else card.classList.add('in-cart');}
+  updateCartUI(); syncCartItem(itemId,newQty<0?0:newQty);
+}
+function updateCartUI(){
+  var items=Object.entries(cart);
+  var count=items.reduce(function(s,e){return s+e[1].qty;},0);
+  var total=items.reduce(function(s,e){return s+e[1].price*e[1].qty;},0);
+  document.getElementById('cartCount').textContent=count;
+  document.getElementById('cartPillText').textContent=count===1?'1 '+t('item'):count+' '+t('items');
+  document.getElementById('cartPillTotal').textContent=count>0?' — ₹'+total:'';
+  if(count>0) document.getElementById('cartPill').classList.add('visible');
+  else document.getElementById('cartPill').classList.remove('visible');
+}
+async function syncCartItem(itemId,qty,modifiers){
+  if(!SESSION_ID) return;
+  var item=cart[itemId];
+  try{
+    var res=await fetch(API_BASE+'/api/order-ui/cart-item/'+SESSION_ID,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({menu_item_id:itemId,quantity:qty||0,name:item?(item.name||item.display_name||''):'',price:item?item.price:0,notes:item?item.notes:null,modifiers:modifiers||(item?item.modifiers:[])})
+    });
+    if(res.status===409) lockCartAfterOrder();
+  }catch(e){console.error('syncCartItem failed',e);}
+}
+function lockCartAfterOrder(){
+  document.querySelectorAll('.qty-btn,.add-btn').forEach(function(btn){btn.disabled=true;btn.style.opacity='0.4';btn.style.cursor='not-allowed';});
+  var btn=document.getElementById('proceedBtn'); if(btn){btn.textContent='✅ Order Placed'; btn.style.background='#22c55e'; btn.disabled=true;}
+  showToast(t('order_locked'));
+}
+
+// ══════════════════════════════════════════
+// LOCK UI (after order placed)
+// ══════════════════════════════════════════
+function lockUI(billNumber){
+  document.querySelectorAll('.qty-btn,.add-btn').forEach(function(b){b.disabled=true;b.style.opacity='0.4';b.style.pointerEvents='none';});
+  var btn=document.getElementById('proceedBtn');
+  if(btn){btn.disabled=true;btn.style.background='#22c55e';btn.style.opacity='1';btn.textContent=billNumber?'✅ Ordered #'+billNumber:'✅ Order Placed';}
+}
+
+// ══════════════════════════════════════════
+// CART DRAWER
+// ══════════════════════════════════════════
+function openCart(){document.getElementById('cartDrawer').classList.add('open');document.getElementById('drawerOverlay').classList.add('open');renderCartDrawer();}
+function closeCart(){document.getElementById('cartDrawer').classList.remove('open');document.getElementById('drawerOverlay').classList.remove('open');}
+function renderCartDrawer(){
+  var items=Object.entries(cart);
+  var total=items.reduce(function(s,e){return s+e[1].price*e[1].qty;},0);
+  var container=document.getElementById('cartItems');
+  document.getElementById('cartDrawerTitle').innerHTML=t('your_cart');
+  if(!items.length){container.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted)">'+t('cart_empty')+'</div>';document.getElementById('cartTotalRow').style.display='none';return;}
+  container.innerHTML=items.map(function(e){
+    var id=e[0];var item=e[1];
+    return '<div class="cart-item-row">'+
+      '<div><div class="cart-item-name">'+(item.display_name||item.name)+'</div><div class="cart-item-price">₹'+item.price+' '+t('each')+'</div></div>'+
+      '<div class="cart-item-qty">'+
+      '<button class="qty-btn minus" onclick="changeQty(''+id+'',''+item.name.replace(/'/g,"\'")+'','+item.price+',-1);renderCartDrawer()">−</button>'+
+      '<span>'+item.qty+'</span>'+
+      '<button class="qty-btn plus" onclick="changeQty(''+id+'',''+item.name.replace(/'/g,"\'")+'','+item.price+',1);renderCartDrawer()">+</button>'+
+      '</div></div>';
+  }).join('');
+  document.getElementById('cartTotal').textContent='₹'+total;
+  document.getElementById('cartTotalRow').style.display='flex';
+}
+
+// ══════════════════════════════════════════
+// POPULAR
+// ══════════════════════════════════════════
+function renderPopular(){
+  var pop=allItems.filter(function(i){return i.tags&&i.tags.some(function(t){return t.tag_code==='popular';});});
+  if(!pop.length) pop=allItems.filter(function(i){return i.popularity_score>0||i.owner_popularity_tier>=2;}).slice(0,4);
+  if(!pop.length) return;
+  document.getElementById('popularSection').style.display='block';
+  document.getElementById('popularItems').innerHTML=pop.slice(0,4).map(function(item){
+    return '<div class="popular-chip" onclick="addItem(''+item.id+'',''+item.name.replace(/'/g,"\'")+'','+item.price+')">'+
+      '<div class="popular-chip-name">'+item.name+'</div>'+
+      '<div class="popular-chip-price">₹'+item.price+'</div>'+
+      '<div class="popular-chip-add">+ Add</div></div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// UPSELL
+// ══════════════════════════════════════════
+var _upsellItem=null, _upsellQty=0;
+async function startUpsell(){
+  if(Object.keys(cart).length===0){showToast(t('add_items_first'));return;}
+  var cartNames=Object.values(cart).map(function(i){return i.name;});
+  showUpsellModal('loading',null);
+  try{
+    var res=await fetch(API_BASE+'/api/order-ui/upsell/'+SESSION_ID,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cartItems:cartNames})});
+    var data=await res.json();
+    if(data.suggestion&&data.itemId){
+      _upsellItem={id:data.itemId,name:data.suggestion,price:data.price};
+      _upsellQty=0;
+      showUpsellModal(data.message,_upsellItem);
+    } else {
+      hideUpsellModal(); openCheckoutModal();
+    }
+  }catch(e){hideUpsellModal(); openCheckoutModal();}
+}
+function showUpsellModal(msg,item){
+  document.getElementById('upsellOverlay').style.opacity='1';
+  document.getElementById('upsellOverlay').style.pointerEvents='all';
+  document.getElementById('upsellModal').style.transform='translateX(-50%) translateY(0)';
+  if(item){
+    document.getElementById('upsellMsg').textContent=msg;
+    document.getElementById('upsellLoading').style.display='none';
+    document.getElementById('upsellItemName').textContent=item.name;
+    document.getElementById('upsellItemPrice').textContent='₹'+item.price;
+    document.getElementById('upsellItem').style.display='block';
+    document.getElementById('upsellQtyNum').textContent='0';
+  } else if(msg==='loading'){
+    document.getElementById('upsellMsg').textContent='';
+    document.getElementById('upsellLoading').style.display='block';
+    document.getElementById('upsellItem').style.display='none';
+  }
+}
+function hideUpsellModal(){
+  document.getElementById('upsellOverlay').style.opacity='0';
+  document.getElementById('upsellOverlay').style.pointerEvents='none';
+  document.getElementById('upsellModal').style.transform='translateX(-50%) translateY(100%)';
+  _upsellItem=null; _upsellQty=0;
+}
+function upsellQtyChange(delta){
+  _upsellQty=Math.max(0,_upsellQty+delta);
+  document.getElementById('upsellQtyNum').textContent=_upsellQty;
+}
+async function confirmUpsellAndCheckout(){
+  // Add upsell item to cart if qty > 0
+  if(_upsellItem&&_upsellQty>0){
+    var item=_upsellItem;
+    var newQty=(cart[item.id]?cart[item.id].qty:0)+_upsellQty;
+    cart[item.id]={qty:newQty,notes:'',name:item.name,display_name:item.name,price:item.price,modifiers:[]};
+    try{
+      await fetch(API_BASE+'/api/order-ui/cart-item/'+SESSION_ID,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({menu_item_id:item.id,quantity:newQty,name:item.name,price:item.price})});
+    }catch(e){}
+    renderMenu(); updateCartUI(); showToast('✅ '+item.name+' '+t('added'));
+  }
+  hideUpsellModal(); openCheckoutModal();
+}
+
+// ══════════════════════════════════════════
+// CHECKOUT MODAL (NEW)
+// ══════════════════════════════════════════
+function selectCheckoutPayment(mode){
+  checkoutPaymentMode=mode;
+  document.getElementById('cpmCOD').classList.toggle('selected',mode==='cod');
+  document.getElementById('cpmOnline').classList.toggle('selected',mode==='online');
+}
+function openCheckoutModal(){
+  closeCart();
+  var items=Object.entries(cart);
+  if(!items.length) return;
+
+  // Build order items HTML
+  var subtotal=0;
+  var itemsHtml=items.map(function(e){
+    var id=e[0];var item=e[1];
+    subtotal+=item.price*item.qty;
+    var noteHtml=item.notes?'<div class="checkout-item-note">📝 '+item.notes+'</div>':'';
+    return '<div class="checkout-item">'+
+      '<div class="checkout-item-name">'+(item.display_name||item.name)+
+      '<div style="font-size:12px;color:#9b8b72;font-weight:400">x'+item.qty+'</div>'+noteHtml+'</div>'+
+      '<div class="checkout-item-price">₹'+(item.price*item.qty)+'</div></div>';
+  }).join('');
+  document.getElementById('checkoutItems').innerHTML=itemsHtml;
+
+  // Pricing
+  var platformFee=3;
+  var deliveryCharge=0; // TODO: calculate from delivery_config
+  var grandTotal=subtotal+platformFee+deliveryCharge;
+  var pricingHtml='<div class="checkout-pricing-row"><span>Subtotal</span><span>₹'+subtotal+'</span></div>';
+  if(sessionMode==='delivery'&&deliveryCharge>0) pricingHtml+='<div class="checkout-pricing-row"><span>Delivery charge</span><span>₹'+deliveryCharge+'</span></div>';
+  pricingHtml+='<div class="checkout-pricing-row"><span>Platform fee</span><span>₹'+platformFee+'</span></div>';
+  pricingHtml+='<div class="checkout-pricing-row total"><span>Total</span><span>₹'+grandTotal+'</span></div>';
+  document.getElementById('checkoutPricing').innerHTML=pricingHtml;
+
+  // Address section — delivery only
+  var addrSection=document.getElementById('checkoutAddrSection');
+  if(sessionMode==='delivery'){
+    addrSection.style.display='block';
+    var addrInput=document.getElementById('checkoutAddr');
+    addrInput.value=sessionDeliveryAddress||''; // pre-fill from /start
+    document.getElementById('checkoutAddrHint').style.display='none';
+  } else {
+    addrSection.style.display='none';
+  }
+
+  // Payment section
+  var paySection=document.getElementById('checkoutPaySection');
+  var codOpt=document.getElementById('cpmCOD');
+  var onlineOpt=document.getElementById('cpmOnline');
+  if(sessionMode==='dine_in'){
+    // No payment at order time for dine-in
+    paySection.style.display='none';
+    document.getElementById('checkoutPlaceBtn').textContent='Send to Kitchen →';
+  } else if(sessionMode==='takeaway'){
+    // Takeaway: online only — hide COD
+    paySection.style.display='block';
+    codOpt.style.display='none';
+    checkoutPaymentMode='online';
+    onlineOpt.classList.add('selected');
+    codOpt.classList.remove('selected');
+    document.getElementById('checkoutPlaceBtn').textContent='Pay ₹'+grandTotal+' →';
+  } else {
+    // Delivery: COD or Online
+    paySection.style.display='block';
+    codOpt.style.display='block';
+    checkoutPaymentMode='cod';
+    codOpt.classList.add('selected');
+    onlineOpt.classList.remove('selected');
+    document.getElementById('checkoutPlaceBtn').textContent='Place Order →';
+  }
+
+  document.getElementById('checkoutModal').style.display='block';
+}
+function closeCheckout(){document.getElementById('checkoutModal').style.display='none';}
+function closeCheckoutOpenCart(){closeCheckout(); renderMenu(); updateCartUI(); openCart();}
+
+// ══════════════════════════════════════════
+// PLACE ORDER
+// ══════════════════════════════════════════
+async function placeOrder(){
+  if(Object.keys(cart).length===0){showToast(t('add_items_first'));return;}
+
+  // Validate address for delivery
+  if(sessionMode==='delivery'){
+    var addr=document.getElementById('checkoutAddr').value.trim();
+    if(addr.length<6){
+      document.getElementById('checkoutAddrHint').style.display='block';
+      document.getElementById('checkoutAddr').focus();
+      document.getElementById('checkoutAddr').style.borderColor='#e53e3e';
+      return;
+    }
+    // Save address to session
+    sessionDeliveryAddress=addr;
+    await fetch(API_BASE+'/api/order-ui/address/'+SESSION_ID,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:addr})}).catch(function(){});
+  }
+
+  var btn=document.getElementById('checkoutPlaceBtn');
+  btn.classList.add('loading'); btn.textContent=t('placing_order');
+
+  // Payment mode: dine_in=cod (pay at bill time), takeaway=online, delivery=user choice
+  var payMode = sessionMode==='dine_in' ? 'cod' : checkoutPaymentMode;
+
+  try{
+    var res=await fetch(API_BASE+'/api/order-ui/place-order/'+SESSION_ID,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({payment_mode:payMode})
+    });
+    var data=await res.json();
+    if(res.status===410){showToast(t('session_expired'));btn.textContent='Place Order →';btn.classList.remove('loading');return;}
+    if(data.success){
+      closeCheckout();
+      document.getElementById('cartPill').classList.remove('visible');
+
+      // Online + payment_url → redirect to Paytm
+      if(payMode==='online'&&data.payment_url){
+        showToast('✅ '+t('order_placed')+data.bill_number);
+        cart={}; updateCartUI(); renderMenu(); lockUI(data.bill_number);
+        setTimeout(function(){window.location.href=data.payment_url;},1500);
+        return;
+      }
+      // Online + no MID yet → pending
+      if(payMode==='online'&&data.payment_status==='payment_pending'){
+        showToast('✅ Order placed! Complete payment to confirm.');
+        cart={}; updateCartUI(); renderMenu(); lockUI(data.bill_number);
+        return;
+      }
+      // COD or dine-in
+      showToast('✅ '+t('order_placed')+data.bill_number);
+      if(sessionMode!=='dine_in'){
+        cart={}; updateCartUI(); renderMenu(); lockUI(data.bill_number);
+      } else {
+        cart={}; updateCartUI(); renderMenu();
+        btn.textContent='Send to Kitchen →'; btn.classList.remove('loading');
+      }
+    } else { throw new Error(data.error||'Failed'); }
+  }catch(e){
+    showToast(t('order_failed'));
+    btn.textContent='Place Order →'; btn.classList.remove('loading');
+  }
+}
+
+// ══════════════════════════════════════════
+// NOTES
+// ══════════════════════════════════════════
+var _notesItemId=null;
+function openNotes(itemId){
+  _notesItemId=itemId; var item=cart[itemId]; if(!item) return;
+  document.getElementById('notesItemName').textContent=item.name;
+  document.getElementById('notesTextarea').value=item.notes||'';
+  document.getElementById('notesModal').style.display='block';
+  setTimeout(function(){document.getElementById('notesTextarea').focus();},300);
+}
+function closeNotes(){document.getElementById('notesModal').style.display='none'; _notesItemId=null;}
+function addNoteHint(hint){var ta=document.getElementById('notesTextarea'); ta.value=ta.value.trim()?ta.value.trim()+', '+hint:hint;}
+function saveNotes(){
+  if(!_notesItemId||!cart[_notesItemId]){closeNotes();return;}
+  cart[_notesItemId].notes=document.getElementById('notesTextarea').value.trim();
+  updateCartUI(); syncCartItem(_notesItemId,cart[_notesItemId].qty); closeNotes(); showToast(t('note_saved'));
+}
+
+// ══════════════════════════════════════════
+// LANGUAGE
+// ══════════════════════════════════════════
+var LANGUAGES=[
+  {code:'en',flag:'🇬🇧',name:'English',native:'English'},
+  {code:'hi',flag:'🇮🇳',name:'Hindi',native:'हिन्दी'},
+  {code:'mr',flag:'🇮🇳',name:'Marathi',native:'मराठी'},
+  {code:'hi_LATN',flag:'🇮🇳',name:'Hinglish',native:'Hinglish'},
+  {code:'ta',flag:'🇮🇳',name:'Tamil',native:'தமிழ்'},
+  {code:'te',flag:'🇮🇳',name:'Telugu',native:'తెలుగు'},
+  {code:'gu',flag:'🇮🇳',name:'Gujarati',native:'ગુજરાતી'},
+  {code:'ml',flag:'🇮🇳',name:'Malayalam',native:'മലയാളം'},
+  {code:'kn',flag:'🇮🇳',name:'Kannada',native:'ಕನ್ನಡ'},
+  {code:'ru',flag:'🇷🇺',name:'Russian',native:'Русский'},
+  {code:'zh',flag:'🇨🇳',name:'Chinese',native:'中文'},
+  {code:'de',flag:'🇩🇪',name:'German',native:'Deutsch'},
+  {code:'fr',flag:'🇫🇷',name:'French',native:'Français'},
+  {code:'es',flag:'🇪🇸',name:'Spanish',native:'Español'},
+];
+function getLang(){return LANGUAGES.find(function(l){return l.code===selectedLang;})||LANGUAGES[0];}
+function openLangDrawer(){
+  var grid=document.getElementById('langGrid');
+  grid.innerHTML=LANGUAGES.map(function(l){
+    return '<button class="lang-option'+(l.code===selectedLang?' selected':'')+'" onclick="selectLang(''+l.code+'')">'+
+      '<span class="flag">'+l.flag+'</span>'+
+      '<span class="label"><span>'+l.name+'</span><span class="native">'+l.native+'</span></span></button>';
+  }).join('');
+  document.getElementById('langDrawer').style.display='block';
+}
+function closeLangDrawer(){document.getElementById('langDrawer').style.display='none';}
+function updateUIStrings(){
+  var si=document.getElementById('searchInput'); if(si) si.placeholder=t('search_placeholder');
+  var ct=document.getElementById('cartDrawerTitle'); if(ct) ct.innerHTML=t('your_cart');
+  var lt=document.getElementById('loadingText'); if(lt) lt.textContent=t('loading');
+  buildFilterChips();
+}
+function selectLang(code){
+  selectedLang=code; localStorage.setItem('buddy_lang',code);
+  var lang=getLang();
+  document.getElementById('langBtn').textContent=lang.flag+' '+lang.code.toUpperCase();
+  closeLangDrawer();
+  fetch(API_BASE+'/api/order-ui/menu/'+SESSION_ID+'?lang='+code)
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var prevOrig={};
+      allItems.forEach(function(i){prevOrig[i.id]=i.orig_name||i.name;});
+      allItems=(data.items||[]).map(function(item){item.orig_name=prevOrig[item.id]||item.name;return item;});
+      categories=data.categories||[]; allModifiers=data.modifiers||[];
+      Object.keys(cart).forEach(function(id){var ni=allItems.find(function(i){return i.id===id;}); if(ni) cart[id].display_name=ni.name;});
+      updateUIStrings(); buildCategoryTabs(); renderMenu(); renderPopular(); updateCartUI();
+      showToast(lang.flag+' '+t('lang_changed')+' '+lang.name);
+    }).catch(function(e){console.error('Menu reload failed',e);});
+}
+
+// ══════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
+
+// ══════════════════════════════════════════
+// START
+// ══════════════════════════════════════════
+init();
+</script>
+
+<!-- Modifier Modal -->
+<div id="modifierModal" style="display:none;position:fixed;inset:0;z-index:500">
+  <div onclick="closeModifierModal()" style="position:absolute;inset:0;background:rgba(0,0,0,0.5)"></div>
+  <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box">
+    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 16px"></div>
+    <div id="modItemName" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px"></div>
+    <div id="modItemPrice" style="font-size:14px;color:#9b8b72;margin-bottom:16px"></div>
+    <div id="modExtrasLabel" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#9b8b72;margin-bottom:4px">Add extras (optional)</div>
+    <div id="modOptions"></div>
+    <button id="modConfirmBtn" onclick="confirmModifiers()" style="width:100%;padding:14px;background:#1a1207;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:16px">Add to Cart ₹<span id="modTotal">0</span></button>
+    <button id="modSkipBtn" onclick="skipModifiers()" style="width:100%;padding:10px;background:none;border:none;color:#9b8b72;font-size:13px;cursor:pointer;margin-top:6px">Add without extras</button>
+  </div>
+</div>
+</body>
+</html>

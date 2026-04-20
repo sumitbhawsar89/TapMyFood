@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'DM Sans', sans-serif; background: #fdf6e9; color: #1a1207; min-height: 100vh; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; }
+  .header { background: #1a1207; padding: 24px 20px 20px; text-align: center; }
+  .header-logo { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: #f59e0b; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .header-name { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: white; }
+  .header-sub  { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+  .card { background: white; border-radius: 20px; margin: 20px 16px; padding: 24px 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.06); border: 1.5px solid #ede8df; }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+  .card-sub   { font-size: 13px; color: #9b8b72; margin-bottom: 20px; }
+  .mode-options { display: flex; gap: 10px; margin-bottom: 24px; }
+  .mode-opt { flex: 1; border: 2px solid #ede8df; border-radius: 14px; padding: 16px 12px; text-align: center; cursor: pointer; transition: all 0.15s; background: white; }
+  .mode-opt.selected { border-color: #ea580c; background: #fff7f0; }
+  .mode-opt:active { transform: scale(0.97); }
+  .mode-opt-icon  { font-size: 28px; margin-bottom: 6px; }
+  .mode-opt-name  { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: #1a1207; }
+  .mode-opt-sub   { font-size: 11px; color: #9b8b72; margin-top: 2px; }
+  .mode-opt.selected .mode-opt-name { color: #ea580c; }
+  .input-label { font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .phone-wrap { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .country-code { background: #f5f0e8; border: 1.5px solid #ede8df; border-radius: 10px; padding: 14px 12px; font-size: 15px; font-weight: 600; color: #1a1207; white-space: nowrap; }
+  .phone-input { flex: 1; border: 1.5px solid #ede8df; border-radius: 10px; padding: 14px 14px; font-size: 16px; font-family: 'DM Sans', sans-serif; outline: none; background: #faf8f5; color: #1a1207; }
+  .phone-input:focus { border-color: #ea580c; background: white; }
+  .phone-hint { font-size: 11px; color: #9b8b72; margin-bottom: 20px; }
+  .error-msg { font-size: 12px; color: #dc2626; margin-bottom: 12px; display: none; }
+  /* OTP input */
+  .otp-section { display: none; }
+  .otp-info { font-size: 13px; color: #9b8b72; margin-bottom: 14px; line-height: 1.5; }
+  .otp-info strong { color: #1a1207; }
+  .otp-boxes { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; }
+  .otp-box { width: 46px; height: 54px; border: 2px solid #ede8df; border-radius: 12px; font-size: 22px; font-weight: 700; text-align: center; font-family: 'Syne', sans-serif; outline: none; background: #faf8f5; color: #1a1207; }
+  .otp-box:focus { border-color: #ea580c; background: white; }
+  .otp-resend { font-size: 12px; color: #9b8b72; text-align: center; margin-bottom: 16px; }
+  .otp-resend a { color: #ea580c; cursor: pointer; text-decoration: none; font-weight: 600; }
+  .otp-change { font-size: 12px; color: #9b8b72; text-align: center; margin-bottom: 8px; cursor: pointer; }
+  .otp-change a { color: #ea580c; cursor: pointer; font-weight: 600; }
+  /* Buttons */
+  .start-btn { width: 100%; padding: 16px; background: #ea580c; color: white; border: none; border-radius: 14px; font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+  .start-btn:active { transform: scale(0.99); background: #c2440a; }
+  .start-btn.loading { opacity: 0.7; pointer-events: none; }
+  .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .returning-banner { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; display: none; font-size: 13px; color: #15803d; }
+  .loading-screen { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
+  .loading-dot { width: 10px; height: 10px; border-radius: 50%; background: #ea580c; display: inline-block; animation: bounce 1.2s infinite; }
+  .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-8px)} }
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1a1207; color: white; padding: 10px 20px; border-radius: 50px; font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .footer { padding: 16px; text-align: center; font-size: 11px; color: #c4b89a; }
+</style>
+</head>
+<body>
+
+<div id="loadingScreen" class="loading-screen">
+  <div><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>
+  <div style="font-size:13px;color:#9b8b72">Loading...</div>
+</div>
+
+<div id="mainScreen" style="display:none;flex-direction:column;flex:1">
+  <div class="header">
+    <div class="header-logo">OrderBuddy</div>
+    <div class="header-name" id="restaurantName">Restaurant</div>
+    <div class="header-sub" id="restaurantSub">Tap to order</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" id="cardTitle">How would you like to order?</div>
+    <div class="card-sub" id="cardSub">Select your preferred option below</div>
+
+    <!-- STEP 1: Mode + Phone -->
+    <div id="step1">
+      <div class="mode-options">
+        <div class="mode-opt selected" id="modeDelivery" onclick="selectMode('delivery')">
+          <div class="mode-opt-icon">🚗</div>
+          <div class="mode-opt-name">Delivery</div>
+          <div class="mode-opt-sub">Delivered to your door</div>
+        </div>
+        <div class="mode-opt" id="modeTakeaway" onclick="selectMode('takeaway')">
+          <div class="mode-opt-icon">🏃</div>
+          <div class="mode-opt-name">Takeaway</div>
+          <div class="mode-opt-sub">Collect at counter</div>
+        </div>
+      </div>
+
+      <div class="returning-banner" id="returningBanner">
+        👋 <strong>Welcome back!</strong> We found your previous order.
+      </div>
+
+      <div class="input-label">Your Mobile Number</div>
+      <div class="phone-wrap">
+        <div class="country-code">🇮🇳 +91</div>
+        <input class="phone-input" id="phoneInput" type="tel" inputmode="numeric"
+          pattern="[0-9]*" maxlength="10" placeholder="10-digit mobile number"
+          oninput="onPhoneInput()" onkeydown="if(event.key==='Enter') sendOtp()">
+      </div>
+      <div class="phone-hint">We'll send a verification code to this number via WhatsApp</div>
+      <div class="error-msg" id="phoneError">⚠️ Please enter a valid 10-digit mobile number</div>
+
+      <button class="start-btn" id="sendOtpBtn" onclick="sendOtp()" disabled>
+        Send OTP via WhatsApp →
+      </button>
+    </div>
+
+    <!-- STEP 2: OTP verification -->
+    <div id="step2" class="otp-section">
+      <div class="otp-info">
+        Enter the 6-digit code sent to<br>
+        <strong>+91 <span id="otpPhoneDisplay"></span></strong> via WhatsApp
+      </div>
+      <div class="otp-boxes">
+        <input class="otp-box" id="otp0" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpInput(0)" onkeydown="otpKeyDown(event,0)">
+        <input class="otp-box" id="otp1" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpInput(1)" onkeydown="otpKeyDown(event,1)">
+        <input class="otp-box" id="otp2" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpInput(2)" onkeydown="otpKeyDown(event,2)">
+        <input class="otp-box" id="otp3" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpInput(3)" onkeydown="otpKeyDown(event,3)">
+        <input class="otp-box" id="otp4" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpInput(4)" onkeydown="otpKeyDown(event,4)">
+        <input class="otp-box" id="otp5" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="otpInput(5)" onkeydown="otpKeyDown(event,5)">
+      </div>
+      <div class="error-msg" id="otpError" style="text-align:center">⚠️ Incorrect OTP. Please try again.</div>
+      <button class="start-btn" id="verifyOtpBtn" onclick="verifyOtp()" disabled>
+        Verify & Open Menu →
+      </button>
+      <div class="otp-resend" style="margin-top:12px">
+        Didn't get the code? <a onclick="resendOtp()">Resend OTP</a>
+      </div>
+      <div class="otp-change">
+        <a onclick="changePhone()">← Change mobile number</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Powered by OrderBuddy</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = '';
+  const params = new URLSearchParams(window.location.search);
+  const restaurantId = params.get('r');
+  let selectedMode = 'delivery';
+  let restaurant   = null;
+  let otpToken     = null; // server token to verify OTP
+
+  // ── Init ──
+  async function init() {
+    if (!restaurantId) {
+      document.getElementById('loadingScreen').innerHTML =
+        '<div style="text-align:center;padding:40px;color:#9b8b72">Invalid link. Please scan the QR code again.</div>';
+      return;
+    }
+    try {
+      const res  = await fetch(`${API}/api/order-ui/restaurant?r=${restaurantId}`);
+      if (!res.ok) throw new Error('Restaurant not found');
+      const data = await res.json();
+      restaurant = data.restaurant;
+      document.getElementById('restaurantName').textContent = restaurant.name;
+      document.getElementById('restaurantSub').textContent  = restaurant.address || 'Tap to browse our menu';
+      document.title = 'Order — ' + restaurant.name;
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display    = 'flex';
+
+      // Pre-fill phone from URL param (WhatsApp link)
+      const phoneFromUrl = params.get('p');
+      if (phoneFromUrl && phoneFromUrl.length === 10 && /^[0-9]+$/.test(phoneFromUrl)) {
+        document.getElementById('phoneInput').value = phoneFromUrl;
+        validateStep1();
+        checkReturning(phoneFromUrl);
+      } else {
+        setTimeout(function() { document.getElementById('phoneInput').focus(); }, 300);
+      }
+    } catch (e) {
+      document.getElementById('loadingScreen').innerHTML =
+        '<div style="text-align:center;padding:40px;color:#9b8b72">Restaurant not found. Please try again.</div>';
+    }
+  }
+
+  // ── Mode selection ──
+  function selectMode(mode) {
+    selectedMode = mode;
+    document.getElementById('modeDelivery').classList.toggle('selected', mode === 'delivery');
+    document.getElementById('modeTakeaway').classList.toggle('selected', mode === 'takeaway');
+    validateStep1();
+  }
+
+  // ── Phone input ──
+  function onPhoneInput() {
+    const val = document.getElementById('phoneInput').value.replace(/\D/g, '').slice(0, 10);
+    document.getElementById('phoneInput').value = val;
+    document.getElementById('phoneError').style.display = 'none';
+    if (val.length === 10) checkReturning(val);
+    validateStep1();
+  }
+
+  function validateStep1() {
+    const phone = document.getElementById('phoneInput').value;
+    document.getElementById('sendOtpBtn').disabled = phone.length !== 10;
+  }
+
+  async function checkReturning(phone) {
+    try {
+      const res  = await fetch(`${API}/api/order-ui/check-returning?phone=${phone}&r=${restaurantId}`);
+      const data = await res.json();
+      document.getElementById('returningBanner').style.display = data.returning ? 'block' : 'none';
+    } catch { /* ignore */ }
+  }
+
+  // ── Send OTP ──
+  async function sendOtp() {
+    const phone = document.getElementById('phoneInput').value.trim();
+    if (phone.length !== 10 || !/^[6-9][0-9]{9}$/.test(phone)) {
+      document.getElementById('phoneError').style.display = 'block';
+      document.getElementById('phoneInput').focus(); return;
+    }
+    const btn = document.getElementById('sendOtpBtn');
+    btn.classList.add('loading'); btn.textContent = 'Sending OTP…';
+    try {
+      const res  = await fetch(`${API}/api/order-ui/send-otp`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: '91' + phone, restaurant_id: restaurantId })
+      });
+      const data = await res.json();
+      if (data.skip_otp) {
+        // Returning verified customer — skip OTP, create session directly
+        await createSession(phone);
+        return;
+      }
+      if (data.ok) {
+        otpToken = data.token;
+        showStep2(phone);
+      } else { throw new Error(data.error || 'Failed to send OTP'); }
+    } catch (e) {
+      showToast('⚠️ ' + (e.message || 'Could not send OTP. Try again.'));
+      btn.classList.remove('loading'); btn.textContent = 'Send OTP via WhatsApp →';
+      btn.disabled = false;
+    }
+  }
+
+  function showStep2(phone) {
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('step2').style.display = 'block';
+    document.getElementById('cardTitle').textContent = 'Enter Verification Code';
+    document.getElementById('cardSub').textContent   = 'Check your WhatsApp';
+    document.getElementById('otpPhoneDisplay').textContent = phone;
+    document.getElementById('otpError').style.display = 'none';
+    // Clear OTP boxes
+    for (var i = 0; i < 6; i++) {
+      var el = document.getElementById('otp' + i);
+      if (el) el.value = '';
+    }
+    setTimeout(function() { document.getElementById('otp0').focus(); }, 300);
+  }
+
+  // ── OTP box handling ──
+  function otpInput(idx) {
+    var el = document.getElementById('otp' + idx);
+    var val = el.value.replace(/\D/g, '');
+    el.value = val.slice(-1); // keep only last digit
+    if (el.value && idx < 5) document.getElementById('otp' + (idx+1)).focus();
+    checkOtpComplete();
+  }
+  function otpKeyDown(e, idx) {
+    if (e.key === 'Backspace' && !document.getElementById('otp' + idx).value && idx > 0) {
+      document.getElementById('otp' + (idx-1)).focus();
+    }
+  }
+  function checkOtpComplete() {
+    var full = getOtpValue();
+    document.getElementById('verifyOtpBtn').disabled = full.length !== 6;
+  }
+  function getOtpValue() {
+    var val = '';
+    for (var i = 0; i < 6; i++) val += (document.getElementById('otp' + i).value || '');
+    return val;
+  }
+
+  // ── Verify OTP ──
+  async function verifyOtp() {
+    var otp   = getOtpValue();
+    var phone = document.getElementById('otpPhoneDisplay').textContent;
+    if (otp.length !== 6) return;
+    var btn = document.getElementById('verifyOtpBtn');
+    btn.classList.add('loading'); btn.textContent = 'Verifying…';
+    document.getElementById('otpError').style.display = 'none';
+    try {
+      const res  = await fetch(`${API}/api/order-ui/verify-otp`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: '91' + phone, otp, token: otpToken })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        await createSession(phone);
+      } else {
+        document.getElementById('otpError').style.display = 'block';
+        // Shake boxes
+        document.querySelectorAll('.otp-box').forEach(function(b) {
+          b.style.borderColor = '#dc2626'; b.value = '';
+        });
+        document.getElementById('otp0').focus();
+        btn.classList.remove('loading'); btn.textContent = 'Verify & Open Menu →';
+        btn.disabled = true;
+      }
+    } catch(e) {
+      showToast('⚠️ Verification failed. Try again.');
+      btn.classList.remove('loading'); btn.textContent = 'Verify & Open Menu →';
+    }
+  }
+
+  // ── Resend OTP ──
+  async function resendOtp() {
+    var phone = document.getElementById('otpPhoneDisplay').textContent;
+    showToast('Sending OTP…');
+    try {
+      const res  = await fetch(`${API}/api/order-ui/send-otp`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: '91' + phone, restaurant_id: restaurantId })
+      });
+      const data = await res.json();
+      if (data.ok) { otpToken = data.token; showToast('✅ OTP sent again!'); }
+      else showToast('⚠️ Could not resend. Try again.');
+    } catch(e) { showToast('⚠️ Failed to resend OTP.'); }
+  }
+
+  // ── Change phone ──
+  function changePhone() {
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('cardTitle').textContent = 'How would you like to order?';
+    document.getElementById('cardSub').textContent   = 'Select your preferred option below';
+    var btn = document.getElementById('sendOtpBtn');
+    btn.classList.remove('loading'); btn.textContent = 'Send OTP via WhatsApp →';
+    btn.disabled = false;
+    otpToken = null;
+  }
+
+  // ── Create session after OTP verified ──
+  async function createSession(phone) {
+    var btn = document.getElementById('verifyOtpBtn');
+    if (btn) { btn.classList.add('loading'); btn.textContent = 'Opening menu…'; }
+    var sendBtn = document.getElementById('sendOtpBtn');
+    if (sendBtn) { sendBtn.classList.add('loading'); sendBtn.textContent = 'Opening menu…'; }
+    try {
+      const res  = await fetch(`${API}/api/order-ui/start`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restaurantId,
+          phone:         '91' + phone,
+          mode:          selectedMode,
+        })
+      });
+      const data = await res.json();
+      if (!data.session_id) throw new Error(data.error || 'Failed');
+      window.location.href = '/order/' + data.session_id;
+    } catch(e) {
+      showToast('⚠️ Something went wrong. Please try again.');
+      changePhone();
+    }
+  }
+
+  // ── Toast ──
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2500);
+  }
+
+  init();
+</script>
+</body>
+</html>

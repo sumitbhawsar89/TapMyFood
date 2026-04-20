@@ -35,16 +35,11 @@ app.get('/kot', async (req, reply) => {
 });
 
 // B1: Token display screen — takeaway counter TV/tablet
+// Open at: http://your-server/display
+// No login needed — restaurant ID entered on first open
 app.get('/display', async (req, reply) => {
   reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
   return reply.sendFile('token-display.html');
-});
-
-// Start page — delivery/takeaway customers enter phone + select mode
-// URL sent via WhatsApp: /start?r={restaurantId}
-app.get('/start', async (req, reply) => {
-  reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
-  return reply.sendFile('start.html');
 });
 
 // ─────────────────────────────────────────────

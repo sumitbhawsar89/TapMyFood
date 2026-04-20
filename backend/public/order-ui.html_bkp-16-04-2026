@@ -20,7 +20,7 @@
     --radius: 16px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; max-width: 480px; margin: 0 auto; padding-bottom: 80px; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; max-width: 480px; margin: 0 auto; padding-bottom: 160px; }
   .header { background: var(--ink); color: white; padding: 20px 20px 16px; position: sticky; top: 0; z-index: 100; }
   .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .restaurant-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
@@ -32,18 +32,21 @@
   .search-input::placeholder { color: rgba(255,255,255,0.45); }
   .search-input:focus { border-color: var(--amber); }
   .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.5; font-size: 15px; }
+
   /* ── FILTER CHIPS ── */
   .filter-chips-wrap { display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; scrollbar-width: none; background: white; border-bottom: 1px solid var(--border); }
   .filter-chips-wrap::-webkit-scrollbar { display: none; }
   .filter-chip { flex-shrink: 0; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--cream); border: 1.5px solid var(--border); cursor: pointer; transition: all 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
   .filter-chip.active { background: var(--ink); color: white; border-color: var(--ink); }
   .filter-chip:active { transform: scale(0.95); }
+
   .cat-tabs { display: flex; gap: 8px; padding: 14px 20px; overflow-x: auto; scrollbar-width: none; background: white; border-bottom: 1px solid var(--border); }
   .cat-tabs::-webkit-scrollbar { display: none; }
   .cat-tab { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; background: var(--cream); border: 1.5px solid var(--border); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
   .cat-tab.active { background: var(--ink); color: white; border-color: var(--ink); }
   .menu-section { padding: 0 16px; }
   .section-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; padding: 18px 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
   /* ── ITEM CARD ── */
   .item-card { background: var(--card); border-radius: var(--radius); border: 1.5px solid var(--border); padding: 14px; margin-bottom: 10px; transition: border-color 0.2s; }
   .item-card.in-cart { border-color: var(--orange); }
@@ -68,10 +71,12 @@
   .add-btn { padding: 6px 16px; border-radius: 20px; border: 1.5px solid var(--orange); background: white; color: var(--orange); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
   .add-btn:active { background: var(--orange); color: white; }
   .item-img { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; flex-shrink: 0; background: var(--cream); }
+
   /* ── INFO BUTTON ── */
   .info-btn { background: none; border: 1.5px solid var(--border); border-radius: 50%; width: 28px; height: 28px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; color: var(--muted); margin-left: 6px; }
   .info-btn:active { background: var(--cream); }
   .info-btn.open { background: var(--ink); color: white; border-color: var(--ink); }
+
   /* ── INFO PANEL (inline slide-down) ── */
   .info-panel { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
   .info-panel.open { max-height: 800px; }
@@ -93,14 +98,15 @@
   .info-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 5px; margin-top: 8px; }
   .info-warn { font-size: 11px; color: #c0392b; background: #fff5f5; border-radius: 6px; padding: 4px 8px; margin-top: 4px; }
   .info-bestseller { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--orange); margin-bottom: 8px; }
+
   .empty-state { text-align: center; padding: 60px 24px; color: var(--muted); }
   .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
-  .cart-pill { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 14px 28px; border-radius: 50px; font-weight: 600; font-size: 15px; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.25); display: none; align-items: center; gap: 12px; z-index: 90; transition: all 0.3s; white-space: nowrap; }
+  .cart-pill { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 14px 28px; border-radius: 50px; font-weight: 600; font-size: 15px; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.25); display: none; align-items: center; gap: 12px; z-index: 90; transition: all 0.3s; white-space: nowrap; }
   .cart-pill.visible { display: flex; }
   .cart-pill-count { background: var(--orange); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
-  .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 250; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+  .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
   .drawer-overlay.open { opacity: 1; pointer-events: all; }
-  .cart-drawer { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; z-index: 251; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); max-height: 85vh; overflow-y: auto; padding: 24px 20px 32px; }
+  .cart-drawer { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; z-index: 201; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); max-height: 85vh; overflow-y: auto; padding: 24px 20px 32px; }
   .cart-drawer.open { transform: translateX(-50%) translateY(0); }
   .drawer-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
   .drawer-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; margin-bottom: 16px; }
@@ -113,8 +119,9 @@
   .place-order-btn:active { transform: scale(0.99); }
   .place-order-btn.loading { opacity: 0.7; pointer-events: none; }
   .place-order-btn:disabled { cursor: not-allowed; }
+
   /* All other existing modals — kept as-is */
-  .confirm-modal { position:fixed;inset:0;z-index:460;display:none; }
+  .confirm-modal { position:fixed;inset:0;z-index:450;display:none; }
   .confirm-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.55); }
   .confirm-panel { position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box;max-height:90vh;overflow-y:auto; }
   .confirm-title { font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px; }
@@ -130,7 +137,7 @@
   .confirm-btns { display:flex;gap:10px; }
   .confirm-edit-btn { flex:1;padding:14px;border:1.5px solid #ede8df;border-radius:12px;background:white;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72; }
   .confirm-place-btn { flex:2;padding:14px;background:#ea580c;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer; }
-  .notes-modal { position:fixed;inset:0;z-index:470;display:none; }
+  .notes-modal { position:fixed;inset:0;z-index:460;display:none; }
   .notes-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.5); }
   .notes-panel { position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box; }
   .notes-title { font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:4px; }
@@ -145,7 +152,7 @@
   .notes-save-btn { width:100%;padding:14px;background:#1a1207;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer; }
   .lang-btn { background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 5px 10px; font-size: 13px; color: white; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s; }
   .lang-btn:active { background: rgba(255,255,255,0.25); }
-  .lang-drawer { position: fixed; inset: 0; z-index: 510; display: none; }
+  .lang-drawer { position: fixed; inset: 0; z-index: 500; display: none; }
   .lang-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
   .lang-panel { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; padding: 24px 20px 32px; box-sizing: border-box; }
   .lang-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; margin-bottom: 16px; text-align: center; }
@@ -171,61 +178,12 @@
   .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: white; padding: 10px 20px; border-radius: 50px; font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 999; white-space: nowrap; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
-
-  /* ── STRUCTURED ADDRESS CARDS ── */
-  .addr-card { border: 1.5px solid #ede8df; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: flex-start; gap: 12px; transition: all .15s; background: white; }
-  .addr-card.selected { border-color: #ea580c; background: #fff7f0; }
-  .addr-card input[type=radio] { accent-color: #ea580c; width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
-  .addr-card-body { flex: 1; }
-  .addr-card-label { font-size: 12px; font-weight: 700; color: #1a1207; margin-bottom: 2px; }
-  .addr-card-text { font-size: 12px; color: #9b8b72; line-height: 1.4; }
-  .addr-card.selected .addr-card-label { color: #ea580c; }
-  .add-addr-btn { width: 100%; padding: 10px 14px; border: 1.5px dashed #ede8df; border-radius: 12px; background: none; font-size: 13px; font-weight: 600; color: #9b8b72; cursor: pointer; text-align: center; margin-top: 4px; transition: all .15s; }
-  .add-addr-btn:hover { border-color: #ea580c; color: #ea580c; }
-  /* ── ADD ADDRESS FORM ── */
-  .addr-form-modal { position: fixed; inset: 0; z-index: 600; display: none; }
-  .addr-form-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
-  .addr-form-panel { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; padding: 24px 20px 32px; box-sizing: border-box; max-height: 90vh; overflow-y: auto; }
-  .addr-form-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; margin-bottom: 16px; }
-  .addr-label-row { display: flex; gap: 8px; margin-bottom: 14px; }
-  .addr-label-chip { flex: 1; padding: 10px 6px; border: 1.5px solid #ede8df; border-radius: 10px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 600; background: white; color: #9b8b72; transition: all .15s; }
-  .addr-label-chip.active { border-color: #ea580c; background: #fff7f0; color: #ea580c; }
-  .addr-field { margin-bottom: 12px; }
-  .addr-field label { display: block; font-size: 11px; font-weight: 700; color: #666; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
-  .addr-field input { width: 100%; border: 1.5px solid #ede8df; border-radius: 10px; padding: 11px 12px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; background: #faf8f5; box-sizing: border-box; color: #1a1207; }
-  .addr-field input:focus { border-color: #ea580c; background: white; }
-  .addr-field-row { display: flex; gap: 10px; }
-  .addr-field-row .addr-field { flex: 1; }
-
-  /* ── BOTTOM NAV ── */
-  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: white; border-top: 1.5px solid #ede8df; display: flex; z-index: 150; }
-  .bottom-nav-item { flex: 1; padding: 10px 0 8px; text-align: center; cursor: pointer; transition: all .15s; border: none; background: none; }
-  .bottom-nav-icon { font-size: 22px; margin-bottom: 2px; }
-  .bottom-nav-label { font-size: 10px; font-weight: 600; color: #9b8b72; }
-  .bottom-nav-item.active .bottom-nav-label { color: #ea580c; }
-  .bottom-nav-badge { background: #ea580c; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 9px; font-weight: 700; display: none; align-items: center; justify-content: center; position: absolute; top: 6px; right: calc(50% - 18px); }
-  .bottom-nav-badge.show { display: flex; }
-  /* ── ORDERS SCREEN ── */
-  .orders-screen { display: none; padding: 16px; }
-  .orders-screen.active { display: block; }
-  .order-card { background: white; border-radius: 16px; border: 1.5px solid #ede8df; padding: 16px; margin-bottom: 12px; }
-  .order-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-  .order-bill { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; }
-  .order-time { font-size: 11px; color: #9b8b72; margin-top: 2px; }
-  .order-token { background: #ea580c; color: white; border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 700; }
-  .order-mode { background: #f5f0e8; color: #9b8b72; border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 600; }
-  .order-items { font-size: 13px; color: #444; margin-bottom: 10px; line-height: 1.6; }
-  .order-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid #ede8df; }
-  .order-total { font-weight: 800; font-size: 16px; color: #ea580c; }
-  .order-status { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 10px; }
-  .order-status.confirmed { background: #dcfce7; color: #16a34a; }
-  .orders-empty { text-align: center; padding: 60px 24px; color: #9b8b72; }
-  .orders-loading { text-align: center; padding: 40px; color: #9b8b72; font-size: 13px; }
   /* Chatbot hidden */
   #aiPanel,#aiOverlay,.ai-fab,.ai-toggle{display:none!important}
 </style>
 </head>
 <body>
+
 <div class="header">
   <div class="header-top">
     <span class="restaurant-name" id="restName">Loading…</span>
@@ -239,6 +197,7 @@
     <input class="search-input" id="searchInput" placeholder="Search menu…" autocomplete="off">
   </div>
 </div>
+
 <!-- Filter Chips -->
 <div class="filter-chips-wrap" id="filterChips" style="display:none">
   <div class="filter-chip" data-filter="all" onclick="applyFilter('all',this)">All</div>
@@ -248,6 +207,7 @@
   <div class="filter-chip" data-filter="spicy" onclick="applyFilter('spicy',this)">🌶 Spicy</div>
   <div class="filter-chip" data-filter="popular" onclick="applyFilter('popular',this)">⭐ Popular</div>
 </div>
+
 <div class="cat-tabs" id="catTabs"></div>
 <div id="popularSection" style="display:none;padding:14px 16px 0">
   <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;color:#9b8b72;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🔥 Popular</div>
@@ -257,31 +217,12 @@
   <div class="empty-state"><div class="icon">🍔</div><p id="loadingText">Loading menu…</p></div>
 </div>
 
-<!-- ── BOTTOM NAV ── -->
-<div class="bottom-nav" id="bottomNav">
-  <button class="bottom-nav-item active" id="navMenu" onclick="switchTab('menu')">
-    <div style="position:relative;display:inline-block">
-      <div class="bottom-nav-icon">🍔</div>
-      <div class="bottom-nav-badge" id="cartBadge"></div>
-    </div>
-    <div class="bottom-nav-label">Menu</div>
-  </button>
-  <button class="bottom-nav-item" id="navOrders" onclick="switchTab('orders')">
-    <div class="bottom-nav-icon">📋</div>
-    <div class="bottom-nav-label">My Orders</div>
-  </button>
-</div>
-
-<!-- ── ORDERS SCREEN ── -->
-<div class="orders-screen" id="ordersScreen">
-  <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;padding:18px 0 14px">📋 My Orders</div>
-  <div id="ordersContent" class="orders-loading">Loading orders…</div>
-</div>
 <div class="cart-pill" id="cartPill" onclick="openCart()">
   <div class="cart-pill-count" id="cartCount">0</div>
   <span id="cartPillText">View Cart</span>
   <span id="cartPillTotal"></span>
 </div>
+
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeCart()"></div>
 <div class="cart-drawer" id="cartDrawer">
   <div class="drawer-handle"></div>
@@ -290,8 +231,15 @@
   <div class="cart-total-row" id="cartTotalRow" style="display:none">
     <span id="cartTotalLabel">Total</span><span id="cartTotal">₹0</span>
   </div>
-  <button class="place-order-btn" id="placeOrderBtn" onclick="startUpsell()">Proceed to Checkout →</button>
+  <div class="address-section" id="addressSection">
+    <div class="address-label" id="addrLabel">📍 Delivery Address</div>
+    <div id="pastAddresses"></div>
+    <textarea class="address-textarea" id="deliveryAddress" placeholder="Enter your full delivery address…" oninput="onAddressInput()" onblur="if(this.value.trim())this.style.borderColor='#22c55e';else this.style.borderColor='var(--border)'"></textarea>
+    <div class="address-hint" id="addressHint">⚠️ Please enter delivery address</div>
+  </div>
+  <button class="place-order-btn" id="placeOrderBtn" onclick="startUpsell()">Place Order →</button>
 </div>
+
 <!-- Order Confirmation Modal -->
 <div class="confirm-modal" id="confirmModal">
   <div class="confirm-overlay" onclick="closeConfirm()"></div>
@@ -310,17 +258,18 @@
     </div>
   </div>
 </div>
+
 <!-- Notes Modal -->
 <div class="notes-modal" id="notesModal">
   <div class="notes-overlay" onclick="closeNotes()"></div>
   <div class="notes-panel">
     <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
-    <div class="notes-title" id="notesTitle">\ud83d\udcdd Special Instructions</div>
+    <div class="notes-title" id="notesTitle">📝 Special Instructions</div>
     <div class="notes-item-name" id="notesItemName"></div>
     <textarea class="notes-textarea" id="notesTextarea" placeholder="e.g. Extra spicy, no onions, less oil…"></textarea>
     <div class="notes-hints">
       <button class="notes-hint-chip" id="hint_spicy" onclick="addNoteHint(t('note_extra_spicy'))">🌶️ Extra spicy</button>
-      <button class="notes-hint-chip" id="hint_onions" onclick="addNoteHint(t('note_no_onions'))">\ud83e\uddc5 No onions</button>
+      <button class="notes-hint-chip" id="hint_onions" onclick="addNoteHint(t('note_no_onions'))">🧅 No onions</button>
       <button class="notes-hint-chip" id="hint_oil" onclick="addNoteHint(t('note_less_oil'))">Less oil</button>
       <button class="notes-hint-chip" id="hint_garlic" onclick="addNoteHint(t('note_no_garlic'))">No garlic</button>
       <button class="notes-hint-chip" id="hint_welldone" onclick="addNoteHint(t('note_well_done'))">Well done</button>
@@ -329,6 +278,7 @@
     <button class="notes-save-btn" id="notesSaveBtn" onclick="saveNotes()">Save</button>
   </div>
 </div>
+
 <!-- Language Drawer -->
 <div class="lang-drawer" id="langDrawer">
   <div class="lang-overlay" onclick="closeLangDrawer()"></div>
@@ -338,6 +288,7 @@
     <div class="lang-grid" id="langGrid"></div>
   </div>
 </div>
+
 <!-- Upsell Modal -->
 <div id="upsellOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;opacity:0;pointer-events:none;transition:opacity 0.25s"></div>
 <div id="upsellModal" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;z-index:401;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);padding:24px 20px 32px;box-sizing:border-box">
@@ -350,108 +301,27 @@
         <div id="upsellItemName" style="font-weight:700;font-size:16px;margin-bottom:3px"></div>
         <div id="upsellItemPrice" style="color:#ea580c;font-weight:700;font-size:14px"></div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button onclick="upsellQtyChange(-1)" style="width:32px;height:32px;border-radius:50%;border:none;background:#ea580c;color:white;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
-        <span id="upsellQtyNum" style="font-weight:700;font-size:16px;min-width:24px;text-align:center">0</span>
-        <button onclick="upsellQtyChange(1)" style="width:32px;height:32px;border-radius:50%;border:none;background:#ea580c;color:white;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
-      </div>
+      <button onclick="addUpsellItem()" style="background:#ea580c;color:white;border:none;border-radius:20px;padding:10px 20px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;flex-shrink:0">＋ Add</button>
     </div>
   </div>
   <div id="upsellLoading" style="text-align:center;padding:16px;color:#9b8b72;font-size:13px"><div style="margin-bottom:6px">🤔</div><span id="upsellLoadingText">Checking what pairs well…</span></div>
-  <div style="margin-top:8px">
-    <button id="upsellConfirmBtn" onclick="confirmUpsellAndCheckout()" style="width:100%;padding:16px;background:#ea580c;border:none;border-radius:14px;color:white;font-family:'Syne',sans-serif;font-size:16px;font-weight:800;cursor:pointer">Confirm Order →</button>
-  </div>
-  </div>
-</div>
-
-<!-- CHECKOUT MODAL: address (pre-filled) + payment + CTA -->
-<div id="checkoutModal" style="position:fixed;inset:0;z-index:450;display:none">
-  <div onclick="closeCheckout()" style="position:absolute;inset:0;background:rgba(0,0,0,0.55)"></div>
-  <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box;max-height:92vh;overflow-y:auto">
-    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
-    <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px">✅ Confirm Order</div>
-    <p style="font-size:13px;color:#9b8b72;margin-bottom:14px">Review before placing</p>
-    <div id="checkoutItemsList" style="border:1.5px solid #ede8df;border-radius:12px;overflow:hidden;margin-bottom:12px"></div>
-    <div id="checkoutPricing" style="background:#f9f6f0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:14px"></div>
-    <div id="checkoutAddrSection" style="display:none;margin-bottom:14px">
-      <div style="font-size:12px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">📍 Delivery Address</div>
-      <div id="checkoutAddrCards"></div>
-      <button class="add-addr-btn" onclick="openAddAddressForm()">＋ Add New Address</button>
-      <div id="checkoutAddrHint" style="font-size:11px;color:#e53e3e;margin-top:6px;display:none">⚠️ Please select or add a delivery address</div>
-    </div>
-    <div id="checkoutPaySection" style="margin-bottom:16px">
-      <div style="font-size:12px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">💳 Payment Method</div>
-      <div style="display:flex;gap:8px">
-        <div id="cpmCOD" onclick="selectCheckoutPay('cod')" style="flex:1;border:1.5px solid #ede8df;border-radius:10px;padding:10px 8px;cursor:pointer;text-align:center;background:#fff7f0;border-color:#ea580c">
-          <div style="font-size:18px;margin-bottom:2px">💵</div>
-          <div style="font-size:12px;font-weight:700;color:#ea580c">Cash</div>
-          <div style="font-size:10px;color:#9b8b72;margin-top:1px">Pay on delivery</div>
-        </div>
-        <div id="cpmOnline" onclick="selectCheckoutPay('online')" style="flex:1;border:1.5px solid #ede8df;border-radius:10px;padding:10px 8px;cursor:pointer;text-align:center;background:white">
-          <div style="font-size:18px;margin-bottom:2px">📱</div>
-          <div style="font-size:12px;font-weight:700;color:#1a1207">Pay Online</div>
-          <div style="font-size:10px;color:#9b8b72;margin-top:1px">UPI / Card</div>
-        </div>
-      </div>
-    </div>
-    <button id="checkoutPlaceBtn" onclick="placeOrderFromCheckout()" class="place-order-btn" style="margin-top:0">Place Order →</button>
-    <div style="display:flex;gap:8px;margin-top:8px"><button onclick="closeCheckout()" style="flex:1;padding:12px;background:none;border:1.5px solid #ede8df;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72">← Back</button><button onclick="closeCheckoutOpenCart()" style="flex:2;padding:12px;background:none;border:1.5px solid #ede8df;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72">✏️ Edit Cart</button></div>
+  <div style="display:flex;gap:10px;margin-top:8px">
+    <button id="upsellSkipBtn" onclick="skipUpsell()" style="flex:1;padding:14px;border:1.5px solid #ede8df;border-radius:12px;background:white;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72">Skip</button>
+    <button id="upsellPlaceBtn" onclick="confirmAfterUpsell()" style="flex:2;padding:14px;background:#1a1207;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Place Order →</button>
   </div>
 </div>
 
-<!-- ADD ADDRESS FORM MODAL -->
-<div class="addr-form-modal" id="addrFormModal">
-  <div class="addr-form-overlay" onclick="closeAddAddressForm()"></div>
-  <div class="addr-form-panel">
-    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
-    <div class="addr-form-title">📍 Add Delivery Address</div>
-    <!-- Label chips -->
-    <div class="addr-label-row">
-      <div class="addr-label-chip active" data-label="Home" onclick="selectAddrLabel(this)">🏠 Home</div>
-      <div class="addr-label-chip" data-label="Work" onclick="selectAddrLabel(this)">🏢 Work</div>
-      <div class="addr-label-chip" data-label="Other" onclick="selectAddrLabel(this)">📍 Other</div>
-    </div>
-    <!-- Structured fields -->
-    <!-- GPS auto-fill button -->
-    <button type="button" onclick="useMyLocation()" id="gpsBtn" style="width:100%;padding:12px 14px;border:1.5px solid #ea580c;border-radius:12px;background:#fff7f0;color:#ea580c;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px">
-      📍 Use My Current Location
-    </button>
-    <div id="gpsStatus" style="font-size:12px;color:#9b8b72;text-align:center;margin-bottom:10px;display:none"></div>
-    <div class="addr-field">
-      <label>Flat / House No *</label>
-      <input type="text" id="addrLine1" placeholder="e.g. Flat 4B, Sunrise Apartments" autocomplete="off">
-    </div>
-    <div class="addr-field">
-      <label>Street / Colony</label>
-      <input type="text" id="addrLine2" placeholder="e.g. MG Road, Koregaon Park" autocomplete="off">
-    </div>
-    <div class="addr-field">
-      <label>Area / Landmark</label>
-      <input type="text" id="addrArea" placeholder="e.g. Near City Mall" autocomplete="off">
-    </div>
-    <div class="addr-field-row">
-      <div class="addr-field">
-        <label>City</label>
-        <input type="text" id="addrCity" placeholder="Pune" autocomplete="off">
-      </div>
-      <div class="addr-field" style="max-width:120px">
-        <label>Pincode</label>
-        <input type="text" id="addrPincode" placeholder="411001" maxlength="6" inputmode="numeric" autocomplete="off">
-      </div>
-    </div>
-    <div id="addrFormErr" style="font-size:12px;color:#e53e3e;margin-bottom:10px;display:none">⚠️ Flat/House No is required</div>
-    <button onclick="saveNewAddress()" style="width:100%;padding:16px;background:#ea580c;border:none;border-radius:14px;color:white;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer">Save Address</button>
-    <button onclick="closeAddAddressForm()" style="width:100%;padding:12px;background:none;border:1.5px solid #ede8df;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72;margin-top:8px">Cancel</button>
-  </div>
-</div>
 <div class="toast" id="toast"></div>
+
 <script>
 // ══════════════════════════════════════════════════════════
 // TapMyFood — UI String Translations (i18n)
 // One file. All languages. All restaurants.
 // Add new language: add one block. Works everywhere instantly.
 // ══════════════════════════════════════════════════════════
+
 const I18N = {
+
   en: {
     // Header
     search_placeholder: 'Search menu…',
@@ -485,9 +355,9 @@ const I18N = {
     add_to_cart:     'Add to Cart',
     add_without:     'Add without extras',
     // Notes
-    special_instructions: '\ud83d\udcdd Special Instructions',
+    special_instructions: '📝 Special Instructions',
     note_extra_spicy:'🌶️ Extra spicy',
-    note_no_onions:  '\ud83e\uddc5 No onions',
+    note_no_onions:  '🧅 No onions',
     note_less_oil:   'Less oil',
     note_no_garlic:  'No garlic',
     note_well_done:  'Well done',
@@ -517,7 +387,7 @@ const I18N = {
     scan_again:      'Please scan the QR code again to start a new order.',
     // Toasts
     added:           'added!',
-    note_saved:      '\ud83d\udcdd Note saved!',
+    note_saved:      '📝 Note saved!',
     order_placed:    'Order placed! Bill #',
     order_locked:    '✅ Order placed — cart is locked',
     // Mode badges
@@ -551,6 +421,7 @@ const I18N = {
     add_items_first: 'Add items first!',
     order_failed: 'Failed to place order. Try again.',
   },
+
   hi: {
     search_placeholder: 'मेनू खोजें…',
     filter_all:      'सभी',
@@ -576,9 +447,9 @@ const I18N = {
     add_extras:      'एक्स्ट्रा जोड़ें (वैकल्पिक)',
     add_to_cart:     'कार्ट में जोड़ें',
     add_without:     'बिना एक्स्ट्रा के जोड़ें',
-    special_instructions: '\ud83d\udcdd विशेष निर्देश',
+    special_instructions: '📝 विशेष निर्देश',
     note_extra_spicy:'🌶️ अतिरिक्त तीखा',
-    note_no_onions:  '\ud83e\uddc5 प्याज नहीं',
+    note_no_onions:  '🧅 प्याज नहीं',
     note_less_oil:   'कम तेल',
     note_no_garlic:  'लहसुन नहीं',
     note_well_done:  'अच्छे से पकाएं',
@@ -604,7 +475,7 @@ const I18N = {
     session_ended:   'यह ऑर्डर सत्र समाप्त हो गया है।',
     scan_again:      'नया ऑर्डर शुरू करने के लिए QR कोड स्कैन करें।',
     added:           'जोड़ा गया!',
-    note_saved:      '\ud83d\udcdd नोट सेव हुआ!',
+    note_saved:      '📝 नोट सेव हुआ!',
     order_placed:    'ऑर्डर दिया! बिल #',
     order_locked:    '✅ ऑर्डर दिया गया — कार्ट लॉक है',
     mode_delivery:   'डिलीवरी',
@@ -628,6 +499,7 @@ const I18N = {
     popular_section: '🔥 लोकप्रिय',
     popular_add:     '+ जोड़ें',
   },
+
   mr: {
     search_placeholder: 'मेनू शोधा…',
     filter_all:      'सर्व',
@@ -653,9 +525,9 @@ const I18N = {
     add_extras:      'अतिरिक्त जोडा (पर्यायी)',
     add_to_cart:     'कार्टमध्ये जोडा',
     add_without:     'अतिरिक्तशिवाय जोडा',
-    special_instructions: '\ud83d\udcdd विशेष सूचना',
+    special_instructions: '📝 विशेष सूचना',
     note_extra_spicy:'🌶️ जास्त तिखट',
-    note_no_onions:  '\ud83e\uddc5 कांदा नको',
+    note_no_onions:  '🧅 कांदा नको',
     note_less_oil:   'कमी तेल',
     note_no_garlic:  'लसूण नको',
     note_well_done:  'चांगले शिजवा',
@@ -681,7 +553,7 @@ const I18N = {
     session_ended:   'हे ऑर्डर सत्र संपले आहे.',
     scan_again:      'नवीन ऑर्डरसाठी QR कोड स्कॅन करा.',
     added:           'जोडले!',
-    note_saved:      '\ud83d\udcdd नोट जतन झाली!',
+    note_saved:      '📝 नोट जतन झाली!',
     order_placed:    'ऑर्डर दिली! बिल #',
     order_locked:    '✅ ऑर्डर दिली — कार्ट लॉक आहे',
     mode_delivery:   'डिलिव्हरी',
@@ -705,6 +577,7 @@ const I18N = {
     popular_section: '🔥 लोकप्रिय',
     popular_add:     '+ जोडा',
   },
+
   ru: {
     search_placeholder: 'Поиск в меню…',
     filter_all:      'Все',
@@ -730,9 +603,9 @@ const I18N = {
     add_extras:      'ДОБАВИТЬ ДОПОЛНИТЕЛЬНО (НЕОБЯЗАТЕЛЬНО)',
     add_to_cart:     'В корзину',
     add_without:     'Добавить без дополнений',
-    special_instructions: '\ud83d\udcdd Особые пожелания',
+    special_instructions: '📝 Особые пожелания',
     note_extra_spicy:'🌶️ Очень острое',
-    note_no_onions:  '\ud83e\uddc5 Без лука',
+    note_no_onions:  '🧅 Без лука',
     note_less_oil:   'Меньше масла',
     note_no_garlic:  'Без чеснока',
     note_well_done:  'Хорошо прожаренное',
@@ -758,7 +631,7 @@ const I18N = {
     session_ended:   'Этот сеанс заказа завершён.',
     scan_again:      'Отсканируйте QR-код для нового заказа.',
     added:           'добавлено!',
-    note_saved:      '\ud83d\udcdd Примечание сохранено!',
+    note_saved:      '📝 Примечание сохранено!',
     order_placed:    'Заказ принят! Счёт #',
     order_locked:    '✅ Заказ оформлен — корзина заблокирована',
     mode_delivery:   'Доставка',
@@ -782,6 +655,7 @@ const I18N = {
     popular_section: '🔥 Популярное',
     popular_add:     '+ Добавить',
   },
+
   zh: {
     search_placeholder: '搜索菜单…',
     filter_all:      '全部',
@@ -807,9 +681,9 @@ const I18N = {
     add_extras:      '添加额外选项（可选）',
     add_to_cart:     '加入购物车',
     add_without:     '不添加额外选项',
-    special_instructions: '\ud83d\udcdd 特殊要求',
+    special_instructions: '📝 特殊要求',
     note_extra_spicy:'🌶️ 加辣',
-    note_no_onions:  '\ud83e\uddc5 不要洋葱',
+    note_no_onions:  '🧅 不要洋葱',
     note_less_oil:   '少油',
     note_no_garlic:  '不要大蒜',
     note_well_done:  '全熟',
@@ -835,7 +709,7 @@ const I18N = {
     session_ended:   '此订单会话已结束。',
     scan_again:      '请扫描二维码开始新订单。',
     added:           '已添加！',
-    note_saved:      '\ud83d\udcdd 备注已保存！',
+    note_saved:      '📝 备注已保存！',
     order_placed:    '订单已下！账单 #',
     order_locked:    '✅ 订单已下 — 购物车已锁定',
     mode_delivery:   '外卖',
@@ -859,6 +733,7 @@ const I18N = {
     popular_section: '🔥 热门',
     popular_add:     '+ 添加',
   },
+
   de: {
     search_placeholder: 'Speisekarte suchen…',
     filter_all:      'Alle',
@@ -884,9 +759,9 @@ const I18N = {
     add_extras:      'EXTRAS HINZUFÜGEN (OPTIONAL)',
     add_to_cart:     'In den Warenkorb',
     add_without:     'Ohne Extras hinzufügen',
-    special_instructions: '\ud83d\udcdd Besondere Anweisungen',
+    special_instructions: '📝 Besondere Anweisungen',
     note_extra_spicy:'🌶️ Extra scharf',
-    note_no_onions:  '\ud83e\uddc5 Ohne Zwiebeln',
+    note_no_onions:  '🧅 Ohne Zwiebeln',
     note_less_oil:   'Weniger Öl',
     note_no_garlic:  'Ohne Knoblauch',
     note_well_done:  'Gut durchgebraten',
@@ -912,7 +787,7 @@ const I18N = {
     session_ended:   'Diese Bestellsitzung wurde beendet.',
     scan_again:      'QR-Code scannen für neue Bestellung.',
     added:           'hinzugefügt!',
-    note_saved:      '\ud83d\udcdd Notiz gespeichert!',
+    note_saved:      '📝 Notiz gespeichert!',
     order_placed:    'Bestellt! Rechnung #',
     order_locked:    '✅ Bestellt — Warenkorb gesperrt',
     mode_delivery:   'Lieferung',
@@ -936,6 +811,7 @@ const I18N = {
     popular_section: '🔥 Beliebt',
     popular_add:     '+ Hinzufügen',
   },
+
   fr: {
     search_placeholder: 'Rechercher dans le menu…',
     filter_all:      'Tout',
@@ -961,9 +837,9 @@ const I18N = {
     add_extras:      'AJOUTER DES SUPPLÉMENTS (OPTIONNEL)',
     add_to_cart:     'Ajouter au panier',
     add_without:     'Ajouter sans suppléments',
-    special_instructions: '\ud83d\udcdd Instructions spéciales',
+    special_instructions: '📝 Instructions spéciales',
     note_extra_spicy:'🌶️ Extra épicé',
-    note_no_onions:  '\ud83e\uddc5 Sans oignons',
+    note_no_onions:  '🧅 Sans oignons',
     note_less_oil:   'Moins d\'huile',
     note_no_garlic:  'Sans ail',
     note_well_done:  'Bien cuit',
@@ -989,7 +865,7 @@ const I18N = {
     session_ended:   'Cette session de commande est terminée.',
     scan_again:      'Scannez le QR code pour une nouvelle commande.',
     added:           'ajouté !',
-    note_saved:      '\ud83d\udcdd Note enregistrée !',
+    note_saved:      '📝 Note enregistrée !',
     order_placed:    'Commande passée ! Facture #',
     order_locked:    '✅ Commande passée — panier verrouillé',
     mode_delivery:   'Livraison',
@@ -1013,6 +889,7 @@ const I18N = {
     popular_section: '🔥 Populaire',
     popular_add:     '+ Ajouter',
   },
+
   es: {
     search_placeholder: 'Buscar en el menú…',
     filter_all:      'Todo',
@@ -1038,9 +915,9 @@ const I18N = {
     add_extras:      'AGREGAR EXTRAS (OPCIONAL)',
     add_to_cart:     'Agregar al carrito',
     add_without:     'Agregar sin extras',
-    special_instructions: '\ud83d\udcdd Instrucciones especiales',
+    special_instructions: '📝 Instrucciones especiales',
     note_extra_spicy:'🌶️ Extra picante',
-    note_no_onions:  '\ud83e\uddc5 Sin cebollas',
+    note_no_onions:  '🧅 Sin cebollas',
     note_less_oil:   'Menos aceite',
     note_no_garlic:  'Sin ajo',
     note_well_done:  'Bien cocido',
@@ -1066,7 +943,7 @@ const I18N = {
     session_ended:   'Esta sesión de pedido ha terminado.',
     scan_again:      'Escanea el código QR para un nuevo pedido.',
     added:           '¡agregado!',
-    note_saved:      '\ud83d\udcdd ¡Nota guardada!',
+    note_saved:      '📝 ¡Nota guardada!',
     order_placed:    '¡Pedido realizado! Factura #',
     order_locked:    '✅ Pedido realizado — carrito bloqueado',
     mode_delivery:   'Entrega',
@@ -1090,18 +967,22 @@ const I18N = {
     popular_section: '🔥 Popular',
     popular_add:     '+ Agregar',
   },
+
 };
+
 // Remaining 6 Indian languages — use Claude to generate these
 // at translate time. For now fallback to English.
 ['hi_LATN','ta','te','gu','ml','kn'].forEach(function(code) {
   if (!I18N[code]) I18N[code] = I18N['en'];
 });
+
 // ── t() — get translation for current language ──
 function t(key) {
   var lang = typeof selectedLang !== 'undefined' ? selectedLang : 'en';
   var strings = I18N[lang] || I18N['en'];
   return strings[key] || I18N['en'][key] || key;
 }
+
 // ── Indian language UI strings generated ──
 I18N['te'] = {
   search_placeholder: 'మెనూ శోధించండి…',
@@ -1113,7 +994,7 @@ I18N['te'] = {
   recent_addresses: 'ఇటీవలి చిరునామాలు:', new_address: 'లేదా కొత్త చిరునామా నమోదు చేయండి:',
   address_placeholder: 'మీ పూర్తి డెలివరీ చిరునామా నమోదు చేయండి…', address_required: '⚠️ దయచేసి డెలివరీ చిరునామా నమోదు చేయండి',
   add_extras: 'అదనపువి జోడించండి (ఐచ్ఛికం)', add_to_cart: 'కార్ట్‌కి జోడించు', add_without: 'అదనపువి లేకుండా జోడించు',
-  special_instructions: '\ud83d\udcdd ప్రత్యేక సూచనలు', note_extra_spicy: '🌶️ అదనపు కారం', note_no_onions: '\ud83e\uddc5 ఉల్లిపాయ వద్దు',
+  special_instructions: '📝 ప్రత్యేక సూచనలు', note_extra_spicy: '🌶️ అదనపు కారం', note_no_onions: '🧅 ఉల్లిపాయ వద్దు',
   note_less_oil: 'తక్కువ నూనె', note_no_garlic: 'వెల్లుల్లి వద్దు', note_well_done: 'బాగా వండండి', note_extra_sauce: 'అదనపు సాస్',
   save: 'సేవ్ చేయి', confirm_order: '✅ ఆర్డర్ నిర్ధారించు', review_order: 'ఆర్డర్ చేయడానికి ముందు తనిఖీ చేయండి',
   edit_cart: '✏️ కార్ట్ సవరించు', add_more: '+ మరిన్ని జోడించు', confirm_place: '✅ ఆర్డర్ చేయండి →',
@@ -1123,7 +1004,7 @@ I18N['te'] = {
   no_items: 'వస్తువులు కనుగొనబడలేదు', try_filter: 'వేరే ఫిల్టర్ ప్రయత్నించండి',
   loading: 'మెనూ లోడ్ అవుతోంది…', invalid_link: 'చెల్లని లింక్. దయచేసి QR కోడ్ మళ్ళీ స్కాన్ చేయండి.',
   link_expired: 'లింక్ గడువు తీరింది', session_ended: 'ఈ ఆర్డర్ సెషన్ ముగిసింది.', scan_again: 'కొత్త ఆర్డర్ కోసం QR కోడ్ స్కాన్ చేయండి.',
-  added: 'జోడించబడింది!', note_saved: '\ud83d\udcdd గమనిక సేవ్ అయింది!', order_placed: 'ఆర్డర్ చేయబడింది! బిల్ #',
+  added: 'జోడించబడింది!', note_saved: '📝 గమనిక సేవ్ అయింది!', order_placed: 'ఆర్డర్ చేయబడింది! బిల్ #',
   order_locked: '✅ ఆర్డర్ చేయబడింది — కార్ట్ లాక్ చేయబడింది', mode_delivery: 'డెలివరీ', mode_takeaway: 'టేకవే', mode_table: 'టేబుల్',
   choose_language: '🌐 భాష ఎంచుకోండి', lang_changed: 'మెనూ అప్‌డేట్ అయింది',
   about: 'గురించి', cuisine: 'వంటకం', spice: 'మసాలా', flavor: 'రుచి', experience: 'అనుభవం',
@@ -1132,6 +1013,7 @@ I18N['te'] = {
   allergen_warning: '⚠️ అలెర్జీ సమాచారం రెస్టారెంట్ నిర్ధారణపై ఆధారపడి ఉంటుంది.',
   popular_section: '🔥 ప్రసిద్ధి', popular_add: '+ జోడించు',
 };
+
 I18N['ta'] = {
   search_placeholder: 'மெனு தேடுங்கள்…',
   filter_all: 'அனைத்தும்', filter_veg: '🟢 சைவம்', filter_nonveg: '🔴 அசைவம்',
@@ -1142,7 +1024,7 @@ I18N['ta'] = {
   recent_addresses: 'சமீபத்திய முகவரிகள்:', new_address: 'அல்லது புதிய முகவரி உள்ளிடவும்:',
   address_placeholder: 'உங்கள் முழு டெலிவரி முகவரியை உள்ளிடவும்…', address_required: '⚠️ டெலிவரி முகவரியை உள்ளிடவும்',
   add_extras: 'கூடுதல் சேர்க்கவும் (விருப்பத்தேர்வு)', add_to_cart: 'கார்டில் சேர்க்கவும்', add_without: 'கூடுதல் இல்லாமல் சேர்க்கவும்',
-  special_instructions: '\ud83d\udcdd சிறப்பு அறிவுறுத்தல்கள்', note_extra_spicy: '🌶️ மிகவும் காரமாக', note_no_onions: '\ud83e\uddc5 வெங்காயம் வேண்டாம்',
+  special_instructions: '📝 சிறப்பு அறிவுறுத்தல்கள்', note_extra_spicy: '🌶️ மிகவும் காரமாக', note_no_onions: '🧅 வெங்காயம் வேண்டாம்',
   note_less_oil: 'குறைந்த எண்ணெய்', note_no_garlic: 'பூண்டு வேண்டாம்', note_well_done: 'நன்கு சமையுங்கள்', note_extra_sauce: 'கூடுதல் சாஸ்',
   save: 'சேமிக்கவும்', confirm_order: '✅ ஆர்டர் உறுதிசெய்யவும்', review_order: 'ஆர்டர் செய்வதற்கு முன் சரிபார்க்கவும்',
   edit_cart: '✏️ கார்ட் திருத்தவும்', add_more: '+ மேலும் சேர்க்கவும்', confirm_place: '✅ ஆர்டர் செய்யுங்கள் →',
@@ -1152,7 +1034,7 @@ I18N['ta'] = {
   no_items: 'பொருட்கள் கிடைக்கவில்லை', try_filter: 'வேறு வடிகட்டி முயற்சிக்கவும்',
   loading: 'மெனு ஏற்றப்படுகிறது…', invalid_link: 'தவறான இணைப்பு. QR குறியீட்டை மீண்டும் ஸ்கேன் செய்யவும்.',
   link_expired: 'இணைப்பின் காலாவதியாகிவிட்டது', session_ended: 'இந்த ஆர்டர் அமர்வு முடிந்தது.', scan_again: 'புதிய ஆர்டருக்கு QR குறியீட்டை ஸ்கேன் செய்யவும்.',
-  added: 'சேர்க்கப்பட்டது!', note_saved: '\ud83d\udcdd குறிப்பு சேமிக்கப்பட்டது!', order_placed: 'ஆர்டர் வழங்கப்பட்டது! பில் #',
+  added: 'சேர்க்கப்பட்டது!', note_saved: '📝 குறிப்பு சேமிக்கப்பட்டது!', order_placed: 'ஆர்டர் வழங்கப்பட்டது! பில் #',
   order_locked: '✅ ஆர்டர் வழங்கப்பட்டது — கார்ட் பூட்டப்பட்டுள்ளது', mode_delivery: 'டெலிவரி', mode_takeaway: 'எடுத்துச் செல்ல', mode_table: 'மேசை',
   choose_language: '🌐 மொழி தேர்ந்தெடுக்கவும்', lang_changed: 'மெனு புதுப்பிக்கப்பட்டது',
   about: 'பற்றி', cuisine: 'உணவு வகை', spice: 'மசாலா', flavor: 'சுவை', experience: 'அனுபவம்',
@@ -1161,6 +1043,7 @@ I18N['ta'] = {
   allergen_warning: '⚠️ ஒவ்வாமை தகவல் உணவகத்தின் உறுதிப்படுத்தலைப் பொறுத்தது.',
   popular_section: '🔥 பிரபலம்', popular_add: '+ சேர்க்கவும்',
 };
+
 I18N['gu'] = {
   search_placeholder: 'મેનૂ શોધો…',
   filter_all: 'બધા', filter_veg: '🟢 શાકાહારી', filter_nonveg: '🔴 માંસાહારી',
@@ -1171,7 +1054,7 @@ I18N['gu'] = {
   recent_addresses: 'તાજેતરના સરનામાં:', new_address: 'અથવા નવું સરનામું દાખલ કરો:',
   address_placeholder: 'તમારું સંપૂર્ણ ડિલિવરી સરનામું દાખલ કરો…', address_required: '⚠️ કૃપા કરી ડિલિવરી સરનામું દાખલ કરો',
   add_extras: 'વધારાની ચીજો ઉમેરો (વૈકલ્પિક)', add_to_cart: 'કાર્ટમાં ઉમેરો', add_without: 'વધારા વિના ઉમેરો',
-  special_instructions: '\ud83d\udcdd વિશેષ સૂચના', note_extra_spicy: '🌶️ વધુ તીખો', note_no_onions: '\ud83e\uddc5 ડુંગળી નહીં',
+  special_instructions: '📝 વિશેષ સૂચના', note_extra_spicy: '🌶️ વધુ તીખો', note_no_onions: '🧅 ડુંગળી નહીં',
   note_less_oil: 'ઓછું તેલ', note_no_garlic: 'લસણ નહીં', note_well_done: 'સારી રીતે રાંધો', note_extra_sauce: 'વધારાની ચટણી',
   save: 'સાચવો', confirm_order: '✅ ઓર્ડર પુષ્ટિ કરો', review_order: 'ઓર્ડર આપતા પહેલા તપાસ કરો',
   edit_cart: '✏️ કાર્ટ સંપાદિત કરો', add_more: '+ વધુ ઉમેરો', confirm_place: '✅ ઓર્ડર આપો →',
@@ -1181,7 +1064,7 @@ I18N['gu'] = {
   no_items: 'કોઈ આઇટમ મળી નથી', try_filter: 'અલગ ફિલ્ટર અજમાવો',
   loading: 'મેનૂ લોડ થઈ રહ્યું છે…', invalid_link: 'અમાન્ય લિંક. QR કોડ ફરીથી સ્કેન કરો.',
   link_expired: 'લિંક સમાપ્ત', session_ended: 'આ ઓર્ડર સત્ર સમાપ્ત થઈ ગયું છે.', scan_again: 'નવા ઓર્ડર માટે QR કોડ સ્કેન કરો.',
-  added: 'ઉમેરાયું!', note_saved: '\ud83d\udcdd નોંધ સાચવાઈ!', order_placed: 'ઓર્ડર અપાઈ! બિલ #',
+  added: 'ઉમેરાયું!', note_saved: '📝 નોંધ સાચવાઈ!', order_placed: 'ઓર્ડર અપાઈ! બિલ #',
   order_locked: '✅ ઓર્ડર અપાઈ — કાર્ટ લૉક', mode_delivery: 'ડિલિવરી', mode_takeaway: 'ટેકઅવે', mode_table: 'ટેબલ',
   choose_language: '🌐 ભાષા પસંદ કરો', lang_changed: 'મેનૂ અપડેટ થઈ',
   about: 'વિશે', cuisine: 'ભોજન', spice: 'મસાલો', flavor: 'સ્વાદ', experience: 'અનુભવ',
@@ -1190,6 +1073,7 @@ I18N['gu'] = {
   allergen_warning: '⚠️ એલર્જી માહિતી રેસ્ટોરન્ટ ની પુષ્ટિ પર આધાર રાખે છે.',
   popular_section: '🔥 લોકપ્રિય', popular_add: '+ ઉમેરો',
 };
+
 I18N['ml'] = {
   search_placeholder: 'മെനു തിരയുക…',
   filter_all: 'എല്ലാം', filter_veg: '🟢 സസ്യഭക്ഷണം', filter_nonveg: '🔴 മാംസഭക്ഷണം',
@@ -1200,7 +1084,7 @@ I18N['ml'] = {
   recent_addresses: 'സമീപകാല വിലാസങ്ങൾ:', new_address: 'അല്ലെങ്കിൽ പുതിയ വിലാസം നൽകുക:',
   address_placeholder: 'നിങ്ങളുടെ പൂർണ്ണ ഡെലിവറി വിലാസം നൽകുക…', address_required: '⚠️ ഡെലിവറി വിലാസം നൽകുക',
   add_extras: 'അധിക ഇനങ്ങൾ ചേർക്കുക (ഐച്ഛികം)', add_to_cart: 'കാർട്ടിൽ ചേർക്കുക', add_without: 'അധികം ഇല്ലാതെ ചേർക്കുക',
-  special_instructions: '\ud83d\udcdd പ്രത്യേക നിർദ്ദേശങ്ങൾ', note_extra_spicy: '🌶️ കൂടുതൽ എരിവ്', note_no_onions: '\ud83e\uddc5 സവോള വേണ്ട',
+  special_instructions: '📝 പ്രത്യേക നിർദ്ദേശങ്ങൾ', note_extra_spicy: '🌶️ കൂടുതൽ എരിവ്', note_no_onions: '🧅 സവോള വേണ്ട',
   note_less_oil: 'കുറഞ്ഞ എണ്ണ', note_no_garlic: 'വെളുത്തുള്ളി വേണ്ട', note_well_done: 'നന്നായി വേവിക്കുക', note_extra_sauce: 'അധിക സോസ്',
   save: 'സേവ് ചെയ്യുക', confirm_order: '✅ ഓർഡർ സ്ഥിരീകരിക്കുക', review_order: 'ഓർഡർ ചെയ്യുന്നതിന് മുമ്പ് പരിശോധിക്കുക',
   edit_cart: '✏️ കാർട്ട് എഡിറ്റ് ചെയ്യുക', add_more: '+ കൂടുതൽ ചേർക്കുക', confirm_place: '✅ ഓർഡർ ചെയ്യുക →',
@@ -1210,7 +1094,7 @@ I18N['ml'] = {
   no_items: 'ഇനങ്ങൾ കണ്ടെത്തിയില്ല', try_filter: 'മറ്റൊരു ഫിൽട്ടർ പരീക്ഷിക്കുക',
   loading: 'മെനു ലോഡ് ചെയ്യുന്നു…', invalid_link: 'അസാധുവായ ലിങ്ക്. QR കോഡ് വീണ്ടും സ്കാൻ ചെയ്യുക.',
   link_expired: 'ലിങ്ക് കാലഹരണപ്പെട്ടു', session_ended: 'ഈ ഓർഡർ സെഷൻ അവസാനിച്ചു.', scan_again: 'പുതിയ ഓർഡറിനായി QR കോഡ് സ്കാൻ ചെയ്യുക.',
-  added: 'ചേർത്തു!', note_saved: '\ud83d\udcdd കുറിപ്പ് സംരക്ഷിച്ചു!', order_placed: 'ഓർഡർ ചെയ്തു! ബിൽ #',
+  added: 'ചേർത്തു!', note_saved: '📝 കുറിപ്പ് സംരക്ഷിച്ചു!', order_placed: 'ഓർഡർ ചെയ്തു! ബിൽ #',
   order_locked: '✅ ഓർഡർ ചെയ്തു — കാർട്ട് ലോക്ക് ചെയ്തു', mode_delivery: 'ഡെലിവറി', mode_takeaway: 'ടേക്ക്‌അവേ', mode_table: 'ടേബിൾ',
   choose_language: '🌐 ഭാഷ തിരഞ്ഞെടുക്കുക', lang_changed: 'മെനു അപ്ഡേറ്റ് ചെയ്തു',
   about: 'കുറിച്ച്', cuisine: 'പാചകരീതി', spice: 'മസാല', flavor: 'രുചി', experience: 'അനുഭവം',
@@ -1219,6 +1103,7 @@ I18N['ml'] = {
   allergen_warning: '⚠️ അലർജി വിവരങ്ങൾ റെസ്റ്റോറന്റ് സ്ഥിരീകരണത്തെ ആശ്രയിക്കുന്നു.',
   popular_section: '🔥 ജനപ്രിയം', popular_add: '+ ചേർക്കുക',
 };
+
 I18N['kn'] = {
   search_placeholder: 'ಮೆನು ಹುಡುಕಿ…',
   filter_all: 'ಎಲ್ಲಾ', filter_veg: '🟢 ಸಸ್ಯಾಹಾರ', filter_nonveg: '🔴 ಮಾಂಸಾಹಾರ',
@@ -1229,7 +1114,7 @@ I18N['kn'] = {
   recent_addresses: 'ಇತ್ತೀಚಿನ ವಿಳಾಸಗಳು:', new_address: 'ಅಥವಾ ಹೊಸ ವಿಳಾಸ ನಮೂದಿಸಿ:',
   address_placeholder: 'ನಿಮ್ಮ ಸಂಪೂರ್ಣ ಡೆಲಿವರಿ ವಿಳಾಸ ನಮೂದಿಸಿ…', address_required: '⚠️ ಡೆಲಿವರಿ ವಿಳಾಸ ನಮೂದಿಸಿ',
   add_extras: 'ಹೆಚ್ಚುವರಿ ಸೇರಿಸಿ (ಐಚ್ಛಿಕ)', add_to_cart: 'ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಿ', add_without: 'ಹೆಚ್ಚುವರಿ ಇಲ್ಲದೆ ಸೇರಿಸಿ',
-  special_instructions: '\ud83d\udcdd ವಿಶೇಷ ಸೂಚನೆಗಳು', note_extra_spicy: '🌶️ ಹೆಚ್ಚು ಖಾರ', note_no_onions: '\ud83e\uddc5 ಈರುಳ್ಳಿ ಬೇಡ',
+  special_instructions: '📝 ವಿಶೇಷ ಸೂಚನೆಗಳು', note_extra_spicy: '🌶️ ಹೆಚ್ಚು ಖಾರ', note_no_onions: '🧅 ಈರುಳ್ಳಿ ಬೇಡ',
   note_less_oil: 'ಕಡಿಮೆ ಎಣ್ಣೆ', note_no_garlic: 'ಬೆಳ್ಳುಳ್ಳಿ ಬೇಡ', note_well_done: 'ಚೆನ್ನಾಗಿ ಬೇಯಿಸಿ', note_extra_sauce: 'ಹೆಚ್ಚುವರಿ ಸಾಸ್',
   save: 'ಉಳಿಸಿ', confirm_order: '✅ ಆರ್ಡರ್ ದೃಢಪಡಿಸಿ', review_order: 'ಆರ್ಡರ್ ಮಾಡುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ',
   edit_cart: '✏️ ಕಾರ್ಟ್ ಸಂಪಾದಿಸಿ', add_more: '+ ಇನ್ನಷ್ಟು ಸೇರಿಸಿ', confirm_place: '✅ ಆರ್ಡರ್ ಮಾಡಿ →',
@@ -1239,7 +1124,7 @@ I18N['kn'] = {
   no_items: 'ಯಾವುದೇ ಐಟಂ ಕಂಡುಬಂದಿಲ್ಲ', try_filter: 'ಬೇರೆ ಫಿಲ್ಟರ್ ಪ್ರಯತ್ನಿಸಿ',
   loading: 'ಮೆನು ಲೋಡ್ ಆಗುತ್ತಿದೆ…', invalid_link: 'ಅಮಾನ್ಯ ಲಿಂಕ್. QR ಕೋಡ್ ಮತ್ತೆ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.',
   link_expired: 'ಲಿಂಕ್ ಅವಧಿ ಮೀರಿದೆ', session_ended: 'ಈ ಆರ್ಡರ್ ಸೆಷನ್ ಮುಗಿದಿದೆ.', scan_again: 'ಹೊಸ ಆರ್ಡರ್‌ಗಾಗಿ QR ಕೋಡ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.',
-  added: 'ಸೇರಿಸಲಾಗಿದೆ!', note_saved: '\ud83d\udcdd ಟಿಪ್ಪಣಿ ಉಳಿಸಲಾಗಿದೆ!', order_placed: 'ಆರ್ಡರ್ ಮಾಡಲಾಗಿದೆ! ಬಿಲ್ #',
+  added: 'ಸೇರಿಸಲಾಗಿದೆ!', note_saved: '📝 ಟಿಪ್ಪಣಿ ಉಳಿಸಲಾಗಿದೆ!', order_placed: 'ಆರ್ಡರ್ ಮಾಡಲಾಗಿದೆ! ಬಿಲ್ #',
   order_locked: '✅ ಆರ್ಡರ್ ಮಾಡಲಾಗಿದೆ — ಕಾರ್ಟ್ ಲಾಕ್', mode_delivery: 'ಡೆಲಿವರಿ', mode_takeaway: 'ಟೇಕ್‌ಅವೇ', mode_table: 'ಟೇಬಲ್',
   choose_language: '🌐 ಭಾಷೆ ಆರಿಸಿ', lang_changed: 'ಮೆನು ಅಪ್‌ಡೇಟ್ ಆಯಿತು',
   about: 'ಕುರಿತು', cuisine: 'ಅಡುಗೆ', spice: 'ಮಸಾಲೆ', flavor: 'ರುಚಿ', experience: 'ಅನುಭವ',
@@ -1248,6 +1133,7 @@ I18N['kn'] = {
   allergen_warning: '⚠️ ಅಲರ್ಜಿ ಮಾಹಿತಿ ರೆಸ್ಟೋರೆಂಟ್ ದೃಢೀಕರಣವನ್ನು ಅವಲಂಬಿಸಿದೆ.',
   popular_section: '🔥 ಜನಪ್ರಿಯ', popular_add: '+ ಸೇರಿಸಿ',
 };
+
 I18N['hi_LATN'] = {
   search_placeholder: 'Menu dhundho…',
   filter_all: 'Sab', filter_veg: '🟢 Veg', filter_nonveg: '🔴 Non-Veg',
@@ -1258,7 +1144,7 @@ I18N['hi_LATN'] = {
   recent_addresses: 'Purane address:', new_address: 'Ya naya address likho:',
   address_placeholder: 'Apna poora delivery address likho…', address_required: '⚠️ Delivery address likho',
   add_extras: 'Extra add karo (optional)', add_to_cart: 'Cart mein add karo', add_without: 'Bina extra ke add karo',
-  special_instructions: '\ud83d\udcdd Kuch special?', note_extra_spicy: '🌶️ Zyada teekha', note_no_onions: '\ud83e\uddc5 Pyaz nahi',
+  special_instructions: '📝 Kuch special?', note_extra_spicy: '🌶️ Zyada teekha', note_no_onions: '🧅 Pyaz nahi',
   note_less_oil: 'Kam tel', note_no_garlic: 'Lehsun nahi', note_well_done: 'Achhe se pakao', note_extra_sauce: 'Extra sauce',
   save: 'Save karo', confirm_order: '✅ Order pakka karo', review_order: 'Order dene se pehle dekho',
   edit_cart: '✏️ Cart theek karo', add_more: '+ Aur add karo', confirm_place: '✅ Order do →',
@@ -1268,7 +1154,7 @@ I18N['hi_LATN'] = {
   no_items: 'Kuch nahi mila', try_filter: 'Alag filter try karo',
   loading: 'Menu load ho raha hai…', invalid_link: 'Link galat hai. QR code dobara scan karo.',
   link_expired: 'Link expire ho gaya', session_ended: 'Yeh session khatam ho gaya.', scan_again: 'Naya order ke liye QR code scan karo.',
-  added: 'add ho gaya!', note_saved: '\ud83d\udcdd Note save ho gaya!', order_placed: 'Order de diya! Bill #',
+  added: 'add ho gaya!', note_saved: '📝 Note save ho gaya!', order_placed: 'Order de diya! Bill #',
   order_locked: '✅ Order de diya — cart lock hai', mode_delivery: 'Delivery', mode_takeaway: 'Ghar le jao', mode_table: 'Table',
   choose_language: '🌐 Bhasha chuno', lang_changed: 'Menu update ho gaya',
   about: 'Ke baare mein', cuisine: 'Cuisine', spice: 'Teekha', flavor: 'Swad', experience: 'Experience',
@@ -1277,10 +1163,14 @@ I18N['hi_LATN'] = {
   allergen_warning: '⚠️ Allergy info restaurant ne confirm ki hai. Staff se confirm karo.',
   popular_section: '🔥 Popular', popular_add: '+ Add',
 };
+
 // Remove English fallback for Indian languages — now they have proper translations
 // (hi_LATN, ta, te, gu, ml, kn are now all defined above)
+
+
 const SESSION_ID = (location.pathname.split('/order/')[1] || '').split('?')[0];
 const API_BASE   = '';
+
 let restaurant   = null;
 let allModifiers = [];
 let pendingAddItem = null;
@@ -1289,18 +1179,16 @@ let allItems     = [];
 let cart         = {};
 let sessionMode  = 'delivery';
 let sessionTable = '';
-let sessionDeliveryAddress = '';
-var checkoutPaymentMode = 'cod';
-var _upsellQty = 0;
 let activeFilter = 'all';  // current filter chip
 let openInfoId   = null;   // currently open info panel item id
+
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
 async function init() {
   if (!SESSION_ID) {
     document.getElementById('menuContent').innerHTML =
-      '<div class="empty-state"><div class="icon">\ud83d\udd17</div><p>Invalid link. Please scan the QR code again.</p></div>';
+      '<div class="empty-state"><div class="icon">🔗</div><p>Invalid link. Please scan the QR code again.</p></div>';
     return;
   }
   try {
@@ -1310,10 +1198,11 @@ async function init() {
     ]);
     if (!sessionRes.ok) throw new Error('Session not found');
     const sessionData = await sessionRes.json();
+
     if (['closed','paid','delivered'].includes(sessionData.status)) {
       document.getElementById('menuContent').innerHTML =
         '<div class="empty-state" style="padding:60px 24px">' +
-        '<div class="icon">\ud83d\udd17</div>' +
+        '<div class="icon">🔗</div>' +
         '<h3 style="font-family:Syne,sans-serif;font-size:18px;margin-bottom:8px">Link Expired</h3>' +
         '<p>This order session has ended.</p>' +
         '<p>Please <strong>scan the QR code again</strong> to start a new order.</p>' +
@@ -1322,18 +1211,20 @@ async function init() {
       document.getElementById('restName').textContent = sessionData.restaurant_name || 'Restaurant';
       return;
     }
+
     const menuData = await menuRes.json();
     restaurant = menuData.restaurant;
     categories = menuData.categories;
     allItems = (menuData.items || []).map(function(item) {
       item.orig_name = item.name; return item;
     });
+
     document.getElementById('restName').textContent = restaurant.name;
     document.title = 'Order — ' + restaurant.name;
+
     sessionMode = sessionData.mode || 'delivery';
     const modeEl = document.getElementById('modeBadge');
     sessionTable = sessionData.table_number || '—';
-    sessionDeliveryAddress = sessionData.delivery_address || '';
     if (sessionMode === 'dine_in') {
       modeEl.textContent = t('mode_table') + ' ' + sessionTable;
       modeEl.className = 'mode-badge dine';
@@ -1343,9 +1234,13 @@ async function init() {
     } else {
       modeEl.textContent = t('mode_delivery');
       modeEl.className = 'mode-badge';
+      document.getElementById('addressSection').style.display = 'block';
+      document.getElementById('placeOrderBtn').disabled = true;
+      document.getElementById('placeOrderBtn').style.opacity = '0.5';
+      loadPastAddresses();
     }
-    // Lock ALL modes when already ordered — prevent re-ordering on same session link
-    if (sessionData.status === 'ordered') {
+
+    if (sessionData.status === 'ordered' && sessionMode !== 'dine_in') {
       const cartRes2  = await fetch(API_BASE + '/api/order-ui/cart/' + SESSION_ID);
       const cartData2 = await cartRes2.json();
       if (cartData2.items) {
@@ -1362,6 +1257,7 @@ async function init() {
       lockUI('');
       return;
     }
+
     const cartRes = await fetch(API_BASE + '/api/order-ui/cart/' + SESSION_ID);
     const cartData = await cartRes.json();
     if (cartData.items) {
@@ -1369,31 +1265,37 @@ async function init() {
         cart[item.menu_item_id] = { qty: item.quantity, notes: item.notes || '', name: item.name, price: item.price };
       });
     }
+
     allModifiers = menuData.modifiers || [];
     buildFilterChips();
     buildCategoryTabs();
     renderMenu();
     renderPopular();
     updateCartUI();
+
     updateUIStrings();
+
   document.getElementById('searchInput').addEventListener('input', function(e) {
       activeFilter = 'all';
       document.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.remove('active'); });
       document.querySelector('.filter-chip[data-filter="all"]').classList.add('active');
       renderMenu(e.target.value.toLowerCase().trim());
     });
+
   } catch (err) {
     console.error(err);
     document.getElementById('menuContent').innerHTML =
-      '<div class="empty-state"><div class="icon">\ud83d\ude15</div><p>' + t('menu_load_error') + '</p></div>';
+      '<div class="empty-state"><div class="icon">😕</div><p>' + t('menu_load_error') + '</p></div>';
   }
 }
+
 // ══════════════════════════════════════════════
 // FILTER CHIPS
 // ══════════════════════════════════════════════
 function buildFilterChips() {
   // Show filter chips only if we have enough items to make filtering useful
   if (allItems.length < 4) return;
+
   // Check what data exists to show relevant chips
   const hasVeg    = allItems.some(function(i) { return i.is_veg === true; });
   const hasNonveg = allItems.some(function(i) { return i.is_veg === false; });
@@ -1402,6 +1304,7 @@ function buildFilterChips() {
   const hasPopular = allItems.some(function(i) {
     return i.tags && i.tags.some(function(t) { return t.tag_code === 'popular'; });
   });
+
   var chips = document.getElementById('filterChips');
   var html = '<div class="filter-chip active" data-filter="all" onclick="applyFilter(\'all\',this)">' + t('filter_all') + '</div>';
   if (hasVeg)     html += '<div class="filter-chip" data-filter="veg" onclick="applyFilter(\'veg\',this)">' + t('filter_veg') + '</div>';
@@ -1409,9 +1312,11 @@ function buildFilterChips() {
   if (hasMild)    html += '<div class="filter-chip" data-filter="mild" onclick="applyFilter(\'mild\',this)">' + t('filter_mild') + '</div>';
   if (hasSpicy)   html += '<div class="filter-chip" data-filter="spicy" onclick="applyFilter(\'spicy\',this)">' + t('filter_spicy') + '</div>';
   if (hasPopular) html += '<div class="filter-chip" data-filter="popular" onclick="applyFilter(\'popular\',this)">' + t('filter_popular') + '</div>';
+
   chips.innerHTML = html;
   chips.style.display = 'flex';
 }
+
 function applyFilter(filter, el) {
   activeFilter = filter;
   document.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.remove('active'); });
@@ -1420,6 +1325,7 @@ function applyFilter(filter, el) {
   closeAnyOpenInfoPanel();
   renderMenu();
 }
+
 // ══════════════════════════════════════════════
 // CATEGORY TABS
 // ══════════════════════════════════════════════
@@ -1427,6 +1333,7 @@ function isAddonCategory(cat) {
   var n = (cat.name || '').toLowerCase();
   return n.includes('add-on') || n.includes('addon') || n.includes('add on') || n.includes('extras');
 }
+
 function buildCategoryTabs() {
   const tabs = document.getElementById('catTabs');
   var visibleCats = categories.filter(function(cat) { return !isAddonCategory(cat); });
@@ -1435,6 +1342,7 @@ function buildCategoryTabs() {
   }).join('');
   activeCat = visibleCats[0] ? visibleCats[0].id : null;
 }
+
 var activeCat = null;
 function selectCat(catId, el) {
   document.querySelectorAll('.cat-tab').forEach(function(t) { t.classList.remove('active'); });
@@ -1447,12 +1355,14 @@ function selectCat(catId, el) {
   closeAnyOpenInfoPanel();
   renderMenu();
 }
+
 // ══════════════════════════════════════════════
 // RENDER MENU
 // ══════════════════════════════════════════════
 function getFilteredItems(search) {
   var addonCatIds = categories.filter(isAddonCategory).map(function(c) { return c.id; });
   var items = allItems.filter(function(i) { return addonCatIds.indexOf(i.category_id) === -1; });
+
   // Search: match translated name OR original English name
   if (search) {
     return items.filter(function(i) {
@@ -1462,10 +1372,12 @@ function getFilteredItems(search) {
       return name.includes(search) || orig.includes(search) || desc.includes(search);
     });
   }
+
   // Category filter
   if (activeCat) {
     items = items.filter(function(i) { return i.category_id === activeCat; });
   }
+
   // Chip filter
   switch(activeFilter) {
     case 'veg':
@@ -1488,6 +1400,7 @@ function getFilteredItems(search) {
   }
   return items;
 }
+
 function spiceBadge(level) {
   if (!level || level === 'none') return '';
   if (level === 'mild')   return '<span class="item-badge spice">😊 Mild</span>';
@@ -1495,21 +1408,25 @@ function spiceBadge(level) {
   if (level === 'spicy' || level === 'hot') return '<span class="item-badge spice">🌶🌶 Spicy</span>';
   return '';
 }
+
 function labelBadges(tags) {
   if (!tags || !tags.length) return '';
   return tags.filter(function(t) { return t.type === 'LABEL'; }).map(function(t) {
     if (t.tag_code === 'popular')    return '<span class="item-badge popular">⭐ Popular</span>';
-    if (t.tag_code === 'chef_special') return '<span class="item-badge chef">\ud83d\udc68‍\ud83c\udf73 Chef Special</span>';
+    if (t.tag_code === 'chef_special') return '<span class="item-badge chef">👨‍🍳 Chef Special</span>';
     return '';
   }).join('');
 }
+
 function addBtnHtml(id, name, price) {
   var safeName = name.replace(/'/g, "\\'");
   return '<button class="add-btn" id="addbtn_' + id + '" onclick="addItem(\'' + id + '\',\'' + safeName + '\',' + price + ')">' + t('add') + '</button>';
 }
+
 function renderMenu(search) {
   const container = document.getElementById('menuContent');
   const items = getFilteredItems(search);
+
   if (!items.length) {
     var filterMsg = activeFilter !== 'all'
       ? '<p style="margin-top:8px;font-size:13px">' + t('try_filter') + '</p>'
@@ -1517,6 +1434,7 @@ function renderMenu(search) {
     container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>' + t('no_items') + '</p>' + filterMsg + '</div>';
     return;
   }
+
   container.innerHTML = items.map(function(item) {
     var inCart  = cart[item.id];
     var vegDot  = item.is_veg !== null && item.is_veg !== undefined
@@ -1528,16 +1446,19 @@ function renderMenu(search) {
     var spice  = spiceBadge(item.spice_level);
     var labels = labelBadges(item.tags || []);
     var badges = spice + labels;
+
     var qtyHtml = inCart
       ? '<div class="qty-control">' +
         '<button class="qty-btn minus" onclick="changeQty(\'' + item.id + '\',\'' + item.name.replace(/'/g, "\\'") + '\',' + item.price + ',-1)">−</button>' +
         '<span class="qty-num" id="qty_' + item.id + '">' + inCart.qty + '</span>' +
         '<button class="qty-btn plus" onclick="changeQty(\'' + item.id + '\',\'' + item.name.replace(/'/g, "\\'") + '\',' + item.price + ',1)">+</button>' +
-        '<button class="note-btn" onclick="openNotes(\'' + item.id + '\')" title="Special instructions">\ud83d\udcdd</button>' +
+        '<button class="note-btn" onclick="openNotes(\'' + item.id + '\')" title="Special instructions">📝</button>' +
         '</div>'
       : '<button class="add-btn" id="addbtn_' + item.id + '" onclick="addItem(\'' + item.id + '\',\'' + item.name.replace(/'/g, "\\'") + '\',' + item.price + ')">Add</button>';
+
     var infoPanelId = 'info_' + item.id;
     var isOpen = openInfoId === item.id;
+
     return '<div class="item-card' + (inCart ? ' in-cart' : '') + '" id="card_' + item.id + '">' +
       '<div class="item-card-top">' +
       '<div class="item-info">' +
@@ -1560,6 +1481,7 @@ function renderMenu(search) {
       '</div>';
   }).join('');
 }
+
 // ══════════════════════════════════════════════
 // INFO PANEL
 // ══════════════════════════════════════════════
@@ -1571,23 +1493,29 @@ function closeAnyOpenInfoPanel() {
   if (btn)   btn.classList.remove('open');
   openInfoId = null;
 }
+
 async function toggleInfoPanel(itemId) {
   // If same panel is open — close it
   if (openInfoId === itemId) {
     closeAnyOpenInfoPanel();
     return;
   }
+
   // Close any previously open panel
   closeAnyOpenInfoPanel();
+
   // Open new panel
   openInfoId = itemId;
   var panel = document.getElementById('info_' + itemId);
   var btn   = document.getElementById('infobtn_' + itemId);
   if (!panel || !btn) return;
+
   btn.classList.add('open');
   panel.classList.add('open');
+
   // Check if we already have rich data for this item
   var item = allItems.find(function(i) { return i.id === itemId; });
+
   // Try to fetch from info endpoint first (has tags, allergens, etc.)
   try {
     var res  = await fetch(API_BASE + '/api/order-ui/menu/items/' + itemId + '/info?lang=' + (selectedLang || 'en'));
@@ -1598,10 +1526,12 @@ async function toggleInfoPanel(itemId) {
       return;
     }
   } catch(e) { /* fall through to basic display */ }
+
   // Fallback to basic item data if endpoint fails
   var content = document.getElementById('infocontent_' + itemId);
   if (content && item) content.innerHTML = renderInfoPanelContent(item);
 }
+
 function renderInfoPanelContent(item) {
   // Basic fallback using data already in allItems
   var lines = [];
@@ -1618,12 +1548,15 @@ function renderInfoPanelContent(item) {
   }
   return lines.join('');
 }
+
 function buildInfoPanelHTML(data) {
   var html = '';
+
   // Bestseller badge
   if (data.bestseller_badge) {
     html += '<div class="info-bestseller">' + data.bestseller_badge.label + '</div>';
   }
+
   // Diet + spice tags row
   var topTags = [];
   if (data.tags.diet && data.tags.diet.length) {
@@ -1636,11 +1569,13 @@ function buildInfoPanelHTML(data) {
     topTags.push('<span class="info-tag spice">' + spiceMap[data.spice_level] + '</span>');
   }
   if (topTags.length) html += '<div class="info-tag-row">' + topTags.join('') + '</div>';
+
   // Cuisine
   if (data.cuisine_type) {
-    var cuisineEmoji = { indian:'\ud83c\udf5b', chinese:'\ud83e\udd62', italian:'\ud83c\udf5d', continental:'🍽', mughlai:'\ud83e\uded5', mexican:'\ud83c\udf2e', thai:'\ud83c\udf5c', mediterranean:'\ud83e\udd59' };
+    var cuisineEmoji = { indian:'🍛', chinese:'🥢', italian:'🍝', continental:'🍽', mughlai:'🫕', mexican:'🌮', thai:'🍜', mediterranean:'🥙' };
     html += '<div class="info-row"><span class="info-label">' + t('cuisine') + '</span><span class="info-val">' + (cuisineEmoji[data.cuisine_type] || '') + ' ' + data.cuisine_type.charAt(0).toUpperCase() + data.cuisine_type.slice(1) + '</span></div>';
   }
+
   // Description
   if (data.description) {
     html += '<div class="info-section-title">' + t('about') + '</div>';
@@ -1651,35 +1586,41 @@ function buildInfoPanelHTML(data) {
     html += '<div class="info-section-title">' + t('about') + '</div>';
     html += '<div style="color:#9b8b72;font-size:13px;margin-bottom:8px">Description not available for this item.</div>';
   }
+
   // Label tags
   if (data.tags.label && data.tags.label.length) {
     html += '<div class="info-tag-row">';
     data.tags.label.forEach(function(t) { html += '<span class="info-tag label">' + t.display_icon + ' ' + t.tag_name + '</span>'; });
     html += '</div>';
   }
+
   // Flavor
   if (data.tags.flavor && data.tags.flavor.length) {
     html += '<div class="info-section-title">' + t('flavor') + '</div><div class="info-tag-row">';
     data.tags.flavor.forEach(function(t) { html += '<span class="info-tag flavor">' + t.display_icon + ' ' + t.tag_name + '</span>'; });
     html += '</div>';
   }
+
   // Experience
   if (data.tags.experience && data.tags.experience.length) {
     html += '<div class="info-section-title">' + t('experience') + '</div><div class="info-tag-row">';
     data.tags.experience.forEach(function(t) { html += '<span class="info-tag experience">' + t.display_icon + ' ' + t.tag_name + '</span>'; });
     html += '</div>';
   }
+
   // Ingredients
   if (data.ingredients_text) {
     html += '<div class="info-section-title">' + t('ingredients') + '</div>';
     html += '<div class="info-val" style="font-size:13px;line-height:1.5;margin-bottom:8px">' + data.ingredients_text + '</div>';
   }
+
   // Restrictions (only if tags exist)
   if (data.tags.restriction && data.tags.restriction.length) {
     html += '<div class="info-section-title">' + t('restrictions') + '</div><div class="info-tag-row">';
     data.tags.restriction.forEach(function(t) { html += '<span class="info-tag restriction">' + t.display_icon + ' ' + t.tag_name + '</span>'; });
     html += '</div>';
   }
+
   // Allergens (only if tags exist)
   if (data.tags.allergen && data.tags.allergen.length) {
     html += '<div class="info-section-title">' + t('allergens') + '</div><div class="info-tag-row">';
@@ -1687,24 +1628,28 @@ function buildInfoPanelHTML(data) {
     html += '</div>';
     html += '<div class="info-warn">⚠️ Allergen info depends on what the restaurant has confirmed. Please check with staff for allergy concerns.</div>';
   }
+
   // Bar info
   if (data.is_alcoholic) {
     html += '<div class="info-section-title">' + t('bar_info') + '</div>';
-    html += '<div class="info-row"><span class="info-label">' + t('contains') + '</span><span class="info-val">\ud83c\udf78 Alcohol</span></div>';
+    html += '<div class="info-row"><span class="info-label">' + t('contains') + '</span><span class="info-val">🍸 Alcohol</span></div>';
     if (data.tags.drink_style && data.tags.drink_style.length) {
       html += '<div class="info-tag-row">';
       data.tags.drink_style.forEach(function(t) { html += '<span class="info-tag drink">' + t.display_icon + ' ' + t.tag_name + '</span>'; });
       html += '</div>';
     }
   }
+
   // Minimum fallback if everything is null
   if (!html.trim()) {
     html = '<div style="text-align:center;padding:8px;color:#9b8b72;font-size:13px">' +
       (data.category ? data.category + '<br>' : '') +
       'Full details not available. Ask our staff.</div>';
   }
+
   return html;
 }
+
 // ══════════════════════════════════════════════
 // CART OPERATIONS (unchanged from original)
 // ══════════════════════════════════════════════
@@ -1722,6 +1667,7 @@ function addItem(itemId, name, price) {
     addItemDirect(itemId, name, price, []);
   }
 }
+
 function addItemDirect(itemId, name, price, modifiers) {
   var modsTotal = modifiers.reduce(function(s,m) { return s+(m.price||0); }, 0);
   var unitPrice = price + modsTotal;
@@ -1735,6 +1681,7 @@ function addItemDirect(itemId, name, price, modifiers) {
   var modText = modifiers.length ? ' + ' + modifiers.map(function(m) { return m.name; }).join(', ') : '';
   showToast('✅ ' + name + modText + ' added!');
 }
+
 function openModifierModal(itemId, name, price, mods) {
   pendingAddItem = { itemId, name, price };
   document.getElementById('modItemName').textContent = name;
@@ -1755,11 +1702,13 @@ function openModifierModal(itemId, name, price, mods) {
   document.getElementById('modOptions').innerHTML = html;
   document.getElementById('modifierModal').style.display = 'block';
 }
+
 function updateModTotal(base) {
   var total = base;
   document.querySelectorAll('[id^="mod_"]:checked').forEach(function(cb) { total += parseInt(cb.dataset.price||0); });
   document.getElementById('modTotal').textContent = total;
 }
+
 function confirmModifiers() {
   if (!pendingAddItem) return;
   var item = pendingAddItem;
@@ -1770,16 +1719,19 @@ function confirmModifiers() {
   closeModifierModal();
   addItemDirect(item.itemId, item.name, item.price, selected);
 }
+
 function skipModifiers() {
   if (!pendingAddItem) return;
   var item = pendingAddItem;
   closeModifierModal();
   addItemDirect(item.itemId, item.name, item.price, []);
 }
+
 function closeModifierModal() {
   document.getElementById('modifierModal').style.display = 'none';
   pendingAddItem = null;
 }
+
 function changeQty(itemId, name, price, delta) {
   var cur    = cart[itemId] ? cart[itemId].qty : 0;
   var newQty = cur + delta;
@@ -1792,6 +1744,7 @@ function changeQty(itemId, name, price, delta) {
   updateCartUI();
   syncCartItem(itemId, newQty < 0 ? 0 : newQty);
 }
+
 function updateCartUI() {
   var items = Object.entries(cart);
   var count = items.reduce(function(s,e) { return s+e[1].qty; }, 0);
@@ -1802,6 +1755,7 @@ function updateCartUI() {
   document.getElementById('cartPillTotal').textContent = count > 0 ? ' — ₹' + total : '';
   if (count > 0) pill.classList.add('visible'); else pill.classList.remove('visible');
 }
+
 async function syncCartItem(itemId, qty, modifiers) {
   if (!SESSION_ID) return;
   var item = cart[itemId];
@@ -1825,6 +1779,7 @@ async function syncCartItem(itemId, qty, modifiers) {
     if (res.status === 409) lockCartAfterOrder();
   } catch(e) { console.error('syncCartItem failed', e); }
 }
+
 function lockCartAfterOrder() {
   document.querySelectorAll('.qty-btn, .add-btn, .place-order-btn').forEach(function(btn) {
     btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed';
@@ -1833,6 +1788,7 @@ function lockCartAfterOrder() {
   if (btn) { btn.textContent = '✅ Order Placed'; btn.style.background = '#22c55e'; btn.disabled = true; }
   showToast(t('order_locked'));
 }
+
 // ══════════════════════════════════════════════
 // ADDRESS
 // ══════════════════════════════════════════════
@@ -1845,12 +1801,14 @@ function onAddressInput() {
     document.getElementById('deliveryAddress').style.borderColor = '#22c55e';
   } else { btn.disabled = true; btn.style.opacity = '0.5'; }
 }
+
 function selectPastAddress(addr) {
   document.getElementById('deliveryAddress').value = addr;
   document.querySelectorAll('.past-addr-chip').forEach(function(el) { el.classList.remove('selected'); });
   event.target.classList.add('selected');
   onAddressInput();
 }
+
 async function loadPastAddresses() {
   try {
     var res  = await fetch(API_BASE + '/api/order-ui/past-addresses/' + SESSION_ID);
@@ -1865,6 +1823,7 @@ async function loadPastAddresses() {
       '<div style="font-size:11px;color:#888;margin-top:6px;margin-bottom:2px">' + t('new_address') + '</div>';
   } catch(e) { /* ignore */ }
 }
+
 // ══════════════════════════════════════════════
 // LOCK UI
 // ══════════════════════════════════════════════
@@ -1873,11 +1832,10 @@ function lockUI(billNumber) {
     b.disabled = true; b.style.opacity = '0.4'; b.style.pointerEvents = 'none';
   });
   var btn = document.getElementById('placeOrderBtn');
-  if (btn) {
-    btn.disabled = true; btn.style.background = '#22c55e'; btn.style.opacity = '1';
-    btn.textContent = billNumber ? '✅ Ordered #' + billNumber : '✅ Order Placed';
-  }
+  btn.disabled = true; btn.style.background = '#22c55e'; btn.style.opacity = '1';
+  btn.textContent = billNumber ? '✅ Order Placed #' + billNumber : '✅ Order Placed';
 }
+
 // ══════════════════════════════════════════════
 // PLACE ORDER
 // ══════════════════════════════════════════════
@@ -1921,11 +1879,12 @@ async function placeOrder(skipAddressCheck) {
     btn.textContent = t('place_order'); btn.classList.remove('loading');
   }
 }
+
 // ══════════════════════════════════════════════
 // CART DRAWER
 // ══════════════════════════════════════════════
-function openCart() { document.getElementById('cartDrawer').classList.add('open'); document.getElementById('drawerOverlay').classList.add('open'); renderCartDrawer(); hideBottomNav(); }
-function closeCart() { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('open'); showBottomNav(); }
+function openCart() { document.getElementById('cartDrawer').classList.add('open'); document.getElementById('drawerOverlay').classList.add('open'); renderCartDrawer(); }
+function closeCart() { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('open'); }
 function renderCartDrawer() {
   var items = Object.entries(cart);
   var total = items.reduce(function(s,e) { return s+e[1].price*e[1].qty; }, 0);
@@ -1948,6 +1907,7 @@ function renderCartDrawer() {
   document.getElementById('cartTotal').textContent = '₹' + total;
   document.getElementById('cartTotalRow').style.display = 'flex';
 }
+
 // ══════════════════════════════════════════════
 // POPULAR
 // ══════════════════════════════════════════════
@@ -1971,15 +1931,23 @@ function renderPopular() {
       '</div>';
   }).join('');
 }
+
 // ══════════════════════════════════════════════
 // UPSELL (unchanged)
 // ══════════════════════════════════════════════
 var _upsellItem = null;
 var _skipAddressCheck = false;
-async function startUpsell() {
+
+async function startUpsell(skipAddr) {
+  _skipAddressCheck = skipAddr || false;
+  var addrEl     = document.getElementById('deliveryAddress');
+  var address    = addrEl ? addrEl.value.trim() : '';
+  var isDelivery = document.getElementById('addressSection').style.display !== 'none';
+  if (isDelivery && address.length < 6 && !skipAddr) {
+    document.getElementById('addressHint').style.display = 'block';
+    if (addrEl) { addrEl.focus(); addrEl.style.borderColor = '#e53e3e'; } return;
+  }
   if (Object.keys(cart).length === 0) { showToast(t('add_items_first')); return; }
-  closeCart();
-  _upsellQty = 0;
   var cartNames = Object.values(cart).map(function(i) { return i.name; });
   showUpsellModal('loading', null);
   try {
@@ -1991,21 +1959,20 @@ async function startUpsell() {
     if (data.suggestion && data.itemId) {
       _upsellItem = { id: data.itemId, name: data.suggestion, price: data.price };
       showUpsellModal(data.message, _upsellItem);
-    } else { hideUpsellModal(); openCheckoutModal(); }
-  } catch(e) { hideUpsellModal(); openCheckoutModal(); }
+    } else { hideUpsellModal(); showConfirmModal(_skipAddressCheck); }
+  } catch(e) { hideUpsellModal(); await placeOrder(_skipAddressCheck); }
 }
+
 function showUpsellModal(msg, item) {
   document.getElementById('upsellOverlay').style.opacity = '1';
   document.getElementById('upsellOverlay').style.pointerEvents = 'all';
   document.getElementById('upsellModal').style.transform = 'translateX(-50%) translateY(0)';
-  hideBottomNav();
   if (item) {
     document.getElementById('upsellMsg').textContent = msg;
     document.getElementById('upsellLoading').style.display = 'none';
     document.getElementById('upsellItemName').textContent  = item.name;
     document.getElementById('upsellItemPrice').textContent = '₹' + item.price;
     document.getElementById('upsellItem').style.display    = 'block';
-    document.getElementById('upsellQtyNum').textContent    = '0';
   } else if (msg === 'loading') {
     document.getElementById('upsellMsg').textContent      = '';
     document.getElementById('upsellLoading').style.display = 'block';
@@ -2016,150 +1983,39 @@ function showUpsellModal(msg, item) {
     document.getElementById('upsellItem').style.display    = 'none';
   }
 }
+
 function hideUpsellModal() {
   document.getElementById('upsellOverlay').style.opacity = '0';
   document.getElementById('upsellOverlay').style.pointerEvents = 'none';
   document.getElementById('upsellModal').style.transform = 'translateX(-50%) translateY(100%)';
   _upsellItem = null;
-  showBottomNav();
 }
-function upsellQtyChange(delta) {
-  _upsellQty = Math.max(0, _upsellQty + delta);
-  document.getElementById('upsellQtyNum').textContent = _upsellQty;
-}
-async function confirmUpsellAndCheckout() {
-  if (_upsellItem && _upsellQty > 0) {
-    var item   = _upsellItem;
-    var newQty = (cart[item.id] ? cart[item.id].qty : 0) + _upsellQty;
-    cart[item.id] = { qty: newQty, notes: '', name: item.name, display_name: item.name, price: item.price, modifiers: [] };
-    try {
-      await fetch(API_BASE + '/api/order-ui/cart-item/' + SESSION_ID, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ menu_item_id: item.id, quantity: newQty, name: item.name, price: item.price })
-      });
-    } catch(e) { console.error('Upsell save failed', e); }
-    renderMenu(); updateCartUI(); showToast('✅ ' + item.name + ' added!');
-  }
-  hideUpsellModal();
-  openCheckoutModal();
-}
-// ══════════════════════════════════════════════
-// CHECKOUT MODAL
-// ══════════════════════════════════════════════
-function selectCheckoutPay(mode) {
-  checkoutPaymentMode = mode;
-  var cod = document.getElementById('cpmCOD');
-  var onl = document.getElementById('cpmOnline');
-  if (mode === 'cod') {
-    cod.style.borderColor = '#ea580c'; cod.style.background = '#fff7f0';
-    cod.querySelector('div:nth-child(2)').style.color = '#ea580c';
-    onl.style.borderColor = '#ede8df'; onl.style.background = 'white';
-    onl.querySelector('div:nth-child(2)').style.color = '#1a1207';
-  } else {
-    onl.style.borderColor = '#ea580c'; onl.style.background = '#fff7f0';
-    onl.querySelector('div:nth-child(2)').style.color = '#ea580c';
-    cod.style.borderColor = '#ede8df'; cod.style.background = 'white';
-    cod.querySelector('div:nth-child(2)').style.color = '#1a1207';
-  }
-}
-function openCheckoutModal() {
-  var items = Object.entries(cart);
-  if (!items.length) return;
-  var subtotal = 0;
-  var itemsHtml = items.map(function(e) {
-    var id = e[0]; var item = e[1]; subtotal += item.price * item.qty;
-    var noteHtml = item.notes ? '<div style="font-size:11px;color:#9b8b72;margin-top:2px">📝 ' + item.notes + '</div>' : '';
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f5f0e8;font-size:14px">' +
-      '<div style="font-weight:600;flex:1">' + (item.display_name || item.name) +
-      '<div style="font-size:12px;color:#9b8b72;font-weight:400">x' + item.qty + '</div>' + noteHtml + '</div>' +
-      '<div style="color:#ea580c;font-weight:700;margin-left:12px">₹' + (item.price * item.qty) + '</div></div>';
-  }).join('');
-  document.getElementById('checkoutItemsList').innerHTML = itemsHtml;
-  var platformFee = 3;
-  var grand = subtotal + platformFee;
-  document.getElementById('checkoutPricing').innerHTML =
-    '<div style="display:flex;justify-content:space-between;padding:3px 0;color:#666"><span>Subtotal</span><span>₹' + subtotal + '</span></div>' +
-    '<div style="display:flex;justify-content:space-between;padding:3px 0;color:#666"><span>Platform fee</span><span>₹' + platformFee + '</span></div>' +
-    '<div style="display:flex;justify-content:space-between;padding:8px 0 0;border-top:1.5px solid #ede8df;margin-top:6px;font-weight:800;font-size:16px"><span>Total</span><span>₹' + grand + '</span></div>';
-  var addrSec = document.getElementById('checkoutAddrSection');
-  if (sessionMode === 'delivery') {
-    addrSec.style.display = 'block';
-    loadCheckoutAddresses();
-  } else {
-    addrSec.style.display = 'none';
-  }
-  var paySec = document.getElementById('checkoutPaySection');
-  var cBtn   = document.getElementById('checkoutPlaceBtn');
-  if (sessionMode === 'dine_in') {
-    paySec.style.display = 'none';
-    cBtn.textContent = 'Send to Kitchen →';
-  } else if (sessionMode === 'takeaway') {
-    paySec.style.display = 'block';
-    document.getElementById('cpmCOD').style.display = 'none';
-    checkoutPaymentMode = 'online';
-    selectCheckoutPay('online');
-    cBtn.textContent = 'Pay ₹' + grand + ' →';
-  } else {
-    paySec.style.display = 'block';
-    document.getElementById('cpmCOD').style.display = '';
-    checkoutPaymentMode = 'cod';
-    selectCheckoutPay('cod');
-    cBtn.textContent = 'Place Order →';
-  }
-  cBtn.disabled = false;
-  document.getElementById('checkoutModal').style.display = 'block';
-  hideBottomNav();
-}
-function closeCheckout() { document.getElementById('checkoutModal').style.display = 'none'; showBottomNav(); }
-function closeCheckoutOpenCart() { closeCheckout(); renderMenu(); updateCartUI(); openCart(); }
-async function placeOrderFromCheckout() {
-  if (Object.keys(cart).length === 0) { showToast(t('add_items_first')); return; }
-  if (sessionMode === 'delivery') {
-    if (!_selectedAddrStr || _selectedAddrStr.length < 5) {
-      document.getElementById('checkoutAddrHint').style.display = 'block'; return;
-    }
-    sessionDeliveryAddress = _selectedAddrStr;
-    await fetch(API_BASE + '/api/order-ui/address/' + SESSION_ID, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address: _selectedAddrStr })
-    }).catch(function() {});
-  }
-  var btn = document.getElementById('checkoutPlaceBtn');
-  var origText = btn.textContent;
-  btn.textContent = t('placing_order'); btn.disabled = true;
-  var payMode = sessionMode === 'dine_in' ? 'cod' : checkoutPaymentMode;
+
+async function addUpsellItem() {
+  if (!_upsellItem) return;
+  var item = _upsellItem;
+  var newQty = cart[item.id] ? cart[item.id].qty + 1 : 1;
   try {
-    var res  = await fetch(API_BASE + '/api/order-ui/place-order/' + SESSION_ID, {
+    await fetch(API_BASE + '/api/order-ui/cart-item/' + SESSION_ID, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ payment_mode: payMode })
+      body: JSON.stringify({ menu_item_id: item.id, quantity: newQty, name: item.name, price: item.price })
     });
+  } catch(e) { console.error('Upsell save failed', e); }
+  try {
+    var res  = await fetch(API_BASE + '/api/order-ui/cart/' + SESSION_ID);
     var data = await res.json();
-    if (res.status === 410) { showToast(t('session_expired')); btn.textContent = origText; btn.disabled = false; return; }
-    if (data.success) {
-      closeCheckout();
-      document.getElementById('cartPill').classList.remove('visible');
-      if (payMode === 'online' && data.payment_url) {
-        showToast('✅ ' + t('order_placed') + data.bill_number);
-        cart = {}; updateCartUI(); renderMenu(); lockUI(data.bill_number);
-        setTimeout(function() { window.location.href = data.payment_url; }, 1500); return;
-      }
-      if (payMode === 'online' && data.payment_status === 'payment_pending') {
-        showToast('✅ Order placed! Complete payment to confirm.');
-        cart = {}; updateCartUI(); renderMenu(); lockUI(data.bill_number); return;
-      }
-      showToast('✅ ' + t('order_placed') + data.bill_number);
-      if (sessionMode !== 'dine_in') {
-        cart = {}; updateCartUI(); renderMenu(); lockUI(data.bill_number);
-      } else {
-        cart = {}; updateCartUI(); renderMenu();
-        btn.textContent = 'Send to Kitchen →'; btn.disabled = false;
-      }
-    } else { throw new Error(data.error || 'Failed'); }
-  } catch(e) {
-    showToast(t('order_failed'));
-    btn.textContent = origText; btn.disabled = false;
-  }
+    if (data.items) {
+      cart = {};
+      data.items.forEach(function(i) { cart[i.menu_item_id] = { qty: i.quantity, notes: i.notes||'', name: i.name, price: i.price }; });
+    }
+  } catch(e) {}
+  renderMenu(); updateCartUI(); showToast('✅ ' + item.name + ' added!');
+  hideUpsellModal(); showConfirmModal(_skipAddressCheck);
 }
+
+async function skipUpsell() { hideUpsellModal(); showConfirmModal(_skipAddressCheck); }
+async function confirmAfterUpsell() { hideUpsellModal(); showConfirmModal(_skipAddressCheck); }
+
 // ══════════════════════════════════════════════
 // NOTES
 // ══════════════════════════════════════════════
@@ -2183,6 +2039,7 @@ function saveNotes() {
   cart[_notesItemId].notes = document.getElementById('notesTextarea').value.trim();
   updateCartUI(); syncCartItem(_notesItemId, cart[_notesItemId].qty); closeNotes(); showToast(t('note_saved'));
 }
+
 // ══════════════════════════════════════════════
 // ORDER CONFIRMATION
 // ══════════════════════════════════════════════
@@ -2195,7 +2052,7 @@ function showConfirmModal(skipAddr) {
   var html = items.map(function(e) {
     var id = e[0], item = e[1];
     total += item.price * item.qty;
-    var noteHtml = item.notes ? '<div class="confirm-item-note">\ud83d\udcdd ' + item.notes + '</div>' : '';
+    var noteHtml = item.notes ? '<div class="confirm-item-note">📝 ' + item.notes + '</div>' : '';
     var dispName = item.display_name || item.name;
     return '<div class="confirm-item"><div class="confirm-item-name">' + dispName + '<div style="font-size:12px;color:#9b8b72;font-weight:400">x' + item.qty + '</div>' + noteHtml + '</div><div class="confirm-item-price">₹' + (item.price*item.qty) + '</div></div>';
   }).join('');
@@ -2235,24 +2092,25 @@ async function confirmAndPlace() {
   closeConfirm(); await placeOrder(_confirmSkipAddr);
   btn.textContent = t('place_order'); btn.disabled = false;
 }
+
 // ══════════════════════════════════════════════
 // LANGUAGE (unchanged)
 // ══════════════════════════════════════════════
 var LANGUAGES = [
-  { code:'en',      flag:'\ud83c\uddec\ud83c\udde7', name:'English',   native:'English'    },
-  { code:'hi',      flag:'\ud83c\uddee\ud83c\uddf3', name:'Hindi',     native:'हिन्दी'      },
-  { code:'mr',      flag:'\ud83c\uddee\ud83c\uddf3', name:'Marathi',   native:'मराठी'       },
-  { code:'hi_LATN', flag:'\ud83c\uddee\ud83c\uddf3', name:'Hinglish',  native:'Hinglish'   },
-  { code:'ta',      flag:'\ud83c\uddee\ud83c\uddf3', name:'Tamil',     native:'தமிழ்'       },
-  { code:'te',      flag:'\ud83c\uddee\ud83c\uddf3', name:'Telugu',    native:'తెలుగు'      },
-  { code:'gu',      flag:'\ud83c\uddee\ud83c\uddf3', name:'Gujarati',  native:'ગુજરાતી'     },
-  { code:'ml',      flag:'\ud83c\uddee\ud83c\uddf3', name:'Malayalam', native:'മലയാളം'      },
-  { code:'kn',      flag:'\ud83c\uddee\ud83c\uddf3', name:'Kannada',   native:'ಕನ್ನಡ'       },
-  { code:'ru',      flag:'\ud83c\uddf7\ud83c\uddfa', name:'Russian',   native:'Русский'    },
-  { code:'zh',      flag:'\ud83c\udde8\ud83c\uddf3', name:'Chinese',   native:'中文'        },
-  { code:'de',      flag:'\ud83c\udde9\ud83c\uddea', name:'German',    native:'Deutsch'    },
-  { code:'fr',      flag:'\ud83c\uddeb\ud83c\uddf7', name:'French',    native:'Français'   },
-  { code:'es',      flag:'\ud83c\uddea\ud83c\uddf8', name:'Spanish',   native:'Español'    },
+  { code:'en',      flag:'🇬🇧', name:'English',   native:'English'    },
+  { code:'hi',      flag:'🇮🇳', name:'Hindi',     native:'हिन्दी'      },
+  { code:'mr',      flag:'🇮🇳', name:'Marathi',   native:'मराठी'       },
+  { code:'hi_LATN', flag:'🇮🇳', name:'Hinglish',  native:'Hinglish'   },
+  { code:'ta',      flag:'🇮🇳', name:'Tamil',     native:'தமிழ்'       },
+  { code:'te',      flag:'🇮🇳', name:'Telugu',    native:'తెలుగు'      },
+  { code:'gu',      flag:'🇮🇳', name:'Gujarati',  native:'ગુજરાતી'     },
+  { code:'ml',      flag:'🇮🇳', name:'Malayalam', native:'മലയാളം'      },
+  { code:'kn',      flag:'🇮🇳', name:'Kannada',   native:'ಕನ್ನಡ'       },
+  { code:'ru',      flag:'🇷🇺', name:'Russian',   native:'Русский'    },
+  { code:'zh',      flag:'🇨🇳', name:'Chinese',   native:'中文'        },
+  { code:'de',      flag:'🇩🇪', name:'German',    native:'Deutsch'    },
+  { code:'fr',      flag:'🇫🇷', name:'French',    native:'Français'   },
+  { code:'es',      flag:'🇪🇸', name:'Spanish',   native:'Español'    },
 ];
 var selectedLang = localStorage.getItem('buddy_lang') || 'en';
 function getLang() { return LANGUAGES.find(function(l) { return l.code === selectedLang; }) || LANGUAGES[0]; }
@@ -2285,6 +2143,7 @@ function updateUIStrings() {
   }
   var ut = document.getElementById('upsellTitle'); if (ut) ut.textContent = t('upsell_title');
   var ult = document.getElementById('upsellLoadingText'); if (ult) ult.textContent = t('upsell_loading');
+  var us = document.getElementById('upsellSkipBtn'); if (us) us.textContent = t('skip');
   var up = document.getElementById('upsellPlaceBtn'); if (up) up.textContent = t('place_order');
   var cot = document.getElementById('confirmTitle'); if (cot) cot.textContent = '✅ ' + t('confirm_order');
   var cs = document.getElementById('confirmSubtitle'); if (cs) cs.textContent = t('review_order');
@@ -2302,6 +2161,7 @@ function updateUIStrings() {
   var lt = document.getElementById('loadingText'); if (lt) lt.textContent = t('loading');
   buildFilterChips();
 }
+
 function selectLang(code) {
   selectedLang = code;
   localStorage.setItem('buddy_lang', code);
@@ -2334,328 +2194,6 @@ function selectLang(code) {
 }
 
 // ══════════════════════════════════════════════
-// STRUCTURED ADDRESS SYSTEM
-// ══════════════════════════════════════════════
-var _selectedAddrId   = null;  // selected address UUID
-var _selectedAddrStr  = '';    // full address string for session
-var _selectedAddrLabel = 'Home'; // label for new address form
-var _savedAddresses   = [];   // cached from API
-
-async function loadCheckoutAddresses() {
-  var cardsEl = document.getElementById('checkoutAddrCards');
-  cardsEl.innerHTML = '<div style="text-align:center;padding:8px;color:#9b8b72;font-size:13px">Loading…</div>';
-  document.getElementById('checkoutAddrHint').style.display = 'none';
-  var phone = '';
-  try {
-    var sessionRes = await fetch(API_BASE + '/api/order-ui/session/' + SESSION_ID);
-    var sess = await sessionRes.json();
-    phone = sess.customer_phone || '';
-  } catch(e) {}
-  if (!phone) { cardsEl.innerHTML = ''; return; }
-  // Strip country code for API
-  var digits = phone.replace(/\D/g,'');
-  var shortPhone = digits.length > 10 ? digits.slice(-10) : digits;
-  try {
-    var res  = await fetch(API_BASE + '/api/order-ui/addresses?phone=' + shortPhone);
-    var data = await res.json();
-    _savedAddresses = data.addresses || [];
-  } catch(e) { _savedAddresses = []; }
-  // If we have a pre-filled address from session but no saved addresses,
-  // render the pre-filled address as the only option
-  if (!_savedAddresses.length && sessionDeliveryAddress) {
-    _selectedAddrId  = 'session';
-    _selectedAddrStr = sessionDeliveryAddress;
-    cardsEl.innerHTML = renderAddrCard({ id:'session', label:'Saved', full_address: sessionDeliveryAddress }, true);
-    return;
-  }
-  if (!_savedAddresses.length) { cardsEl.innerHTML = ''; return; }
-  // Auto-select default or first
-  var defaultAddr = _savedAddresses.find(function(a) { return a.is_default; }) || _savedAddresses[0];
-  _selectedAddrId  = defaultAddr.id;
-  _selectedAddrStr = defaultAddr.full_address;
-  cardsEl.innerHTML = _savedAddresses.map(function(addr) {
-    return renderAddrCard(addr, addr.id === _selectedAddrId);
-  }).join('');
-}
-
-function renderAddrCard(addr, selected) {
-  var labelIcon = addr.label === 'Home' ? '🏠' : addr.label === 'Work' ? '🏢' : '📍';
-  return '<div class="addr-card' + (selected ? ' selected' : '') + '" onclick="selectDeliveryAddress(\'' + addr.id + '\',\'' + addr.full_address.replace(/'/g,"\\'") + '\')">' +
-    '<input type="radio" name="deliveryAddr"' + (selected ? ' checked' : '') + '>' +
-    '<div class="addr-card-body">' +
-    '<div class="addr-card-label">' + labelIcon + ' ' + addr.label + '</div>' +
-    '<div class="addr-card-text">' + addr.full_address + '</div>' +
-    '</div></div>';
-}
-
-function selectDeliveryAddress(addrId, fullAddr) {
-  _selectedAddrId  = addrId;
-  _selectedAddrStr = fullAddr;
-  document.getElementById('checkoutAddrHint').style.display = 'none';
-  // Re-render cards
-  var cardsEl = document.getElementById('checkoutAddrCards');
-  if (_savedAddresses.length) {
-    cardsEl.innerHTML = _savedAddresses.map(function(addr) {
-      return renderAddrCard(addr, addr.id === addrId);
-    }).join('');
-  } else if (addrId === 'session') {
-    cardsEl.innerHTML = renderAddrCard({ id:'session', label:'Saved', full_address: fullAddr }, true);
-  }
-}
-
-function selectAddrLabel(el) {
-  document.querySelectorAll('.addr-label-chip').forEach(function(c) { c.classList.remove('active'); });
-  el.classList.add('active');
-  _selectedAddrLabel = el.dataset.label;
-}
-
-function openAddAddressForm() {
-  // Reset form
-  ['addrLine1','addrLine2','addrArea','addrCity','addrPincode'].forEach(function(id) {
-    var el = document.getElementById(id); if (el) el.value = '';
-  });
-  document.querySelectorAll('.addr-label-chip').forEach(function(c) { c.classList.remove('active'); });
-  var homeChip = document.querySelector('.addr-label-chip[data-label="Home"]');
-  if (homeChip) homeChip.classList.add('active');
-  _selectedAddrLabel = 'Home';
-  document.getElementById('addrFormErr').style.display = 'none';
-  document.getElementById('addrFormModal').style.display = 'block';
-  setTimeout(function() { var el = document.getElementById('addrLine1'); if(el) el.focus(); }, 300);
-}
-
-function closeAddAddressForm() { document.getElementById('addrFormModal').style.display = 'none'; }
-
-async function saveNewAddress() {
-  var line1   = (document.getElementById('addrLine1').value || '').trim();
-  var line2   = (document.getElementById('addrLine2').value || '').trim();
-  var area    = (document.getElementById('addrArea').value  || '').trim();
-  var city    = (document.getElementById('addrCity').value  || '').trim();
-  var pincode = (document.getElementById('addrPincode').value || '').trim();
-  if (!line1) {
-    document.getElementById('addrFormErr').style.display = 'block'; return;
-  }
-  // Build full address string
-  var parts = [line1, line2, area, city, pincode].filter(Boolean);
-  var fullAddr = parts.join(', ');
-  // Get phone from session
-  var phone = '';
-  try {
-    var sessionRes = await fetch(API_BASE + '/api/order-ui/session/' + SESSION_ID);
-    var sess = await sessionRes.json();
-    phone = sess.customer_phone || '';
-  } catch(e) {}
-  var digits = phone.replace(/\D/g,'');
-  var shortPhone = digits.length > 10 ? digits.slice(-10) : digits;
-  try {
-    var saveRes = await fetch(API_BASE + '/api/order-ui/addresses', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: shortPhone, label: _selectedAddrLabel, line1, line2, area, city, pincode })
-    });
-    var saved = await saveRes.json();
-    closeAddAddressForm();
-    // Reload addresses and auto-select new one
-    await loadCheckoutAddresses();
-    // Select the newly saved address
-    if (saved.id) {
-      selectDeliveryAddress(saved.id, fullAddr);
-    }
-    showToast('✅ Address saved!');
-  } catch(e) {
-    // Save failed — use address inline without persisting
-    closeAddAddressForm();
-    _selectedAddrId  = 'temp';
-    _selectedAddrStr = fullAddr;
-    var cardsEl = document.getElementById('checkoutAddrCards');
-    cardsEl.innerHTML = renderAddrCard({ id:'temp', label: _selectedAddrLabel, full_address: fullAddr }, true);
-    showToast('✅ Address added');
-  }
-}
-
-
-// ══════════════════════════════════════════════
-// BOTTOM NAV HELPERS
-// ══════════════════════════════════════════════
-function hideBottomNav() {
-  var nav = document.getElementById('bottomNav');
-  if (nav) nav.style.display = 'none';
-}
-function showBottomNav() {
-  var nav = document.getElementById('bottomNav');
-  if (nav) nav.style.display = 'flex';
-}
-
-// ══════════════════════════════════════════════
-// GPS — USE MY LOCATION
-// ══════════════════════════════════════════════
-function useMyLocation() {
-  var btn    = document.getElementById('gpsBtn');
-  var status = document.getElementById('gpsStatus');
-  if (!navigator.geolocation) {
-    showToast('GPS not supported on this browser');
-    return;
-  }
-  btn.textContent = '⏳ Getting location…';
-  btn.style.opacity = '0.7';
-  btn.disabled = true;
-  status.style.display = 'block';
-  status.textContent = 'Accessing your location…';
-
-  navigator.geolocation.getCurrentPosition(
-    async function(pos) {
-      var lat = pos.coords.latitude;
-      var lng = pos.coords.longitude;
-      status.textContent = 'Finding address…';
-      try {
-        var res  = await fetch(API_BASE + '/api/order-ui/reverse-geocode?lat=' + lat + '&lng=' + lng);
-        var data = await res.json();
-        if (data.ok) {
-          if (data.area) document.getElementById('addrArea').value = data.area;
-          if (data.city) document.getElementById('addrCity').value = data.city;
-          // Note: pincode NOT auto-filled — GPS pincode detection is approximate in India
-          // Customer must type their exact pincode
-          status.textContent = '✅ Area & city filled. Please add flat no. and verify pincode.';
-          status.style.color = '#16a34a';
-          document.getElementById('addrLine1').focus();
-        } else {
-          status.textContent = 'Could not detect address. Please type manually.';
-        }
-      } catch(e) {
-        status.textContent = 'Location lookup failed. Please type manually.';
-      }
-      btn.textContent = '📍 Use My Current Location';
-      btn.style.opacity = '1';
-      btn.disabled = false;
-    },
-    function(err) {
-      var msg = err.code === 1 ? 'Location access denied. Please type address manually.'
-              : 'Could not get location. Please type manually.';
-      status.textContent = msg;
-      status.style.color = '#e53e3e';
-      btn.textContent = '📍 Use My Current Location';
-      btn.style.opacity = '1';
-      btn.disabled = false;
-    },
-    { timeout: 10000, enableHighAccuracy: true }
-  );
-}
-
-// ══════════════════════════════════════════════
-// TAB SWITCHER — Menu / My Orders
-// ══════════════════════════════════════════════
-var _currentTab = 'menu';
-var _ordersLoaded = false;
-
-function switchTab(tab) {
-  _currentTab = tab;
-  var menuContent   = document.getElementById('menuContent');
-  var ordersScreen  = document.getElementById('ordersScreen');
-  var catTabs       = document.getElementById('catTabs');
-  var filterChips   = document.getElementById('filterChips');
-  var popularSec    = document.getElementById('popularSection');
-  var navMenu       = document.getElementById('navMenu');
-  var navOrders     = document.getElementById('navOrders');
-  var cartPill      = document.getElementById('cartPill');
-  var header        = document.querySelector('.header');
-
-  if (tab === 'menu') {
-    menuContent.style.display  = 'block';
-    ordersScreen.classList.remove('active');
-    catTabs.style.display      = 'flex';
-    filterChips.style.display  = filterChips.innerHTML ? 'flex' : 'none';
-    if (popularSec) popularSec.style.display = 'block';
-    navMenu.classList.add('active');
-    navOrders.classList.remove('active');
-    cartPill.style.display = Object.keys(cart).length > 0 ? 'flex' : 'none';
-  } else {
-    menuContent.style.display  = 'none';
-    ordersScreen.classList.add('active');
-    catTabs.style.display      = 'none';
-    filterChips.style.display  = 'none';
-    if (popularSec) popularSec.style.display = 'none';
-    navMenu.classList.remove('active');
-    navOrders.classList.add('active');
-    cartPill.style.display = 'none';
-    loadMyOrders();
-  }
-}
-
-async function loadMyOrders() {
-  var content = document.getElementById('ordersContent');
-  content.innerHTML = '<div class="orders-loading">Loading your orders…</div>';
-
-  // Get phone from session
-  try {
-    var sessRes  = await fetch(API_BASE + '/api/order-ui/session/' + SESSION_ID);
-    var sessData = await sessRes.json();
-    var phone    = sessData.customer_phone || '';
-    var restId   = sessData.restaurant_id  || '';
-    if (!phone || !restId) throw new Error('No phone');
-
-    var digits = phone.replace(/\D/g, '');
-    var short  = digits.length > 10 ? digits.slice(-10) : digits;
-
-    var res  = await fetch(API_BASE + '/api/order-ui/my-orders?phone=' + short + '&r=' + restId);
-    var data = await res.json();
-    var orders = data.orders || [];
-
-    if (!orders.length) {
-      content.innerHTML = '<div class="orders-empty"><div style="font-size:48px;margin-bottom:16px">📋</div><p style="font-size:15px;font-weight:600;margin-bottom:8px">No orders yet</p><p style="font-size:13px">Your order history will appear here</p></div>';
-      _ordersLoaded = true;
-      return;
-    }
-
-    var html = '';
-    // IST timezone fix — server stores UTC, compare dates in IST (+5:30)
-      var IST_OFFSET = 5.5 * 60 * 60 * 1000;
-      var nowIST     = new Date(Date.now() + IST_OFFSET);
-      var todayIST   = nowIST.toISOString().slice(0, 10);
-
-    orders.forEach(function(order) {
-      var orderDate    = new Date(order.created_at);
-      var orderDateIST = new Date(orderDate.getTime() + IST_OFFSET);
-      var orderDayIST  = orderDateIST.toISOString().slice(0, 10);
-      var isToday      = orderDayIST === todayIST;
-      var timeStr     = isToday
-        ? orderDate.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', timeZone:'Asia/Kolkata' })
-        : orderDate.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric', timeZone:'Asia/Kolkata' }) +
-          ' ' + orderDate.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', timeZone:'Asia/Kolkata' });
-
-      var modeIcon = order.mode === 'delivery' ? '🚗' : order.mode === 'takeaway' ? '🏃' : '🍽️';
-      var modeLabel = order.mode === 'delivery' ? 'Delivery' : order.mode === 'takeaway' ? 'Takeaway' : 'Dine-in';
-
-      var itemsList = '';
-      if (order.items && order.items.length) {
-        itemsList = order.items.map(function(i) {
-          return i.name + ' x' + i.quantity;
-        }).join(', ');
-      }
-
-      var tokenBadge = (order.mode === 'takeaway' && order.pickup_token)
-        ? '<span class="order-token">🎫 ' + order.pickup_token + '</span>'
-        : '<span class="order-mode">' + modeIcon + ' ' + modeLabel + '</span>';
-
-      html += '<div class="order-card">' +
-        '<div class="order-card-header">' +
-        '<div><div class="order-bill">' + (order.bill_number || 'Order') + '</div>' +
-        '<div class="order-time">' + timeStr + '</div></div>' +
-        tokenBadge +
-        '</div>' +
-        (itemsList ? '<div class="order-items">' + itemsList + '</div>' : '') +
-        '<div class="order-footer">' +
-        '<span class="order-total">₹' + order.grand_total + '</span>' +
-        '<span class="order-status confirmed">✅ Confirmed</span>' +
-        '</div></div>';
-    });
-
-    content.innerHTML = html;
-    _ordersLoaded = true;
-  } catch(e) {
-    content.innerHTML = '<div class="orders-empty"><p>Could not load orders.<br>Please try again.</p></div>';
-  }
-}
-
-
-// ══════════════════════════════════════════════
 // TOAST
 // ══════════════════════════════════════════════
 function showToast(msg) {
@@ -2663,11 +2201,13 @@ function showToast(msg) {
   t.textContent = msg; t.classList.add('show');
   setTimeout(function() { t.classList.remove('show'); }, 2500);
 }
+
 // ══════════════════════════════════════════════
 // START
 // ══════════════════════════════════════════════
 init();
 </script>
+
 <!-- Modifier Modal -->
 <div id="modifierModal" style="display:none;position:fixed;inset:0;z-index:500">
   <div onclick="closeModifierModal()" style="position:absolute;inset:0;background:rgba(0,0,0,0.5)"></div>
@@ -2683,3 +2223,4 @@ init();
 </div>
 </body>
 </html>
+

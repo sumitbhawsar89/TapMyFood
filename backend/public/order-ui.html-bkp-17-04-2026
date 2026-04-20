@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:    #1a1207;
+    --cream:  #fdf6e9;
+    --amber:  #f59e0b;
+    --orange: #ea580c;
+    --green:  #16a34a;
+    --red:    #dc2626;
+    --muted:  #9b8b72;
+    --card:   #ffffff;
+    --border: #ede8df;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; max-width: 480px; margin: 0 auto; padding-bottom: 160px; }
+  .header { background: var(--ink); color: white; padding: 20px 20px 16px; position: sticky; top: 0; z-index: 100; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .restaurant-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+  .mode-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; background: var(--amber); color: var(--ink); text-transform: uppercase; letter-spacing: 0.5px; }
+  .mode-badge.dine { background: #22c55e; }
+  .mode-badge.takeaway { background: #a78bfa; color: white; }
+  .search-wrap { position: relative; }
+  .search-input { width: 100%; background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 10px 16px 10px 38px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: white; outline: none; transition: border-color 0.2s; }
+  .search-input::placeholder { color: rgba(255,255,255,0.45); }
+  .search-input:focus { border-color: var(--amber); }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.5; font-size: 15px; }
+  .filter-chips-wrap { display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; scrollbar-width: none; background: white; border-bottom: 1px solid var(--border); }
+  .filter-chips-wrap::-webkit-scrollbar { display: none; }
+  .filter-chip { flex-shrink: 0; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--cream); border: 1.5px solid var(--border); cursor: pointer; transition: all 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+  .filter-chip.active { background: var(--ink); color: white; border-color: var(--ink); }
+  .filter-chip:active { transform: scale(0.95); }
+  .cat-tabs { display: flex; gap: 8px; padding: 14px 20px; overflow-x: auto; scrollbar-width: none; background: white; border-bottom: 1px solid var(--border); }
+  .cat-tabs::-webkit-scrollbar { display: none; }
+  .cat-tab { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; background: var(--cream); border: 1.5px solid var(--border); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .cat-tab.active { background: var(--ink); color: white; border-color: var(--ink); }
+  .menu-section { padding: 0 16px; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; padding: 18px 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .item-card { background: var(--card); border-radius: var(--radius); border: 1.5px solid var(--border); padding: 14px; margin-bottom: 10px; transition: border-color 0.2s; }
+  .item-card.in-cart { border-color: var(--orange); }
+  .item-card-top { display: flex; gap: 12px; align-items: flex-start; }
+  .item-info { flex: 1; min-width: 0; }
+  .item-name { font-weight: 600; font-size: 15px; margin-bottom: 3px; }
+  .item-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; align-items: center; }
+  .item-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
+  .item-badge.spice { background: #fff3cd; color: #856404; }
+  .item-badge.popular { background: #fff8e1; color: #e65100; }
+  .item-badge.chef { background: #f3e5f5; color: #6a1b9a; }
+  .item-desc { font-size: 12px; color: var(--muted); margin-bottom: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .item-footer { display: flex; align-items: center; justify-content: space-between; }
+  .item-price { font-weight: 700; font-size: 16px; color: var(--orange); }
+  .veg-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle; flex-shrink: 0; }
+  .veg-dot.veg { background: var(--green); }
+  .veg-dot.nonveg { background: var(--red); }
+  .qty-control { display: flex; align-items: center; gap: 8px; }
+  .qty-btn { width: 28px; height: 28px; border-radius: 50%; border: none; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; background: var(--orange); color: white; }
+  .qty-btn:active { transform: scale(0.9); }
+  .qty-num { font-weight: 700; font-size: 15px; min-width: 20px; text-align: center; }
+  .add-btn { padding: 6px 16px; border-radius: 20px; border: 1.5px solid var(--orange); background: white; color: var(--orange); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .add-btn:active { background: var(--orange); color: white; }
+  .item-img { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; flex-shrink: 0; background: var(--cream); }
+  .info-btn { background: none; border: 1.5px solid var(--border); border-radius: 50%; width: 28px; height: 28px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; color: var(--muted); margin-left: 6px; }
+  .info-btn:active { background: var(--cream); }
+  .info-btn.open { background: var(--ink); color: white; border-color: var(--ink); }
+  .info-panel { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
+  .info-panel.open { max-height: 800px; }
+  .info-panel-inner { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
+  .info-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+  .info-label { font-weight: 600; color: var(--ink); min-width: 80px; flex-shrink: 0; }
+  .info-val { color: #444; line-height: 1.5; }
+  .info-tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .info-tag { font-size: 11px; padding: 3px 8px; border-radius: 10px; font-weight: 600; }
+  .info-tag.diet { background: #e8f5e9; color: #2e7d32; }
+  .info-tag.spice { background: #fff3e0; color: #e65100; }
+  .info-tag.label { background: #f3e5f5; color: #6a1b9a; }
+  .info-tag.flavor { background: #e3f2fd; color: #1565c0; }
+  .info-tag.experience { background: #e0f7fa; color: #006064; }
+  .info-tag.restriction { background: #fce4ec; color: #880e4f; }
+  .info-tag.allergen { background: #fff8e1; color: #f57f17; }
+  .info-tag.drink { background: #ede7f6; color: #4527a0; }
+  .info-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 5px; margin-top: 8px; }
+  .info-warn { font-size: 11px; color: #c0392b; background: #fff5f5; border-radius: 6px; padding: 4px 8px; margin-top: 4px; }
+  .info-bestseller { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--orange); margin-bottom: 8px; }
+  .empty-state { text-align: center; padding: 60px 24px; color: var(--muted); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+  .cart-pill { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 14px 28px; border-radius: 50px; font-weight: 600; font-size: 15px; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.25); display: none; align-items: center; gap: 12px; z-index: 90; transition: all 0.3s; white-space: nowrap; }
+  .cart-pill.visible { display: flex; }
+  .cart-pill-count { background: var(--orange); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+  .drawer-overlay.open { opacity: 1; pointer-events: all; }
+  .cart-drawer { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; z-index: 201; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); max-height: 85vh; overflow-y: auto; padding: 24px 20px 32px; }
+  .cart-drawer.open { transform: translateX(-50%) translateY(0); }
+  .drawer-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .drawer-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; margin-bottom: 16px; }
+  .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .cart-item-name { font-size: 14px; font-weight: 500; }
+  .cart-item-price { font-size: 14px; color: var(--muted); }
+  .cart-item-qty { display: flex; align-items: center; gap: 8px; }
+  .cart-total-row { display: flex; justify-content: space-between; padding: 14px 0 4px; font-weight: 700; font-size: 16px; }
+  .place-order-btn { width: 100%; padding: 16px; background: var(--orange); color: white; border: none; border-radius: 14px; font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 12px; transition: all 0.2s; }
+  .place-order-btn:active { transform: scale(0.99); }
+  .place-order-btn.loading { opacity: 0.7; pointer-events: none; }
+  .place-order-btn:disabled { cursor: not-allowed; }
+  /* ── PAYMENT MODE SELECTOR ── */
+  .payment-mode-wrap { margin-top: 14px; }
+  .payment-mode-label { font-size: 11px; font-weight: 600; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+  .payment-mode-options { display: flex; gap: 8px; }
+  .payment-mode-opt { flex: 1; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; text-align: center; transition: all .15s; background: white; }
+  .payment-mode-opt.selected { border-color: var(--orange); background: #fff7f0; }
+  .payment-mode-opt:active { transform: scale(0.97); }
+  .payment-mode-opt-icon { font-size: 18px; margin-bottom: 2px; }
+  .payment-mode-opt-name { font-size: 12px; font-weight: 700; color: var(--ink); }
+  .payment-mode-opt-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .payment-mode-opt.selected .payment-mode-opt-name { color: var(--orange); }
+  .confirm-modal { position:fixed;inset:0;z-index:450;display:none; }
+  .confirm-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.55); }
+  .confirm-panel { position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box;max-height:90vh;overflow-y:auto; }
+  .confirm-title { font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px; }
+  .confirm-subtitle { font-size:13px;color:#9b8b72;margin-bottom:16px; }
+  .confirm-items { border:1.5px solid #ede8df;border-radius:12px;overflow:hidden;margin-bottom:16px; }
+  .confirm-item { display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #f5f0e8;font-size:14px; }
+  .confirm-item:last-child { border-bottom:none; }
+  .confirm-item-name { font-weight:600;flex:1; }
+  .confirm-item-note { font-size:11px;color:#9b8b72;margin-top:2px; }
+  .confirm-item-price { color:#ea580c;font-weight:700;margin-left:12px;white-space:nowrap; }
+  .confirm-total { display:flex;justify-content:space-between;font-weight:800;font-size:16px;padding:12px 0;border-top:2px solid #1a1207;margin-top:4px; }
+  .confirm-addr { font-size:12px;color:#9b8b72;background:#f9f6f0;border-radius:8px;padding:10px 12px;margin-bottom:16px; }
+  .confirm-btns { display:flex;gap:10px; }
+  .confirm-edit-btn { flex:1;padding:14px;border:1.5px solid #ede8df;border-radius:12px;background:white;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72; }
+  .confirm-place-btn { flex:2;padding:14px;background:#ea580c;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer; }
+  .notes-modal { position:fixed;inset:0;z-index:460;display:none; }
+  .notes-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.5); }
+  .notes-panel { position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box; }
+  .notes-title { font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:4px; }
+  .notes-item-name { font-size:13px;color:#9b8b72;margin-bottom:14px; }
+  .notes-textarea { width:100%;border:1.5px solid #ede8df;border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-size:14px;resize:none;outline:none;box-sizing:border-box;height:100px; }
+  .notes-textarea:focus { border-color:#ea580c; }
+  .notes-hints { display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px; }
+  .notes-hint-chip { border:1.5px solid #ede8df;border-radius:20px;padding:6px 12px;font-size:12px;cursor:pointer;background:white;transition:all 0.15s; }
+  .notes-hint-chip:active { border-color:#ea580c;color:#ea580c; }
+  .note-btn { background:none;border:none;font-size:15px;cursor:pointer;padding:2px 4px;opacity:0.5;margin-left:4px; }
+  .note-btn:active { opacity:1; }
+  .notes-save-btn { width:100%;padding:14px;background:#1a1207;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer; }
+  .lang-btn { background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 5px 10px; font-size: 13px; color: white; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s; }
+  .lang-btn:active { background: rgba(255,255,255,0.25); }
+  .lang-drawer { position: fixed; inset: 0; z-index: 500; display: none; }
+  .lang-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
+  .lang-panel { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: white; border-radius: 24px 24px 0 0; padding: 24px 20px 32px; box-sizing: border-box; }
+  .lang-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; margin-bottom: 16px; text-align: center; }
+  .lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .lang-option { padding: 14px 12px; border: 2px solid #ede8df; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; transition: all 0.15s; background: white; }
+  .lang-option:active { transform: scale(0.97); }
+  .lang-option.selected { border-color: #ea580c; background: #fff7f0; color: #ea580c; }
+  .lang-option .flag { font-size: 22px; }
+  .lang-option .label { display: flex; flex-direction: column; }
+  .lang-option .native { font-size: 12px; color: #9b8b72; font-weight: 400; margin-top: 1px; }
+  .lang-option.selected .native { color: #ea580c; opacity: 0.7; }
+  .popular-chip { flex-shrink: 0; background: white; border: 1.5px solid #ede8df; border-radius: 12px; padding: 10px 12px; cursor: pointer; transition: all 0.15s; min-width: 120px; max-width: 150px; }
+  .popular-chip:active { border-color: #ea580c; transform: scale(0.97); }
+  .popular-chip-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .popular-chip-price { font-size: 12px; color: #ea580c; font-weight: 700; margin-top: 2px; }
+  .popular-chip-add { font-size: 11px; color: #9b8b72; margin-top: 4px; }
+  .address-section { display: none; padding: 12px 0 8px; }
+  .address-label { font-size: 12px; font-weight: 600; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+  .past-addr-chip { padding: 8px 12px; background: #f5f5f5; border-radius: 8px; margin-bottom: 4px; font-size: 13px; cursor: pointer; border: 1.5px solid transparent; transition: all .15s; }
+  .past-addr-chip.selected { border-color: var(--orange); background: #fff5ef; }
+  .address-textarea { width: 100%; min-height: 72px; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit; resize: none; background: #faf8f5; box-sizing: border-box; outline: none; }
+  .address-hint { font-size: 11px; color: #e53e3e; margin-top: 4px; display: none; }
+  .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: white; padding: 10px 20px; border-radius: 50px; font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+  #aiPanel,#aiOverlay,.ai-fab,.ai-toggle{display:none!important}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top">
+    <span class="restaurant-name" id="restName">Loading…</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="lang-btn" onclick="openLangDrawer()" id="langBtn">🌐 EN</button>
+      <span class="mode-badge" id="modeBadge">—</span>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="searchInput" placeholder="Search menu…" autocomplete="off">
+  </div>
+</div>
+<div class="filter-chips-wrap" id="filterChips" style="display:none">
+  <div class="filter-chip" data-filter="all" onclick="applyFilter('all',this)">All</div>
+  <div class="filter-chip" data-filter="veg" onclick="applyFilter('veg',this)">🟢 Veg Only</div>
+  <div class="filter-chip" data-filter="nonveg" onclick="applyFilter('nonveg',this)">🔴 Non-Veg</div>
+  <div class="filter-chip" data-filter="mild" onclick="applyFilter('mild',this)">😊 Mild</div>
+  <div class="filter-chip" data-filter="spicy" onclick="applyFilter('spicy',this)">🌶 Spicy</div>
+  <div class="filter-chip" data-filter="popular" onclick="applyFilter('popular',this)">⭐ Popular</div>
+</div>
+<div class="cat-tabs" id="catTabs"></div>
+<div id="popularSection" style="display:none;padding:14px 16px 0">
+  <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;color:#9b8b72;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🔥 Popular</div>
+  <div id="popularItems" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none"></div>
+</div>
+<div class="menu-section" id="menuContent">
+  <div class="empty-state"><div class="icon">🍔</div><p id="loadingText">Loading menu…</p></div>
+</div>
+<div class="cart-pill" id="cartPill" onclick="openCart()">
+  <div class="cart-pill-count" id="cartCount">0</div>
+  <span id="cartPillText">View Cart</span>
+  <span id="cartPillTotal"></span>
+</div>
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeCart()"></div>
+<div class="cart-drawer" id="cartDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-title" id="cartDrawerTitle">🛒 Your Cart</div>
+  <div id="cartItems"></div>
+  <div class="cart-total-row" id="cartTotalRow" style="display:none">
+    <span id="cartTotalLabel">Total</span><span id="cartTotal">₹0</span>
+  </div>
+  <div class="address-section" id="addressSection">
+    <div class="address-label" id="addrLabel">📍 Delivery Address</div>
+    <div id="pastAddresses"></div>
+    <textarea class="address-textarea" id="deliveryAddress" placeholder="Enter your full delivery address…" oninput="onAddressInput()" onblur="if(this.value.trim())this.style.borderColor='#22c55e';else this.style.borderColor='var(--border)'"></textarea>
+    <div class="address-hint" id="addressHint">⚠️ Please enter delivery address</div>
+  </div>
+  <!-- Payment Mode Selector — shown for delivery and takeaway, hidden for dine-in -->
+  <div class="payment-mode-wrap" id="paymentModeSection" style="display:none">
+    <div class="payment-mode-label">💳 Payment Method</div>
+    <div class="payment-mode-options">
+      <label class="payment-mode-opt selected" id="pmCOD" onclick="selectPaymentMode('cod')">
+        <div class="payment-mode-opt-icon">💵</div>
+        <div class="payment-mode-opt-name">Cash</div>
+        <div class="payment-mode-opt-sub">Pay on delivery</div>
+      </label>
+      <label class="payment-mode-opt" id="pmOnline" onclick="selectPaymentMode('online')">
+        <div class="payment-mode-opt-icon">📱</div>
+        <div class="payment-mode-opt-name">Pay Online</div>
+        <div class="payment-mode-opt-sub">UPI / Card</div>
+      </label>
+    </div>
+  </div>
+  <button class="place-order-btn" id="placeOrderBtn" onclick="startUpsell()">Place Order →</button>
+</div>
+<!-- Order Confirmation Modal -->
+<div class="confirm-modal" id="confirmModal">
+  <div class="confirm-overlay" onclick="closeConfirm()"></div>
+  <div class="confirm-panel">
+    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
+    <div class="confirm-title" id="confirmTitle">✅ Confirm Order</div>
+    <div class="confirm-subtitle" id="confirmSubtitle">Review your order before placing</div>
+    <div class="confirm-items" id="confirmItems"></div>
+    <div class="confirm-total"><span>Total</span><span id="confirmTotal">₹0</span></div>
+    <div class="confirm-addr" id="confirmAddr" style="display:none"></div>
+    <div class="confirm-btns" style="flex-direction:column;gap:10px">
+      <button class="confirm-place-btn" id="confirmPlaceBtn" onclick="confirmAndPlace()">✅ Place Order →</button>
+      <div style="display:flex;gap:10px">
+        <button class="confirm-edit-btn" style="flex:1" id="confirmEditBtn" onclick="closeConfirmOpenCart()">✏️ Edit Cart</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Notes Modal -->
+<div class="notes-modal" id="notesModal">
+  <div class="notes-overlay" onclick="closeNotes()"></div>
+  <div class="notes-panel">
+    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
+    <div class="notes-title" id="notesTitle">📝 Special Instructions</div>
+    <div class="notes-item-name" id="notesItemName"></div>
+    <textarea class="notes-textarea" id="notesTextarea" placeholder="e.g. Extra spicy, no onions, less oil…"></textarea>
+    <div class="notes-hints">
+      <button class="notes-hint-chip" id="hint_spicy" onclick="addNoteHint(t('note_extra_spicy'))">🌶️ Extra spicy</button>
+      <button class="notes-hint-chip" id="hint_onions" onclick="addNoteHint(t('note_no_onions'))">🧅 No onions</button>
+      <button class="notes-hint-chip" id="hint_oil" onclick="addNoteHint(t('note_less_oil'))">Less oil</button>
+      <button class="notes-hint-chip" id="hint_garlic" onclick="addNoteHint(t('note_no_garlic'))">No garlic</button>
+      <button class="notes-hint-chip" id="hint_welldone" onclick="addNoteHint(t('note_well_done'))">Well done</button>
+      <button class="notes-hint-chip" id="hint_sauce" onclick="addNoteHint(t('note_extra_sauce'))">Extra sauce</button>
+    </div>
+    <button class="notes-save-btn" id="notesSaveBtn" onclick="saveNotes()">Save</button>
+  </div>
+</div>
+<!-- Language Drawer -->
+<div class="lang-drawer" id="langDrawer">
+  <div class="lang-overlay" onclick="closeLangDrawer()"></div>
+  <div class="lang-panel">
+    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
+    <div class="lang-title" id="langDrawerTitle">🌐 Choose Language</div>
+    <div class="lang-grid" id="langGrid"></div>
+  </div>
+</div>
+<!-- Upsell Modal -->
+<div id="upsellOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;opacity:0;pointer-events:none;transition:opacity 0.25s"></div>
+<div id="upsellModal" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;z-index:401;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);padding:24px 20px 32px;box-sizing:border-box">
+  <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 20px"></div>
+  <div id="upsellTitle" style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px">🔥 Wait — you might like this!</div>
+  <div id="upsellMsg" style="font-size:14px;color:#9b8b72;margin-bottom:16px;line-height:1.5">Finding the perfect add-on…</div>
+  <div id="upsellItem" style="display:none;background:#fdf6e9;border:1.5px solid #f59e0b;border-radius:14px;padding:16px;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div id="upsellItemName" style="font-weight:700;font-size:16px;margin-bottom:3px"></div>
+        <div id="upsellItemPrice" style="color:#ea580c;font-weight:700;font-size:14px"></div>
+      </div>
+      <button onclick="addUpsellItem()" style="background:#ea580c;color:white;border:none;border-radius:20px;padding:10px 20px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;flex-shrink:0">＋ Add</button>
+    </div>
+  </div>
+  <div id="upsellLoading" style="text-align:center;padding:16px;color:#9b8b72;font-size:13px"><div style="margin-bottom:6px">🤔</div><span id="upsellLoadingText">Checking what pairs well…</span></div>
+  <div style="display:flex;gap:10px;margin-top:8px">
+    <button id="upsellSkipBtn" onclick="skipUpsell()" style="flex:1;padding:14px;border:1.5px solid #ede8df;border-radius:12px;background:white;font-size:14px;font-weight:600;cursor:pointer;color:#9b8b72">Skip</button>
+    <button id="upsellPlaceBtn" onclick="confirmAfterUpsell()" style="flex:2;padding:14px;background:#1a1207;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer">Place Order →</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+// ══════════════════════════════════════════════════════════
+// TapMyFood order-ui.html
+// Backup base + payment mode selector changes
+// ══════════════════════════════════════════════════════════
+
+// ── i18n ──
+const I18N = {
+  en: {
+    search_placeholder:'Search menu…',filter_all:'All',filter_veg:'🟢 Veg Only',filter_nonveg:'🔴 Non-Veg',filter_mild:'😊 Mild',filter_spicy:'🌶 Spicy',filter_popular:'⭐ Popular',
+    add:'Add',item:'item',items:'items',view_cart:'View Cart',your_cart:'🛒 Your Cart',cart_empty:'Cart is empty',total:'Total',each:'each',place_order:'Place Order →',
+    delivery_address:'📍 Delivery Address',recent_addresses:'Recent addresses:',new_address:'Or enter new address:',address_placeholder:'Enter your full delivery address…',address_required:'⚠️ Please enter delivery address',
+    add_extras:'ADD EXTRAS (OPTIONAL)',add_to_cart:'Add to Cart',add_without:'Add without extras',
+    special_instructions:'📝 Special Instructions',note_extra_spicy:'🌶️ Extra spicy',note_no_onions:'🧅 No onions',note_less_oil:'Less oil',note_no_garlic:'No garlic',note_well_done:'Well done',note_extra_sauce:'Extra sauce',save:'Save',
+    confirm_order:'✅ Confirm Order',review_order:'Review your order before placing',edit_cart:'✏️ Edit Cart',add_more:'+ Add More',confirm_place:'✅ Place Order →',
+    dine_in_label:'🍽️ Dine-in order',takeaway_label:'🏃 Takeaway — collect at counter',delivering_to:'📍 Delivering to:',
+    upsell_title:'🔥 Wait — you might like this!',upsell_loading:'Checking what pairs well…',upsell_add:'＋ Add',skip:'Skip',
+    no_items:'No items found',try_filter:'Try a different filter',loading:'Loading menu…',invalid_link:'Invalid link. Please scan the QR code again.',link_expired:'Link Expired',session_ended:'This order session has ended.',scan_again:'Please scan the QR code again to start a new order.',
+    added:'added!',note_saved:'📝 Note saved!',order_placed:'Order placed! Bill #',order_locked:'✅ Order placed — cart is locked',
+    mode_delivery:'Delivery',mode_takeaway:'Takeaway',mode_table:'Table',
+    choose_language:'🌐 Choose Language',lang_changed:'Menu updated in',
+    about:'ABOUT',cuisine:'Cuisine',spice:'Spice',flavor:'Flavor',experience:'Experience',ingredients:'Ingredients',restrictions:'Restrictions',allergens:'Allergens',bar_info:'Bar Info',contains:'Contains',
+    no_description:'Description not available for this item.',ask_staff:'Full details not available. Ask our staff.',allergen_warning:'⚠️ Allergen info depends on what the restaurant has confirmed. Please check with staff for allergy concerns.',
+    popular_section:'🔥 Popular',popular_add:'+ Add',finding_addon:'Finding the perfect add-on…',session_expired:'⚠️ Session expired — scan QR to reorder',placing_order:'Placing order…',menu_load_error:'Could not load menu. Please try again.',add_items_first:'Add items first!',order_failed:'Failed to place order. Try again.',
+  },
+  hi: { search_placeholder:'मेनू खोजें…',filter_all:'सभी',filter_veg:'🟢 शाकाहारी',filter_nonveg:'🔴 मांसाहारी',filter_mild:'😊 हल्का',filter_spicy:'🌶 तीखा',filter_popular:'⭐ लोकप्रिय',add:'जोड़ें',item:'आइटम',items:'आइटम',view_cart:'कार्ट देखें',your_cart:'🛒 आपका कार्ट',cart_empty:'कार्ट खाली है',total:'कुल',each:'प्रत्येक',place_order:'ऑर्डर दें →',delivery_address:'📍 डिलीवरी पता',recent_addresses:'हाल के पते:',new_address:'या नया पता दर्ज करें:',address_placeholder:'अपना पूरा डिलीवरी पता दर्ज करें…',address_required:'⚠️ कृपया डिलीवरी पता दर्ज करें',add_extras:'एक्स्ट्रा जोड़ें (वैकल्पिक)',add_to_cart:'कार्ट में जोड़ें',add_without:'बिना एक्स्ट्रा के जोड़ें',special_instructions:'📝 विशेष निर्देश',note_extra_spicy:'🌶️ अतिरिक्त तीखा',note_no_onions:'🧅 प्याज नहीं',note_less_oil:'कम तेल',note_no_garlic:'लहसुन नहीं',note_well_done:'अच्छे से पकाएं',note_extra_sauce:'अतिरिक्त सॉस',save:'सेव करें',confirm_order:'✅ ऑर्डर कन्फर्म करें',review_order:'ऑर्डर देने से पहले समीक्षा करें',edit_cart:'✏️ कार्ट संपादित करें',add_more:'+ और जोड़ें',confirm_place:'✅ ऑर्डर दें →',dine_in_label:'🍽️ डाइन-इन ऑर्डर',takeaway_label:'🏃 टेकअवे — काउंटर से लें',delivering_to:'📍 डिलीवरी:',upsell_title:'🔥 रुकिए — आपको यह पसंद आएगा!',upsell_loading:'बेस्ट कॉम्बो देख रहे हैं…',upsell_add:'＋ जोड़ें',skip:'छोड़ें',no_items:'कोई आइटम नहीं मिला',try_filter:'अलग फ़िल्टर आज़माएं',loading:'मेनू लोड हो रहा है…',invalid_link:'अमान्य लिंक। कृपया QR कोड फिर से स्कैन करें।',link_expired:'लिंक समाप्त हो गया',session_ended:'यह ऑर्डर सत्र समाप्त हो गया है।',scan_again:'नया ऑर्डर शुरू करने के लिए QR कोड स्कैन करें।',added:'जोड़ा गया!',note_saved:'📝 नोट सेव हुआ!',order_placed:'ऑर्डर दिया! बिल #',order_locked:'✅ ऑर्डर दिया गया — कार्ट लॉक है',mode_delivery:'डिलीवरी',mode_takeaway:'टेकअवे',mode_table:'टेबल',choose_language:'🌐 भाषा चुनें',lang_changed:'मेनू अपडेट हुआ',about:'के बारे में',cuisine:'व्यंजन',spice:'मसाला',flavor:'स्वाद',experience:'अनुभव',ingredients:'सामग्री',restrictions:'प्रतिबंध',allergens:'एलर्जी',bar_info:'बार जानकारी',contains:'शामिल है',no_description:'इस आइटम का विवरण उपलब्ध नहीं है।',ask_staff:'पूरी जानकारी उपलब्ध नहीं। स्टाफ से पूछें।',allergen_warning:'⚠️ एलर्जी जानकारी रेस्तरां की पुष्टि पर निर्भर है।',popular_section:'🔥 लोकप्रिय',popular_add:'+ जोड़ें', },
+  mr: { search_placeholder:'मेनू शोधा…',filter_all:'सर्व',filter_veg:'🟢 शाकाहारी',filter_nonveg:'🔴 मांसाहारी',filter_mild:'😊 सौम्य',filter_spicy:'🌶 तिखट',filter_popular:'⭐ लोकप्रिय',add:'जोडा',item:'आयटम',items:'आयटम',view_cart:'कार्ट पाहा',your_cart:'🛒 तुमची कार्ट',cart_empty:'कार्ट रिकामी आहे',total:'एकूण',each:'प्रत्येक',place_order:'ऑर्डर द्या →',delivery_address:'📍 डिलिव्हरी पत्ता',recent_addresses:'अलीकडील पत्ते:',new_address:'किंवा नवीन पत्ता टाका:',address_placeholder:'तुमचा पूर्ण डिलिव्हरी पत्ता टाका…',address_required:'⚠️ कृपया डिलिव्हरी पत्ता टाका',add_extras:'अतिरिक्त जोडा (पर्यायी)',add_to_cart:'कार्टमध्ये जोडा',add_without:'अतिरिक्तशिवाय जोडा',special_instructions:'📝 विशेष सूचना',note_extra_spicy:'🌶️ जास्त तिखट',note_no_onions:'🧅 कांदा नको',note_less_oil:'कमी तेल',note_no_garlic:'लसूण नको',note_well_done:'चांगले शिजवा',note_extra_sauce:'अतिरिक्त सॉस',save:'जतन करा',confirm_order:'✅ ऑर्डर निश्चित करा',review_order:'ऑर्डर देण्यापूर्वी तपासा',edit_cart:'✏️ कार्ट संपादित करा',add_more:'+ आणखी जोडा',confirm_place:'✅ ऑर्डर द्या →',dine_in_label:'🍽️ डाइन-इन ऑर्डर',takeaway_label:'🏃 टेकअवे — काउंटरवरून घ्या',delivering_to:'📍 डिलिव्हरी:',upsell_title:'🔥 थांबा — हे तुम्हाला आवडेल!',upsell_loading:'सर्वोत्तम जोडी पाहत आहोत…',upsell_add:'＋ जोडा',skip:'वगळा',no_items:'कोणतेही आयटम सापडले नाहीत',try_filter:'वेगळा फिल्टर वापरा',loading:'मेनू लोड होत आहे…',invalid_link:'अवैध लिंक. कृपया QR कोड पुन्हा स्कॅन करा.',link_expired:'लिंक कालबाह्य झाली',session_ended:'हे ऑर्डर सत्र संपले आहे.',scan_again:'नवीन ऑर्डरसाठी QR कोड स्कॅन करा.',added:'जोडले!',note_saved:'📝 नोट जतन झाली!',order_placed:'ऑर्डर दिली! बिल #',order_locked:'✅ ऑर्डर दिली — कार्ट लॉक आहे',mode_delivery:'डिलिव्हरी',mode_takeaway:'टेकअवे',mode_table:'टेबल',choose_language:'🌐 भाषा निवडा',lang_changed:'मेनू अपडेट झाला',about:'बद्दल',cuisine:'पाककृती',spice:'मसाला',flavor:'चव',experience:'अनुभव',ingredients:'साहित्य',restrictions:'निर्बंध',allergens:'ऍलर्जी',bar_info:'बार माहिती',contains:'समाविष्ट आहे',no_description:'या आयटमचे वर्णन उपलब्ध नाही.',ask_staff:'पूर्ण माहिती उपलब्ध नाही. स्टाफला विचारा.',allergen_warning:'⚠️ ऍलर्जी माहिती रेस्टॉरंटने दिलेल्या माहितीवर अवलंबून आहे.',popular_section:'🔥 लोकप्रिय',popular_add:'+ जोडा', },
+  ru: { search_placeholder:'Поиск в меню…',filter_all:'Все',filter_veg:'🟢 Вегетарианское',filter_nonveg:'🔴 Мясное',filter_mild:'😊 Нежное',filter_spicy:'🌶 Острое',filter_popular:'⭐ Популярное',add:'Добавить',item:'позиция',items:'позиции',view_cart:'Корзина',your_cart:'🛒 Ваша корзина',cart_empty:'Корзина пуста',total:'Итого',each:'за шт.',place_order:'Оформить заказ →',delivery_address:'📍 Адрес доставки',recent_addresses:'Недавние адреса:',new_address:'Или введите новый адрес:',address_placeholder:'Введите полный адрес доставки…',address_required:'⚠️ Пожалуйста, введите адрес доставки',add_extras:'ДОБАВИТЬ ДОПОЛНИТЕЛЬНО',add_to_cart:'В корзину',add_without:'Добавить без дополнений',special_instructions:'📝 Особые пожелания',note_extra_spicy:'🌶️ Очень острое',note_no_onions:'🧅 Без лука',note_less_oil:'Меньше масла',note_no_garlic:'Без чеснока',note_well_done:'Хорошо прожаренное',note_extra_sauce:'Дополнительный соус',save:'Сохранить',confirm_order:'✅ Подтвердить заказ',review_order:'Проверьте заказ перед оформлением',edit_cart:'✏️ Изменить корзину',add_more:'+ Добавить ещё',confirm_place:'✅ Оформить заказ →',dine_in_label:'🍽️ Заказ в ресторане',takeaway_label:'🏃 Навынос — заберите на стойке',delivering_to:'📍 Доставка:',upsell_title:'🔥 Подождите — вам может понравиться!',upsell_loading:'Ищем лучшее дополнение…',upsell_add:'＋ Добавить',skip:'Пропустить',no_items:'Ничего не найдено',try_filter:'Попробуйте другой фильтр',loading:'Загрузка меню…',invalid_link:'Недействительная ссылка. Отсканируйте QR-код снова.',link_expired:'Ссылка устарела',session_ended:'Этот сеанс заказа завершён.',scan_again:'Отсканируйте QR-код для нового заказа.',added:'добавлено!',note_saved:'📝 Примечание сохранено!',order_placed:'Заказ принят! Счёт #',order_locked:'✅ Заказ оформлен — корзина заблокирована',mode_delivery:'Доставка',mode_takeaway:'Навынос',mode_table:'Стол',choose_language:'🌐 Выберите язык',lang_changed:'Меню обновлено на',about:'О блюде',cuisine:'Кухня',spice:'Острота',flavor:'Вкус',experience:'Ощущения',ingredients:'Ингредиенты',restrictions:'Ограничения',allergens:'Аллергены',bar_info:'Бар',contains:'Содержит',no_description:'Описание недоступно для этого блюда.',ask_staff:'Полная информация недоступна. Спросите персонал.',allergen_warning:'⚠️ Информация об аллергенах зависит от данных ресторана.',popular_section:'🔥 Популярное',popular_add:'+ Добавить', },
+  zh: { search_placeholder:'搜索菜单…',filter_all:'全部',filter_veg:'🟢 素食',filter_nonveg:'🔴 荤菜',filter_mild:'😊 不辣',filter_spicy:'🌶 辣',filter_popular:'⭐ 热门',add:'添加',item:'项',items:'项',view_cart:'查看购物车',your_cart:'🛒 您的购物车',cart_empty:'购物车为空',total:'总计',each:'每份',place_order:'下单 →',delivery_address:'📍 配送地址',recent_addresses:'最近地址：',new_address:'或输入新地址：',address_placeholder:'请输入完整配送地址…',address_required:'⚠️ 请输入配送地址',add_extras:'添加额外选项（可选）',add_to_cart:'加入购物车',add_without:'不添加额外选项',special_instructions:'📝 特殊要求',note_extra_spicy:'🌶️ 加辣',note_no_onions:'🧅 不要洋葱',note_less_oil:'少油',note_no_garlic:'不要大蒜',note_well_done:'全熟',note_extra_sauce:'额外酱料',save:'保存',confirm_order:'✅ 确认订单',review_order:'下单前请检查您的订单',edit_cart:'✏️ 编辑购物车',add_more:'+ 继续点餐',confirm_place:'✅ 下单 →',dine_in_label:'🍽️ 堂食订单',takeaway_label:'🏃 外带 — 在柜台取餐',delivering_to:'📍 配送至：',upsell_title:'🔥 稍等 — 您可能喜欢这个！',upsell_loading:'正在寻找最佳搭配…',upsell_add:'＋ 添加',skip:'跳过',no_items:'未找到菜品',try_filter:'请尝试其他筛选条件',loading:'菜单加载中…',invalid_link:'链接无效，请重新扫描二维码。',link_expired:'链接已过期',session_ended:'此订单会话已结束。',scan_again:'请扫描二维码开始新订单。',added:'已添加！',note_saved:'📝 备注已保存！',order_placed:'订单已下！账单 #',order_locked:'✅ 订单已下 — 购物车已锁定',mode_delivery:'外卖',mode_takeaway:'外带',mode_table:'桌',choose_language:'🌐 选择语言',lang_changed:'菜单已更新为',about:'关于',cuisine:'菜系',spice:'辣度',flavor:'口味',experience:'体验',ingredients:'食材',restrictions:'限制',allergens:'过敏原',bar_info:'酒吧信息',contains:'含有',no_description:'此菜品暂无描述。',ask_staff:'详细信息不可用，请询问工作人员。',allergen_warning:'⚠️ 过敏原信息取决于餐厅的确认。',popular_section:'🔥 热门',popular_add:'+ 添加', },
+  de: { search_placeholder:'Speisekarte suchen…',filter_all:'Alle',filter_veg:'🟢 Vegetarisch',filter_nonveg:'🔴 Mit Fleisch',filter_mild:'😊 Mild',filter_spicy:'🌶 Scharf',filter_popular:'⭐ Beliebt',add:'Hinzufügen',item:'Artikel',items:'Artikel',view_cart:'Warenkorb',your_cart:'🛒 Ihr Warenkorb',cart_empty:'Warenkorb ist leer',total:'Gesamt',each:'je',place_order:'Bestellen →',delivery_address:'📍 Lieferadresse',recent_addresses:'Letzte Adressen:',new_address:'Oder neue Adresse eingeben:',address_placeholder:'Vollständige Lieferadresse eingeben…',address_required:'⚠️ Bitte Lieferadresse eingeben',add_extras:'EXTRAS HINZUFÜGEN (OPTIONAL)',add_to_cart:'In den Warenkorb',add_without:'Ohne Extras hinzufügen',special_instructions:'📝 Besondere Anweisungen',note_extra_spicy:'🌶️ Extra scharf',note_no_onions:'🧅 Ohne Zwiebeln',note_less_oil:'Weniger Öl',note_no_garlic:'Ohne Knoblauch',note_well_done:'Gut durchgebraten',note_extra_sauce:'Extra Soße',save:'Speichern',confirm_order:'✅ Bestellung bestätigen',review_order:'Bestellung vor dem Aufgeben überprüfen',edit_cart:'✏️ Warenkorb bearbeiten',add_more:'+ Mehr hinzufügen',confirm_place:'✅ Bestellen →',dine_in_label:'🍽️ Restaurantbestellung',takeaway_label:'🏃 Zum Mitnehmen — an der Theke abholen',delivering_to:'📍 Lieferung an:',upsell_title:'🔥 Warten Sie — das könnte Ihnen gefallen!',upsell_loading:'Beste Ergänzung suchen…',upsell_add:'＋ Hinzufügen',skip:'Überspringen',no_items:'Keine Artikel gefunden',try_filter:'Anderen Filter versuchen',loading:'Speisekarte wird geladen…',invalid_link:'Ungültiger Link. Bitte QR-Code erneut scannen.',link_expired:'Link abgelaufen',session_ended:'Diese Bestellsitzung wurde beendet.',scan_again:'QR-Code scannen für neue Bestellung.',added:'hinzugefügt!',note_saved:'📝 Notiz gespeichert!',order_placed:'Bestellt! Rechnung #',order_locked:'✅ Bestellt — Warenkorb gesperrt',mode_delivery:'Lieferung',mode_takeaway:'Abholung',mode_table:'Tisch',choose_language:'🌐 Sprache wählen',lang_changed:'Menü aktualisiert auf',about:'Über',cuisine:'Küche',spice:'Schärfe',flavor:'Geschmack',experience:'Erlebnis',ingredients:'Zutaten',restrictions:'Einschränkungen',allergens:'Allergene',bar_info:'Bar-Info',contains:'Enthält',no_description:'Keine Beschreibung für diesen Artikel.',ask_staff:'Vollständige Details nicht verfügbar. Fragen Sie das Personal.',allergen_warning:'⚠️ Allergeninformationen hängen von der Bestätigung des Restaurants ab.',popular_section:'🔥 Beliebt',popular_add:'+ Hinzufügen', },
+  fr: { search_placeholder:'Rechercher dans le menu…',filter_all:'Tout',filter_veg:'🟢 Végétarien',filter_nonveg:'🔴 Non végétarien',filter_mild:'😊 Doux',filter_spicy:'🌶 Épicé',filter_popular:'⭐ Populaire',add:'Ajouter',item:'article',items:'articles',view_cart:'Voir le panier',your_cart:'🛒 Votre panier',cart_empty:'Le panier est vide',total:'Total',each:'chacun',place_order:'Commander →',delivery_address:'📍 Adresse de livraison',recent_addresses:'Adresses récentes :',new_address:'Ou entrez une nouvelle adresse :',address_placeholder:'Entrez votre adresse de livraison complète…',address_required:'⚠️ Veuillez entrer une adresse de livraison',add_extras:'AJOUTER DES SUPPLÉMENTS (OPTIONNEL)',add_to_cart:'Ajouter au panier',add_without:'Ajouter sans suppléments',special_instructions:'📝 Instructions spéciales',note_extra_spicy:'🌶️ Extra épicé',note_no_onions:"🧅 Sans oignons",note_less_oil:"Moins d'huile",note_no_garlic:'Sans ail',note_well_done:'Bien cuit',note_extra_sauce:'Sauce supplémentaire',save:'Enregistrer',confirm_order:'✅ Confirmer la commande',review_order:'Vérifiez votre commande avant de passer',edit_cart:'✏️ Modifier le panier',add_more:'+ Ajouter plus',confirm_place:'✅ Commander →',dine_in_label:'🍽️ Commande sur place',takeaway_label:'🏃 À emporter — récupérer au comptoir',delivering_to:'📍 Livraison à :',upsell_title:'🔥 Attendez — vous pourriez aimer ça !',upsell_loading:'Cherche le meilleur accompagnement…',upsell_add:'＋ Ajouter',skip:'Passer',no_items:'Aucun article trouvé',try_filter:'Essayez un autre filtre',loading:'Chargement du menu…',invalid_link:'Lien invalide. Veuillez scanner le QR code à nouveau.',link_expired:'Lien expiré',session_ended:'Cette session de commande est terminée.',scan_again:'Scannez le QR code pour une nouvelle commande.',added:'ajouté !',note_saved:'📝 Note enregistrée !',order_placed:'Commande passée ! Facture #',order_locked:'✅ Commande passée — panier verrouillé',mode_delivery:'Livraison',mode_takeaway:'À emporter',mode_table:'Table',choose_language:'🌐 Choisir la langue',lang_changed:'Menu mis à jour en',about:'À propos',cuisine:'Cuisine',spice:'Épice',flavor:'Saveur',experience:'Expérience',ingredients:'Ingrédients',restrictions:'Restrictions',allergens:'Allergènes',bar_info:'Info bar',contains:'Contient',no_description:'Description non disponible pour cet article.',ask_staff:'Détails complets non disponibles. Demandez au personnel.',allergen_warning:'⚠️ Les informations sur les allergènes dépendent de la confirmation du restaurant.',popular_section:'🔥 Populaire',popular_add:'+ Ajouter', },
+  es: { search_placeholder:'Buscar en el menú…',filter_all:'Todo',filter_veg:'🟢 Vegetariano',filter_nonveg:'🔴 Con carne',filter_mild:'😊 Suave',filter_spicy:'🌶 Picante',filter_popular:'⭐ Popular',add:'Agregar',item:'artículo',items:'artículos',view_cart:'Ver carrito',your_cart:'🛒 Tu carrito',cart_empty:'El carrito está vacío',total:'Total',each:'c/u',place_order:'Hacer pedido →',delivery_address:'📍 Dirección de entrega',recent_addresses:'Direcciones recientes:',new_address:'O ingresa nueva dirección:',address_placeholder:'Ingresa tu dirección de entrega completa…',address_required:'⚠️ Por favor ingresa la dirección de entrega',add_extras:'AGREGAR EXTRAS (OPCIONAL)',add_to_cart:'Agregar al carrito',add_without:'Agregar sin extras',special_instructions:'📝 Instrucciones especiales',note_extra_spicy:'🌶️ Extra picante',note_no_onions:'🧅 Sin cebollas',note_less_oil:'Menos aceite',note_no_garlic:'Sin ajo',note_well_done:'Bien cocido',note_extra_sauce:'Salsa extra',save:'Guardar',confirm_order:'✅ Confirmar pedido',review_order:'Revisa tu pedido antes de confirmar',edit_cart:'✏️ Editar carrito',add_more:'+ Agregar más',confirm_place:'✅ Hacer pedido →',dine_in_label:'🍽️ Pedido en restaurante',takeaway_label:'🏃 Para llevar — recoger en mostrador',delivering_to:'📍 Entregando a:',upsell_title:'🔥 ¡Espera — esto te puede gustar!',upsell_loading:'Buscando el mejor complemento…',upsell_add:'＋ Agregar',skip:'Omitir',no_items:'No se encontraron artículos',try_filter:'Prueba un filtro diferente',loading:'Cargando menú…',invalid_link:'Enlace inválido. Por favor escanea el código QR nuevamente.',link_expired:'Enlace expirado',session_ended:'Esta sesión de pedido ha terminado.',scan_again:'Escanea el código QR para un nuevo pedido.',added:'¡agregado!',note_saved:'📝 ¡Nota guardada!',order_placed:'¡Pedido realizado! Factura #',order_locked:'✅ Pedido realizado — carrito bloqueado',mode_delivery:'Entrega',mode_takeaway:'Para llevar',mode_table:'Mesa',choose_language:'🌐 Elegir idioma',lang_changed:'Menú actualizado a',about:'Acerca de',cuisine:'Cocina',spice:'Picante',flavor:'Sabor',experience:'Experiencia',ingredients:'Ingredientes',restrictions:'Restricciones',allergens:'Alérgenos',bar_info:'Info del bar',contains:'Contiene',no_description:'Descripción no disponible para este artículo.',ask_staff:'Detalles completos no disponibles. Consulta al personal.',allergen_warning:'⚠️ La información sobre alérgenos depende de la confirmación del restaurante.',popular_section:'🔥 Popular',popular_add:'+ Agregar', },
+};
+['hi_LATN','ta','te','gu','ml','kn'].forEach(function(code) { if (!I18N[code]) I18N[code] = I18N['en']; });
+I18N['te'] = { search_placeholder:'మెనూ శోధించండి…',filter_all:'అన్నీ',filter_veg:'🟢 శాకాహారం',filter_nonveg:'🔴 మాంసాహారం',filter_mild:'😊 తక్కువ కారం',filter_spicy:'🌶 కారంగా',filter_popular:'⭐ ప్రసిద్ధి',add:'జోడించు',item:'వస్తువు',items:'వస్తువులు',view_cart:'కార్ట్ చూడు',your_cart:'🛒 మీ కార్ట్',cart_empty:'కార్ట్ ఖాళీగా ఉంది',total:'మొత్తం',each:'ఒక్కొక్కటి',place_order:'ఆర్డర్ చేయండి →',delivery_address:'📍 డెలివరీ చిరునామా',recent_addresses:'ఇటీవలి చిరునామాలు:',new_address:'లేదా కొత్త చిరునామా నమోదు చేయండి:',address_placeholder:'మీ పూర్తి డెలివరీ చిరునామా నమోదు చేయండి…',address_required:'⚠️ దయచేసి డెలివరీ చిరునామా నమోదు చేయండి',add_extras:'అదనపువి జోడించండి (ఐచ్ఛికం)',add_to_cart:'కార్ట్‌కి జోడించు',add_without:'అదనపువి లేకుండా జోడించు',special_instructions:'📝 ప్రత్యేక సూచనలు',note_extra_spicy:'🌶️ అదనపు కారం',note_no_onions:'🧅 ఉల్లిపాయ వద్దు',note_less_oil:'తక్కువ నూనె',note_no_garlic:'వెల్లుల్లి వద్దు',note_well_done:'బాగా వండండి',note_extra_sauce:'అదనపు సాస్',save:'సేవ్ చేయి',confirm_order:'✅ ఆర్డర్ నిర్ధారించు',review_order:'ఆర్డర్ చేయడానికి ముందు తనిఖీ చేయండి',edit_cart:'✏️ కార్ట్ సవరించు',add_more:'+ మరిన్ని జోడించు',confirm_place:'✅ ఆర్డర్ చేయండి →',dine_in_label:'🍽️ రెస్టారెంట్ ఆర్డర్',takeaway_label:'🏃 టేకవే — కౌంటర్ వద్ద తీసుకోండి',delivering_to:'📍 డెలివరీ:',upsell_title:'🔥 ఆగండి — ఇది మీకు నచ్చవచ్చు!',upsell_loading:'ఉత్తమ కలయికను చూస్తున్నాం…',upsell_add:'＋ జోడించు',skip:'దాటవేయి',no_items:'వస్తువులు కనుగొనబడలేదు',try_filter:'వేరే ఫిల్టర్ ప్రయత్నించండి',loading:'మెనూ లోడ్ అవుతోంది…',invalid_link:'చెల్లని లింక్. దయచేసి QR కోడ్ మళ్ళీ స్కాన్ చేయండి.',link_expired:'లింక్ గడువు తీరింది',session_ended:'ఈ ఆర్డర్ సెషన్ ముగిసింది.',scan_again:'కొత్త ఆర్డర్ కోసం QR కోడ్ స్కాన్ చేయండి.',added:'జోడించబడింది!',note_saved:'📝 గమనిక సేవ్ అయింది!',order_placed:'ఆర్డర్ చేయబడింది! బిల్ #',order_locked:'✅ ఆర్డర్ చేయబడింది — కార్ట్ లాక్ చేయబడింది',mode_delivery:'డెలివరీ',mode_takeaway:'టేకవే',mode_table:'టేబుల్',choose_language:'🌐 భాష ఎంచుకోండి',lang_changed:'మెనూ అప్‌డేట్ అయింది',about:'గురించి',cuisine:'వంటకం',spice:'మసాలా',flavor:'రుచి',experience:'అనుభవం',ingredients:'పదార్థాలు',restrictions:'పరిమితులు',allergens:'అలెర్జీలు',bar_info:'బార్ సమాచారం',contains:'కలిగి ఉంది',no_description:'ఈ వస్తువుకు వివరణ అందుబాటులో లేదు.',ask_staff:'పూర్తి వివరాలు అందుబాటులో లేవు. సిబ్బందిని అడగండి.',allergen_warning:'⚠️ అలెర్జీ సమాచారం రెస్టారెంట్ నిర్ధారణపై ఆధారపడి ఉంటుంది.',popular_section:'🔥 ప్రసిద్ధి',popular_add:'+ జోడించు', };
+I18N['ta'] = { search_placeholder:'மெனு தேடுங்கள்…',filter_all:'அனைத்தும்',filter_veg:'🟢 சைவம்',filter_nonveg:'🔴 அசைவம்',filter_mild:'😊 சாதாரண காரம்',filter_spicy:'🌶 காரமாக',filter_popular:'⭐ பிரபலம்',add:'சேர்க்கவும்',item:'பொருள்',items:'பொருட்கள்',view_cart:'கார்ட் பார்க்க',your_cart:'🛒 உங்கள் கார்ட்',cart_empty:'கார்ட் காலியாக உள்ளது',total:'மொத்தம்',each:'ஒவ்வொன்றும்',place_order:'ஆர்டர் செய்யுங்கள் →',delivery_address:'📍 டெலிவரி முகவரி',recent_addresses:'சமீபத்திய முகவரிகள்:',new_address:'அல்லது புதிய முகவரி உள்ளிடவும்:',address_placeholder:'உங்கள் முழு டெலிவரி முகவரியை உள்ளிடவும்…',address_required:'⚠️ டெலிவரி முகவரியை உள்ளிடவும்',add_extras:'கூடுதல் சேர்க்கவும் (விருப்பத்தேர்வு)',add_to_cart:'கார்டில் சேர்க்கவும்',add_without:'கூடுதல் இல்லாமல் சேர்க்கவும்',special_instructions:'📝 சிறப்பு அறிவுறுத்தல்கள்',note_extra_spicy:'🌶️ மிகவும் காரமாக',note_no_onions:'🧅 வெங்காயம் வேண்டாம்',note_less_oil:'குறைந்த எண்ணெய்',note_no_garlic:'பூண்டு வேண்டாம்',note_well_done:'நன்கு சமையுங்கள்',note_extra_sauce:'கூடுதல் சாஸ்',save:'சேமிக்கவும்',confirm_order:'✅ ஆர்டர் உறுதிசெய்யவும்',review_order:'ஆர்டர் செய்வதற்கு முன் சரிபார்க்கவும்',edit_cart:'✏️ கார்ட் திருத்தவும்',add_more:'+ மேலும் சேர்க்கவும்',confirm_place:'✅ ஆர்டர் செய்யுங்கள் →',dine_in_label:'🍽️ உணவகத்தில் ஆர்டர்',takeaway_label:'🏃 எடுத்துச் செல்ல — கவுண்டரில் பெறவும்',delivering_to:'📍 டெலிவரி:',upsell_title:'🔥 நிறுத்துங்கள் — இது உங்களுக்கு பிடிக்கலாம்!',upsell_loading:'சிறந்த சேர்க்கை தேடுகிறோம்…',upsell_add:'＋ சேர்க்கவும்',skip:'தவிர்க்கவும்',no_items:'பொருட்கள் கிடைக்கவில்லை',try_filter:'வேறு வடிகட்டி முயற்சிக்கவும்',loading:'மெனு ஏற்றப்படுகிறது…',invalid_link:'தவறான இணைப்பு. QR குறியீட்டை மீண்டும் ஸ்கேன் செய்யவும்.',link_expired:'இணைப்பின் காலாவதியாகிவிட்டது',session_ended:'இந்த ஆர்டர் அமர்வு முடிந்தது.',scan_again:'புதிய ஆர்டருக்கு QR குறியீட்டை ஸ்கேன் செய்யவும்.',added:'சேர்க்கப்பட்டது!',note_saved:'📝 குறிப்பு சேமிக்கப்பட்டது!',order_placed:'ஆர்டர் வழங்கப்பட்டது! பில் #',order_locked:'✅ ஆர்டர் வழங்கப்பட்டது — கார்ட் பூட்டப்பட்டுள்ளது',mode_delivery:'டெலிவரி',mode_takeaway:'எடுத்துச் செல்ல',mode_table:'மேசை',choose_language:'🌐 மொழி தேர்ந்தெடுக்கவும்',lang_changed:'மெனு புதுப்பிக்கப்பட்டது',about:'பற்றி',cuisine:'உணவு வகை',spice:'மசாலா',flavor:'சுவை',experience:'அனுபவம்',ingredients:'பொருட்கள்',restrictions:'கட்டுப்பாடுகள்',allergens:'ஒவ்வாமைகள்',bar_info:'பார் தகவல்',contains:'உள்ளது',no_description:'இந்த பொருளுக்கு விளக்கம் கிடைக்கவில்லை.',ask_staff:'முழு விவரங்கள் இல்லை. ஊழியர்களிடம் கேளுங்கள்.',allergen_warning:'⚠️ ஒவ்வாமை தகவல் உணவகத்தின் உறுதிப்படுத்தலைப் பொறுத்தது.',popular_section:'🔥 பிரபலம்',popular_add:'+ சேர்க்கவும்', };
+I18N['gu'] = { search_placeholder:'મેનૂ શોધો…',filter_all:'બધા',filter_veg:'🟢 શાકાહારી',filter_nonveg:'🔴 માંસાહારી',filter_mild:'😊 હળવો',filter_spicy:'🌶 તીખો',filter_popular:'⭐ લોકપ્રિય',add:'ઉમેરો',item:'આઇટમ',items:'આઇટમ',view_cart:'કાર્ટ જુઓ',your_cart:'🛒 તમારી કાર્ટ',cart_empty:'કાર્ટ ખાલી છે',total:'કુલ',each:'દરેક',place_order:'ઓર્ડર આપો →',delivery_address:'📍 ડિલિવરી સરનામું',recent_addresses:'તાજેતરના સરનામાં:',new_address:'અથવા નવું સરનામું દાખલ કરો:',address_placeholder:'તમારું સંપૂર્ણ ડિલિવરી સરનામું દાખલ કરો…',address_required:'⚠️ કૃપા કરી ડિલિવરી સરનામું દાખલ કરો',add_extras:'વધારાની ચીજો ઉમેરો (વૈકલ્પિક)',add_to_cart:'કાર્ટમાં ઉમેરો',add_without:'વધારા વિના ઉમેરો',special_instructions:'📝 વિશેષ સૂચના',note_extra_spicy:'🌶️ વધુ તીખો',note_no_onions:'🧅 ડુંગળી નહીં',note_less_oil:'ઓછું તેલ',note_no_garlic:'લસણ નહીં',note_well_done:'સારી રીતે રાંધો',note_extra_sauce:'વધારાની ચટણી',save:'સાચવો',confirm_order:'✅ ઓર્ડર પુષ્ટિ કરો',review_order:'ઓર્ડર આપતા પહેલા તપાસ કરો',edit_cart:'✏️ કાર્ટ સંપાદિત કરો',add_more:'+ વધુ ઉમેરો',confirm_place:'✅ ઓર્ડર આપો →',dine_in_label:'🍽️ રેસ્ટોરન્ટ ઓર્ડર',takeaway_label:'🏃 ટેકઅવે — કાઉન્ટર પર લો',delivering_to:'📍 ડિલિવરી:',upsell_title:'🔥 રોકો — તમને આ ગમી શકે!',upsell_loading:'શ્રેષ્ઠ સંયોજન શોધી રહ્યા છીએ…',upsell_add:'＋ ઉમેરો',skip:'છોડો',no_items:'કોઈ આઇટમ મળી નથી',try_filter:'અલગ ફિલ્ટર અજમાવો',loading:'મેનૂ લોડ થઈ રહ્યું છે…',invalid_link:'અમાન્ય લિંક. QR કોડ ફરીથી સ્કેન કરો.',link_expired:'લિંક સમાપ્ત',session_ended:'આ ઓર્ડર સત્ર સમાપ્ત થઈ ગયું છે.',scan_again:'નવા ઓર્ડર માટે QR કોડ સ્કેન કરો.',added:'ઉમેરાયું!',note_saved:'📝 નોંધ સાચવાઈ!',order_placed:'ઓર્ડર અપાઈ! બિલ #',order_locked:'✅ ઓર્ડર અપાઈ — કાર્ટ લૉક',mode_delivery:'ડિલિવરી',mode_takeaway:'ટેકઅવે',mode_table:'ટેબલ',choose_language:'🌐 ભાષા પસંદ કરો',lang_changed:'મેનૂ અپডेट થઈ',about:'વિશે',cuisine:'ભોજન',spice:'મસાલો',flavor:'સ્વાદ',experience:'અनुभव',ingredients:'સामग्री',restrictions:'પ્રतिबंध',allergens:'એلर्जी',bar_info:'બार માહिती',contains:'ધरावे છे',no_description:'આ આઇटم માટે વर्णन ઉپলब્ध નथी.',ask_staff:'સंपूर्ण વिगतो ઉپলब્ध નथी. স্টাফ ने पूछो.',allergen_warning:'⚠️ એলर्जी माहिती रेस्टोरन्ट ని पुष्टि पर आधार राखे छे.',popular_section:'🔥 লোকপ્રिय',popular_add:'+ ઉمेरো', };
+I18N['ml'] = { search_placeholder:'മെനു തിരയുക…',filter_all:'എല്ലാം',filter_veg:'🟢 സസ്യഭക്ഷണം',filter_nonveg:'🔴 മാംസഭക്ഷണം',filter_mild:'😊 കുറഞ്ഞ എരിവ്',filter_spicy:'🌶 എരിവുള്ളത്',filter_popular:'⭐ ജനപ്രിയം',add:'ചേർക്കുക',item:'ഇനം',items:'ഇനങ്ങൾ',view_cart:'കാർട്ട് കാണുക',your_cart:'🛒 നിങ്ങളുടെ കാർട്ട്',cart_empty:'കാർട്ട് ശൂന്യമാണ്',total:'ആകെ',each:'ഒന്നിന്',place_order:'ഓർഡർ ചെയ്യുക →',delivery_address:'📍 ഡെലിവറി വിലാസം',recent_addresses:'സമീപകാല വിലാസങ്ങൾ:',new_address:'അല്ലെങ്കിൽ പുതിയ വിലാസം നൽകുക:',address_placeholder:'നിങ്ങളുടെ പൂർണ്ണ ഡെലിവറി വിലാസം നൽകുക…',address_required:'⚠️ ഡെലിവറി വിലാസം നൽകുക',add_extras:'അധിക ഇനങ്ങൾ ചേർക്കുക (ഐച്ഛികം)',add_to_cart:'കാർട്ടിൽ ചേർക്കുക',add_without:'അധികം ഇല്ലാതെ ചേർക്കുക',special_instructions:'📝 പ്രത്യേക നിർദ്ദേശങ്ങൾ',note_extra_spicy:'🌶️ കൂടുതൽ എരിവ്',note_no_onions:'🧅 സവോള വേണ്ട',note_less_oil:'കുറഞ്ഞ എണ്ണ',note_no_garlic:'വെളുത്തുള്ളി വേണ്ട',note_well_done:'നന്നായി വേവിക്കുക',note_extra_sauce:'അധിക സോസ്',save:'സേവ് ചെയ്യുക',confirm_order:'✅ ഓർഡർ സ്ഥിരീകരിക്കുക',review_order:'ഓർഡർ ചെയ്യുന്നതിന് മുമ്പ് പരിശോധിക്കുക',edit_cart:'✏️ കാർട്ട് എഡിറ്റ് ചെയ്യുക',add_more:'+ കൂടുതൽ ചേർക്കുക',confirm_place:'✅ ഓർഡർ ചെയ്യുക →',dine_in_label:'🍽️ റെസ്റ്റോറന്റ് ഓർഡർ',takeaway_label:'🏃 ടേക്ക്‌അവേ — കൗണ്ടറിൽ നിന്ന് ശേഖരിക്കുക',delivering_to:'📍 ഡെലിവറി:',upsell_title:'🔥 നിർത്തൂ — ഇത് നിങ്ങൾക്ക് ഇഷ്ടമാകും!',upsell_loading:'മികച്ച കോമ്പിനേഷൻ കണ്ടെത്തുന്നു…',upsell_add:'＋ ചേർക്കുക',skip:'ഒഴിവാക്കുക',no_items:'ഇനങ്ങൾ കണ്ടെത്തിയില്ല',try_filter:'മറ്റൊരു ഫിൽട്ടർ പരീക്ഷിക്കുക',loading:'മെനു ലോഡ് ചെയ്യുന്നു…',invalid_link:'അസാധുവായ ലിങ്ക്. QR കോഡ് വീണ്ടും സ്കാൻ ചെയ്യുക.',link_expired:'ലിങ്ക് കാലഹരണപ്പെട്ടു',session_ended:'ഈ ഓർഡർ സെഷൻ അവസാനിച്ചു.',scan_again:'പുതിയ ഓർഡറിനായി QR കോഡ് സ്കാൻ ചെയ്യുക.',added:'ചേർത്തു!',note_saved:'📝 കുറിപ്പ് സംരക്ഷിച്ചു!',order_placed:'ഓർഡർ ചെയ്തു! ബിൽ #',order_locked:'✅ ഓർഡർ ചെയ്തു — കാർട്ട് ലോക്ക് ചെയ്തു',mode_delivery:'ഡെലിവറി',mode_takeaway:'ടേക്ക്‌അവേ',mode_table:'ടേബിൾ',choose_language:'🌐 ഭാഷ തിരഞ്ഞെടുക്കുക',lang_changed:'മെനു അപ്ഡേറ്റ് ചെയ്തു',about:'കുറിച്ച്',cuisine:'പാചകരീതി',spice:'മസാല',flavor:'രുചി',experience:'അനുഭവം',ingredients:'ചേരുവകൾ',restrictions:'നിയന്ത്രണങ്ങൾ',allergens:'അലർജികൾ',bar_info:'ബാർ വിവരം',contains:'അടങ്ങിയിരിക്കുന്നു',no_description:'ഈ ഇനത്തിന് വിവരണം ലഭ്യമല്ല.',ask_staff:'പൂർണ്ണ വിവരങ്ങൾ ലഭ്യമല്ല. ജീവനക്കാരോട് ചോദിക്കുക.',allergen_warning:'⚠️ അലർജി വിവരങ്ങൾ റെസ്റ്റോറന്റ് സ്ഥിരീകരണത്തെ ആശ്രയിക്കുന്നു.',popular_section:'🔥 ജനപ്രിയം',popular_add:'+ ചേർക്കുക', };
+I18N['kn'] = { search_placeholder:'ಮೆನು ಹುಡುಕಿ…',filter_all:'ಎಲ್ಲಾ',filter_veg:'🟢 ಸಸ್ಯಾಹಾರ',filter_nonveg:'🔴 ಮಾಂಸಾಹಾರ',filter_mild:'😊 ಕಡಿಮೆ ಖಾರ',filter_spicy:'🌶 ಖಾರ',filter_popular:'⭐ ಜನಪ್ರಿಯ',add:'ಸೇರಿಸಿ',item:'ಐಟಂ',items:'ಐಟಂಗಳು',view_cart:'ಕಾರ್ಟ್ ನೋಡಿ',your_cart:'🛒 ನಿಮ್ಮ ಕಾರ್ಟ್',cart_empty:'ಕಾರ್ಟ್ ಖಾಲಿಯಾಗಿದೆ',total:'ಒಟ್ಟು',each:'ಪ್ರತಿಯೊಂದು',place_order:'ಆರ್ಡರ್ ಮಾಡಿ →',delivery_address:'📍 ಡೆಲಿವರಿ ವಿಳಾಸ',recent_addresses:'ಇತ್ತೀಚಿನ ವಿಳಾಸಗಳು:',new_address:'ಅಥವಾ ಹೊಸ ವಿಳಾಸ ನಮೂದಿಸಿ:',address_placeholder:'ನಿಮ್ಮ ಸಂಪೂರ್ಣ ಡೆಲಿವರಿ ವಿಳಾಸ ನಮೂದಿಸಿ…',address_required:'⚠️ ಡೆಲಿವರಿ ವಿಳಾಸ ನಮೂದಿಸಿ',add_extras:'ಹೆಚ್ಚುವರಿ ಸೇರಿಸಿ (ಐಚ್ಛಿಕ)',add_to_cart:'ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಿ',add_without:'ಹೆಚ್ಚುವರಿ ಇಲ್ಲದೆ ಸೇರಿಸಿ',special_instructions:'📝 ವಿಶೇಷ ಸೂಚನೆಗಳು',note_extra_spicy:'🌶️ ಹೆಚ್ಚು ಖಾರ',note_no_onions:'🧅 ಈರುಳ್ಳಿ ಬೇಡ',note_less_oil:'ಕಡಿಮೆ ಎಣ್ಣೆ',note_no_garlic:'ಬೆಳ್ಳುಳ್ಳಿ ಬೇಡ',note_well_done:'ಚೆನ್ನಾಗಿ ಬೇಯಿಸಿ',note_extra_sauce:'ಹೆಚ್ಚುವರಿ ಸಾಸ್',save:'ಉಳಿಸಿ',confirm_order:'✅ ಆರ್ಡರ್ ದೃಢಪಡಿಸಿ',review_order:'ಆರ್ಡರ್ ಮಾಡುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ',edit_cart:'✏️ ಕಾರ್ಟ್ ಸಂಪಾದಿಸಿ',add_more:'+ ಇನ್ನಷ್ಟು ಸೇರಿಸಿ',confirm_place:'✅ ಆರ್ಡರ್ ಮಾಡಿ →',dine_in_label:'🍽️ ರೆಸ್ಟೋರೆಂಟ್ ಆರ್ಡರ್',takeaway_label:'🏃 ಟೇಕ್‌ಅವೇ — ಕೌಂಟರ್‌ನಲ್ಲಿ ತೆಗೆದುಕೊಳ್ಳಿ',delivering_to:'📍 ಡೆಲಿವರಿ:',upsell_title:'🔥 ನಿಲ್ಲಿ — ಇದು ನಿಮಗೆ ಇಷ್ಟವಾಗಬಹುದು!',upsell_loading:'ಉತ್ತಮ ಸಂಯೋಜನೆ ಹುಡುಕುತ್ತಿದ್ದೇವೆ…',upsell_add:'＋ ಸೇರಿಸಿ',skip:'ಬಿಡಿ',no_items:'ಯಾವುದೇ ಐಟಂ ಕಂಡುಬಂದಿಲ್ಲ',try_filter:'ಬೇರೆ ಫಿಲ್ಟರ್ ಪ್ರಯತ್ನಿಸಿ',loading:'ಮೆನು ಲೋಡ್ ಆಗುತ್ತಿದೆ…',invalid_link:'ಅಮಾನ್ಯ ಲಿಂಕ್. QR ಕೋಡ್ ಮತ್ತೆ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.',link_expired:'ಲಿಂಕ್ ಅವಧಿ ಮೀರಿದೆ',session_ended:'ಈ ಆರ್ಡರ್ ಸೆಷನ್ ಮುಗಿದಿದೆ.',scan_again:'ಹೊಸ ಆರ್ಡರ್‌ಗಾಗಿ QR ಕೋಡ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.',added:'ಸೇರಿಸಲಾಗಿದೆ!',note_saved:'📝 ಟಿಪ್ಪಣಿ ಉಳಿಸಲಾಗಿದೆ!',order_placed:'ಆರ್ಡರ್ ಮಾಡಲಾಗಿದೆ! ಬಿಲ್ #',order_locked:'✅ ಆರ್ಡರ್ ಮಾಡಲಾಗಿದೆ — ಕಾರ್ಟ್ ಲಾಕ್',mode_delivery:'ಡೆಲಿವರಿ',mode_takeaway:'ಟೇಕ್‌ಅವೇ',mode_table:'ಟೇಬಲ್',choose_language:'🌐 ಭಾಷೆ ಆರಿಸಿ',lang_changed:'ಮೆನು ಅಪ್‌ಡೇಟ್ ಆಯಿತು',about:'ಕುರಿತು',cuisine:'ಅಡುಗೆ',spice:'ಮಸಾಲೆ',flavor:'ರುಚಿ',experience:'ಅನುಭವ',ingredients:'ಪದಾರ್ಥಗಳು',restrictions:'ನಿರ್ಬಂಧಗಳು',allergens:'ಅಲರ್ಜಿಗಳು',bar_info:'ಬಾರ್ ಮಾಹಿತಿ',contains:'ಒಳಗೊಂಡಿದೆ',no_description:'ಈ ಐಟಂಗೆ ವಿವರಣೆ ಇಲ್ಲ.',ask_staff:'ಸಂಪೂರ್ಣ ವಿವರ ಇಲ್ಲ. ಸಿಬ್ಬಂದಿಯನ್ನು ಕೇಳಿ.',allergen_warning:'⚠️ ಅಲರ್ಜಿ ಮಾಹಿತಿ ರೆಸ್ಟೋರೆಂಟ್ ದೃಢೀಕರಣವನ್ನು ಅವಲಂಬಿಸಿದೆ.',popular_section:'🔥 ಜನಪ್ರಿಯ',popular_add:'+ ಸೇರಿಸಿ', };
+I18N['hi_LATN'] = { search_placeholder:'Menu dhundho…',filter_all:'Sab',filter_veg:'🟢 Veg',filter_nonveg:'🔴 Non-Veg',filter_mild:'😊 Halka',filter_spicy:'🌶 Teekha',filter_popular:'⭐ Popular',add:'Add karo',item:'item',items:'items',view_cart:'Cart dekho',your_cart:'🛒 Tumhara Cart',cart_empty:'Cart khali hai',total:'Total',each:'ek',place_order:'Order do →',delivery_address:'📍 Delivery Address',recent_addresses:'Purane address:',new_address:'Ya naya address likho:',address_placeholder:'Apna poora delivery address likho…',address_required:'⚠️ Delivery address likho',add_extras:'Extra add karo (optional)',add_to_cart:'Cart mein add karo',add_without:'Bina extra ke add karo',special_instructions:'📝 Kuch special?',note_extra_spicy:'🌶️ Zyada teekha',note_no_onions:'🧅 Pyaz nahi',note_less_oil:'Kam tel',note_no_garlic:'Lehsun nahi',note_well_done:'Achhe se pakao',note_extra_sauce:'Extra sauce',save:'Save karo',confirm_order:'✅ Order pakka karo',review_order:'Order dene se pehle dekho',edit_cart:'✏️ Cart theek karo',add_more:'+ Aur add karo',confirm_place:'✅ Order do →',dine_in_label:'🍽️ Restaurant mein khana',takeaway_label:'🏃 Ghar le jao — counter se lo',delivering_to:'📍 Deliver hoga:',upsell_title:'🔥 Ruko — yeh tumhe pasand aayega!',upsell_loading:'Best combo dhundh rahe hain…',upsell_add:'＋ Add karo',skip:'Chhodo',no_items:'Kuch nahi mila',try_filter:'Alag filter try karo',loading:'Menu load ho raha hai…',invalid_link:'Link galat hai. QR code dobara scan karo.',link_expired:'Link expire ho gaya',session_ended:'Yeh session khatam ho gaya.',scan_again:'Naya order ke liye QR code scan karo.',added:'add ho gaya!',note_saved:'📝 Note save ho gaya!',order_placed:'Order de diya! Bill #',order_locked:'✅ Order de diya — cart lock hai',mode_delivery:'Delivery',mode_takeaway:'Ghar le jao',mode_table:'Table',choose_language:'🌐 Bhasha chuno',lang_changed:'Menu update ho gaya',about:'Ke baare mein',cuisine:'Cuisine',spice:'Teekha',flavor:'Swad',experience:'Experience',ingredients:'Saamgri',restrictions:'Restrictions',allergens:'Allergy',bar_info:'Bar info',contains:'Hai isme',no_description:'Is item ki details nahi hain.',ask_staff:'Puri jankari nahi hai. Staff se poochho.',allergen_warning:'⚠️ Allergy info restaurant ne confirm ki hai.',popular_section:'🔥 Popular',popular_add:'+ Add', };
+
+function t(key) {
+  var lang = typeof selectedLang !== 'undefined' ? selectedLang : 'en';
+  var strings = I18N[lang] || I18N['en'];
+  return strings[key] || I18N['en'][key] || key;
+}
+
+const SESSION_ID = (location.pathname.split('/order/')[1] || '').split('?')[0];
+const API_BASE   = '';
+let restaurant   = null;
+let allModifiers = [];
+let pendingAddItem = null;
+let categories   = [];
+let allItems     = [];
+let cart         = {};
+var selectedPaymentMode = 'cod'; // cod | online — changed per mode in init()
+let sessionMode  = 'delivery';
+let sessionTable = '';
+let activeFilter = 'all';
+let openInfoId   = null;
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+async function init() {
+  if (!SESSION_ID) {
+    document.getElementById('menuContent').innerHTML =
+      '<div class="empty-state"><div class="icon">🔗</div><p>Invalid link. Please scan the QR code again.</p></div>';
+    return;
+  }
+  try {
+    const [sessionRes, menuRes] = await Promise.all([
+      fetch(API_BASE + '/api/order-ui/session/' + SESSION_ID),
+      fetch(API_BASE + '/api/order-ui/menu/' + SESSION_ID + '?lang=' + (localStorage.getItem('buddy_lang') || 'en'))
+    ]);
+    if (!sessionRes.ok) throw new Error('Session not found');
+    const sessionData = await sessionRes.json();
+    if (['closed','paid','delivered'].includes(sessionData.status)) {
+      document.getElementById('menuContent').innerHTML =
+        '<div class="empty-state" style="padding:60px 24px">' +
+        '<div class="icon">🔗</div>' +
+        '<h3 style="font-family:Syne,sans-serif;font-size:18px;margin-bottom:8px">Link Expired</h3>' +
+        '<p>This order session has ended.</p>' +
+        '<p>Please <strong>scan the QR code again</strong> to start a new order.</p>' +
+        '</div>';
+      document.getElementById('catTabs').style.display = 'none';
+      document.getElementById('restName').textContent = sessionData.restaurant_name || 'Restaurant';
+      return;
+    }
+    const menuData = await menuRes.json();
+    restaurant = menuData.restaurant;
+    categories = menuData.categories;
+    allItems = (menuData.items || []).map(function(item) {
+      item.orig_name = item.name; return item;
+    });
+    document.getElementById('restName').textContent = restaurant.name;
+    document.title = 'Order — ' + restaurant.name;
+    sessionMode  = sessionData.mode || 'delivery';
+    sessionTable = sessionData.table_number || '—';
+    const modeEl = document.getElementById('modeBadge');
+
+    if (sessionMode === 'dine_in') {
+      modeEl.textContent = t('mode_table') + ' ' + sessionTable;
+      modeEl.className   = 'mode-badge dine';
+      // Dine-in: pay to waiter — no payment selector
+
+    } else if (sessionMode === 'takeaway') {
+      modeEl.textContent = t('mode_takeaway');
+      modeEl.className   = 'mode-badge takeaway';
+      // Takeaway: PREPAID only — show payment section, hide COD option
+      document.getElementById('paymentModeSection').style.display = 'block';
+      document.getElementById('pmCOD').style.display = 'none';
+      selectedPaymentMode = 'online';
+      document.getElementById('pmOnline').classList.add('selected');
+      document.getElementById('pmCOD').classList.remove('selected');
+
+    } else {
+      // Delivery
+      modeEl.textContent = t('mode_delivery');
+      modeEl.className   = 'mode-badge';
+      // Show address + payment selector (COD or Online)
+      document.getElementById('addressSection').style.display = 'block';
+      document.getElementById('paymentModeSection').style.display = 'block';
+      document.getElementById('placeOrderBtn').disabled = true;
+      document.getElementById('placeOrderBtn').style.opacity = '0.5';
+      loadPastAddresses();
+    }
+
+    if (sessionData.status === 'ordered' && sessionMode !== 'dine_in') {
+      const cartRes2  = await fetch(API_BASE + '/api/order-ui/cart/' + SESSION_ID);
+      const cartData2 = await cartRes2.json();
+      if (cartData2.items) {
+        cartData2.items.forEach(function(item) {
+          cart[item.menu_item_id] = { qty: item.quantity, notes: item.notes || '', name: item.name, price: item.price };
+        });
+      }
+      allModifiers = menuData.modifiers || [];
+      buildFilterChips();
+      buildCategoryTabs();
+      renderMenu();
+      renderPopular();
+      updateCartUI();
+      lockUI('');
+      return;
+    }
+    const cartRes  = await fetch(API_BASE + '/api/order-ui/cart/' + SESSION_ID);
+    const cartData = await cartRes.json();
+    if (cartData.items) {
+      cartData.items.forEach(function(item) {
+        cart[item.menu_item_id] = { qty: item.quantity, notes: item.notes || '', name: item.name, price: item.price };
+      });
+    }
+    allModifiers = menuData.modifiers || [];
+    buildFilterChips();
+    buildCategoryTabs();
+    renderMenu();
+    renderPopular();
+    updateCartUI();
+    updateUIStrings();
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+      activeFilter = 'all';
+      document.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.remove('active'); });
+      document.querySelector('.filter-chip[data-filter="all"]').classList.add('active');
+      renderMenu(e.target.value.toLowerCase().trim());
+    });
+  } catch (err) {
+    console.error(err);
+    document.getElementById('menuContent').innerHTML =
+      '<div class="empty-state"><div class="icon">😕</div><p>' + t('menu_load_error') + '</p></div>';
+  }
+}
+
+// ══════════════════════════════════════════════
+// FILTER CHIPS
+// ══════════════════════════════════════════════
+function buildFilterChips() {
+  if (allItems.length < 4) return;
+  const hasVeg     = allItems.some(function(i) { return i.is_veg === true; });
+  const hasNonveg  = allItems.some(function(i) { return i.is_veg === false; });
+  const hasMild    = allItems.some(function(i) { return i.spice_level === 'mild'; });
+  const hasSpicy   = allItems.some(function(i) { return i.spice_level === 'spicy' || i.spice_level === 'hot'; });
+  const hasPopular = allItems.some(function(i) { return i.tags && i.tags.some(function(t) { return t.tag_code === 'popular'; }); });
+  var chips = document.getElementById('filterChips');
+  var html  = '<div class="filter-chip active" data-filter="all" onclick="applyFilter(\'all\',this)">' + t('filter_all') + '</div>';
+  if (hasVeg)     html += '<div class="filter-chip" data-filter="veg" onclick="applyFilter(\'veg\',this)">' + t('filter_veg') + '</div>';
+  if (hasNonveg)  html += '<div class="filter-chip" data-filter="nonveg" onclick="applyFilter(\'nonveg\',this)">' + t('filter_nonveg') + '</div>';
+  if (hasMild)    html += '<div class="filter-chip" data-filter="mild" onclick="applyFilter(\'mild\',this)">' + t('filter_mild') + '</div>';
+  if (hasSpicy)   html += '<div class="filter-chip" data-filter="spicy" onclick="applyFilter(\'spicy\',this)">' + t('filter_spicy') + '</div>';
+  if (hasPopular) html += '<div class="filter-chip" data-filter="popular" onclick="applyFilter(\'popular\',this)">' + t('filter_popular') + '</div>';
+  chips.innerHTML = html;
+  chips.style.display = 'flex';
+}
+function applyFilter(filter, el) {
+  activeFilter = filter;
+  document.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.remove('active'); });
+  el.classList.add('active');
+  document.getElementById('searchInput').value = '';
+  closeAnyOpenInfoPanel();
+  renderMenu();
+}
+
+// ══════════════════════════════════════════════
+// CATEGORY TABS
+// ══════════════════════════════════════════════
+function isAddonCategory(cat) {
+  var n = (cat.name || '').toLowerCase();
+  return n.includes('add-on') || n.includes('addon') || n.includes('add on') || n.includes('extras');
+}
+function buildCategoryTabs() {
+  const tabs = document.getElementById('catTabs');
+  var visibleCats = categories.filter(function(cat) { return !isAddonCategory(cat); });
+  tabs.innerHTML = visibleCats.map(function(cat, i) {
+    return '<div class="cat-tab' + (i === 0 ? ' active' : '') + '" data-cat="' + cat.id + '" onclick="selectCat(\'' + cat.id + '\',this)">' + cat.name + '</div>';
+  }).join('');
+  activeCat = visibleCats[0] ? visibleCats[0].id : null;
+}
+var activeCat = null;
+function selectCat(catId, el) {
+  document.querySelectorAll('.cat-tab').forEach(function(t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  activeCat = catId;
+  activeFilter = 'all';
+  document.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.remove('active'); });
+  var allChip = document.querySelector('.filter-chip[data-filter="all"]');
+  if (allChip) allChip.classList.add('active');
+  closeAnyOpenInfoPanel();
+  renderMenu();
+}
+
+// ══════════════════════════════════════════════
+// RENDER MENU
+// ══════════════════════════════════════════════
+function getFilteredItems(search) {
+  var addonCatIds = categories.filter(isAddonCategory).map(function(c) { return c.id; });
+  var items = allItems.filter(function(i) { return addonCatIds.indexOf(i.category_id) === -1; });
+  if (search) {
+    return items.filter(function(i) {
+      var name = (i.name || '').toLowerCase();
+      var orig = (i.orig_name || i.name || '').toLowerCase();
+      var desc = (i.description || '').toLowerCase();
+      return name.includes(search) || orig.includes(search) || desc.includes(search);
+    });
+  }
+  if (activeCat) items = items.filter(function(i) { return i.category_id === activeCat; });
+  switch(activeFilter) {
+    case 'veg':     items = items.filter(function(i) { return i.is_veg === true; }); break;
+    case 'nonveg':  items = items.filter(function(i) { return i.is_veg === false; }); break;
+    case 'mild':    items = items.filter(function(i) { return i.spice_level === 'mild'; }); break;
+    case 'spicy':   items = items.filter(function(i) { return i.spice_level === 'spicy' || i.spice_level === 'hot'; }); break;
+    case 'popular': items = items.filter(function(i) { return i.tags && i.tags.some(function(t) { return t.tag_code === 'popular'; }); }); break;
+  }
+  return items;
+}
+function spiceBadge(level) {
+  if (!level || level === 'none') return '';
+  if (level === 'mild')   return '<span class="item-badge spice">😊 Mild</span>';
+  if (level === 'medium') return '<span class="item-badge spice">🌶 Medium</span>';
+  if (level === 'spicy' || level === 'hot') return '<span class="item-badge spice">🌶🌶 Spicy</span>';
+  return '';
+}
+function labelBadges(tags) {
+  if (!tags || !tags.length) return '';
+  return tags.filter(function(t) { return t.type === 'LABEL'; }).map(function(t) {
+    if (t.tag_code === 'popular')     return '<span class="item-badge popular">⭐ Popular</span>';
+    if (t.tag_code === 'chef_special') return '<span class="item-badge chef">👨‍🍳 Chef Special</span>';
+    return '';
+  }).join('');
+}
+function renderMenu(search) {
+  const container = document.getElementById('menuContent');
+  const items = getFilteredItems(search);
+  if (!items.length) {
+    var filterMsg = activeFilter !== 'all' ? '<p style="margin-top:8px;font-size:13px">' + t('try_filter') + '</p>' : '';
+    container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>' + t('no_items') + '</p>' + filterMsg + '</div>';
+    return;
+  }
+  container.innerHTML = items.map(function(item) {
+    var inCart  = cart[item.id];
+    var vegDot  = item.is_veg !== null && item.is_veg !== undefined
+      ? '<span class="veg-dot ' + (item.is_veg ? 'veg' : 'nonveg') + '"></span>' : '';
+    var imgHtml = item.image_url
+      ? '<img class="item-img" src="' + item.image_url + '" alt="' + item.name + '" onerror="this.style.display=\'none\'">' : '';
+    var badges  = spiceBadge(item.spice_level) + labelBadges(item.tags || []);
+    var qtyHtml = inCart
+      ? '<div class="qty-control">' +
+        '<button class="qty-btn minus" onclick="changeQty(\'' + item.id + '\',\'' + item.name.replace(/'/g,"\\'") + '\',' + item.price + ',-1)">−</button>' +
+        '<span class="qty-num" id="qty_' + item.id + '">' + inCart.qty + '</span>' +
+        '<button class="qty-btn plus" onclick="changeQty(\'' + item.id + '\',\'' + item.name.replace(/'/g,"\\'") + '\',' + item.price + ',1)">+</button>' +
+        '<button class="note-btn" onclick="openNotes(\'' + item.id + '\')" title="Special instructions">📝</button>' +
+        '</div>'
+      : '<button class="add-btn" id="addbtn_' + item.id + '" onclick="addItem(\'' + item.id + '\',\'' + item.name.replace(/'/g,"\\'") + '\',' + item.price + ')">Add</button>';
+    var isOpen = openInfoId === item.id;
+    return '<div class="item-card' + (inCart ? ' in-cart' : '') + '" id="card_' + item.id + '">' +
+      '<div class="item-card-top">' +
+      '<div class="item-info">' +
+      '<div class="item-name">' + vegDot + item.name + '</div>' +
+      (badges ? '<div class="item-badges">' + badges + '</div>' : '') +
+      (item.description ? '<div class="item-desc">' + item.description + '</div>' : '') +
+      '<div class="item-footer">' +
+      '<span class="item-price">₹' + item.price + '</span>' +
+      '<div style="display:flex;align-items:center">' + qtyHtml +
+      '<button class="info-btn' + (isOpen ? ' open' : '') + '" id="infobtn_' + item.id + '" onclick="toggleInfoPanel(\'' + item.id + '\')" title="Item info">ℹ️</button>' +
+      '</div></div></div>' + imgHtml + '</div>' +
+      '<div class="info-panel' + (isOpen ? ' open' : '') + '" id="info_' + item.id + '">' +
+      '<div class="info-panel-inner" id="infocontent_' + item.id + '">' +
+      (isOpen ? renderInfoPanelContent(item) : '<div style="text-align:center;padding:12px;color:#9b8b72;font-size:13px">Loading…</div>') +
+      '</div></div></div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// INFO PANEL
+// ══════════════════════════════════════════════
+function closeAnyOpenInfoPanel() {
+  if (!openInfoId) return;
+  var panel = document.getElementById('info_' + openInfoId);
+  var btn   = document.getElementById('infobtn_' + openInfoId);
+  if (panel) panel.classList.remove('open');
+  if (btn)   btn.classList.remove('open');
+  openInfoId = null;
+}
+async function toggleInfoPanel(itemId) {
+  if (openInfoId === itemId) { closeAnyOpenInfoPanel(); return; }
+  closeAnyOpenInfoPanel();
+  openInfoId = itemId;
+  var panel = document.getElementById('info_' + itemId);
+  var btn   = document.getElementById('infobtn_' + itemId);
+  if (!panel || !btn) return;
+  btn.classList.add('open');
+  panel.classList.add('open');
+  var item = allItems.find(function(i) { return i.id === itemId; });
+  try {
+    var res = await fetch(API_BASE + '/api/order-ui/menu/items/' + itemId + '/info?lang=' + (selectedLang || 'en'));
+    if (res.ok) {
+      var data    = await res.json();
+      var content = document.getElementById('infocontent_' + itemId);
+      if (content) content.innerHTML = buildInfoPanelHTML(data);
+      return;
+    }
+  } catch(e) {}
+  var content = document.getElementById('infocontent_' + itemId);
+  if (content && item) content.innerHTML = renderInfoPanelContent(item);
+}
+function renderInfoPanelContent(item) {
+  var lines = [];
+  if (item.description) {
+    lines.push('<div class="info-section-title">' + t('about') + '</div>');
+    lines.push('<div class="info-val" style="font-size:13px;line-height:1.5;margin-bottom:8px">' + item.description + '</div>');
+  }
+  if (item.spice_level && item.spice_level !== 'none') {
+    var spiceMap = { mild:'😊 Mild', medium:'🌶 Medium', spicy:'🌶🌶 Spicy', hot:'🌶🌶 Spicy' };
+    lines.push('<div class="info-row"><span class="info-label">' + t('spice') + '</span><span class="info-val">' + (spiceMap[item.spice_level] || item.spice_level) + '</span></div>');
+  }
+  if (!lines.length) lines.push('<div style="text-align:center;padding:8px;color:#9b8b72;font-size:13px">Full details not available.<br>Ask our staff.</div>');
+  return lines.join('');
+}
+function buildInfoPanelHTML(data) {
+  var html = '';
+  if (data.bestseller_badge) html += '<div class="info-bestseller">' + data.bestseller_badge.label + '</div>';
+  var topTags = [];
+  if (data.tags && data.tags.diet && data.tags.diet.length) data.tags.diet.forEach(function(t) { topTags.push('<span class="info-tag diet">' + t.display_icon + ' ' + t.tag_name + '</span>'); });
+  if (data.tags && data.tags.spice && data.tags.spice.length) data.tags.spice.forEach(function(t) { topTags.push('<span class="info-tag spice">' + t.display_icon + ' ' + t.tag_name + '</span>'); });
+  else if (data.spice_level && data.spice_level !== 'none') { var sm = { mild:'😊 Mild', medium:'🌶 Medium', spicy:'🌶🌶 Spicy', hot:'🌶🌶 Spicy' }; topTags.push('<span class="info-tag spice">' + sm[data.spice_level] + '</span>'); }
+  if (topTags.length) html += '<div class="info-tag-row">' + topTags.join('') + '</div>';
+  if (data.cuisine_type) { var ce = { indian:'🍛',chinese:'🥢',italian:'🍝',continental:'🍽',mughlai:'🫕',mexican:'🌮',thai:'🍜',mediterranean:'🥙' }; html += '<div class="info-row"><span class="info-label">' + t('cuisine') + '</span><span class="info-val">' + (ce[data.cuisine_type] || '') + ' ' + data.cuisine_type.charAt(0).toUpperCase() + data.cuisine_type.slice(1) + '</span></div>'; }
+  if (data.description) { html += '<div class="info-section-title">' + t('about') + '</div><div class="info-val" style="font-size:13px;line-height:1.5;margin-bottom:8px">' + (data.safe_tone ? '<span style="color:#9b8b72;font-style:italic">Based on available information: </span>' : '') + data.description + '</div>'; }
+  else { html += '<div class="info-section-title">' + t('about') + '</div><div style="color:#9b8b72;font-size:13px;margin-bottom:8px">Description not available for this item.</div>'; }
+  if (data.tags && data.tags.label && data.tags.label.length) { html += '<div class="info-tag-row">'; data.tags.label.forEach(function(t) { html += '<span class="info-tag label">' + t.display_icon + ' ' + t.tag_name + '</span>'; }); html += '</div>'; }
+  if (data.tags && data.tags.allergen && data.tags.allergen.length) { html += '<div class="info-section-title">' + t('allergens') + '</div><div class="info-tag-row">'; data.tags.allergen.forEach(function(t) { html += '<span class="info-tag allergen">⚠️ ' + t.tag_name + '</span>'; }); html += '</div><div class="info-warn">⚠️ Allergen info depends on what the restaurant has confirmed. Please check with staff for allergy concerns.</div>'; }
+  if (!html.trim()) html = '<div style="text-align:center;padding:8px;color:#9b8b72;font-size:13px">' + (data.category ? data.category + '<br>' : '') + 'Full details not available. Ask our staff.</div>';
+  return html;
+}
+
+// ══════════════════════════════════════════════
+// PAYMENT MODE SELECTOR
+// ══════════════════════════════════════════════
+function selectPaymentMode(mode) {
+  selectedPaymentMode = mode;
+  var codEl    = document.getElementById('pmCOD');
+  var onlineEl = document.getElementById('pmOnline');
+  if (codEl)    codEl.classList.toggle('selected',    mode === 'cod');
+  if (onlineEl) onlineEl.classList.toggle('selected', mode === 'online');
+}
+
+// ══════════════════════════════════════════════
+// CART OPERATIONS
+// ══════════════════════════════════════════════
+function addItem(itemId, name, price) {
+  var menuItem  = allItems.find(function(i) { return i.id === itemId; });
+  var catId     = menuItem ? menuItem.category_id : '';
+  var applicable = allModifiers.filter(function(m) {
+    var catMatch  = m.applicable_categories && m.applicable_categories.some(function(c) { return c === catId; });
+    var itemMatch = m.applicable_item_ids && m.applicable_item_ids.length > 0 && m.applicable_item_ids.includes(itemId);
+    return catMatch || itemMatch;
+  });
+  if (applicable.length > 0) openModifierModal(itemId, name, price, applicable);
+  else addItemDirect(itemId, name, price, []);
+}
+function addItemDirect(itemId, name, price, modifiers) {
+  var modsTotal = modifiers.reduce(function(s,m) { return s+(m.price||0); }, 0);
+  var unitPrice = price + modsTotal;
+  var newQty    = cart[itemId] ? cart[itemId].qty + 1 : 1;
+  var menuItem  = allItems.find(function(i) { return i.id === itemId; });
+  var engName   = menuItem ? (menuItem.orig_name || menuItem.name) : name;
+  cart[itemId]  = { qty: newQty, notes: cart[itemId] ? cart[itemId].notes : '', name: engName, display_name: name, price: unitPrice, modifiers: modifiers };
+  renderMenu();
+  updateCartUI();
+  syncCartItem(itemId, newQty, modifiers);
+  var modText = modifiers.length ? ' + ' + modifiers.map(function(m) { return m.name; }).join(', ') : '';
+  showToast('✅ ' + name + modText + ' added!');
+}
+function openModifierModal(itemId, name, price, mods) {
+  pendingAddItem = { itemId, name, price };
+  document.getElementById('modItemName').textContent  = name;
+  document.getElementById('modItemPrice').textContent = '₹' + price;
+  document.getElementById('modTotal').textContent     = price;
+  var el = document.getElementById('modExtrasLabel'); if (el) el.textContent = t('add_extras');
+  var cb = document.getElementById('modConfirmBtn');  if (cb) cb.innerHTML = t('add_to_cart') + ' ₹<span id="modTotal">' + price + '</span>';
+  var sb = document.getElementById('modSkipBtn');     if (sb) sb.textContent = t('add_without');
+  var html = '';
+  mods.forEach(function(mod) {
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f0ebe3">' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+      '<input type="checkbox" id="mod_' + mod.id + '" style="width:20px;height:20px;accent-color:#ea580c;cursor:pointer" onchange="updateModTotal(' + price + ')" data-name="' + mod.name + '" data-price="' + mod.price + '">' +
+      '<label for="mod_' + mod.id + '" style="font-size:14px;font-weight:600;cursor:pointer">' + mod.name + '</label>' +
+      '</div><span style="color:#ea580c;font-weight:700;font-size:13px">+₹' + mod.price + '</span></div>';
+  });
+  document.getElementById('modOptions').innerHTML = html;
+  document.getElementById('modifierModal').style.display = 'block';
+}
+function updateModTotal(base) {
+  var total = base;
+  document.querySelectorAll('[id^="mod_"]:checked').forEach(function(cb) { total += parseInt(cb.dataset.price||0); });
+  document.getElementById('modTotal').textContent = total;
+}
+function confirmModifiers() {
+  if (!pendingAddItem) return;
+  var item = pendingAddItem;
+  var selected = [];
+  document.querySelectorAll('[id^="mod_"]:checked').forEach(function(cb) {
+    selected.push({ id: cb.id.replace('mod_',''), name: cb.dataset.name, price: parseInt(cb.dataset.price||0) });
+  });
+  closeModifierModal();
+  addItemDirect(item.itemId, item.name, item.price, selected);
+}
+function skipModifiers() {
+  if (!pendingAddItem) return;
+  var item = pendingAddItem;
+  closeModifierModal();
+  addItemDirect(item.itemId, item.name, item.price, []);
+}
+function closeModifierModal() {
+  document.getElementById('modifierModal').style.display = 'none';
+  pendingAddItem = null;
+}
+function changeQty(itemId, name, price, delta) {
+  var cur    = cart[itemId] ? cart[itemId].qty : 0;
+  var newQty = cur + delta;
+  if (newQty <= 0) { delete cart[itemId]; }
+  else { cart[itemId] = { qty: newQty, notes: cart[itemId] ? cart[itemId].notes : '', name, price }; }
+  var qEl = document.getElementById('qty_' + itemId);
+  if (qEl) qEl.textContent = newQty > 0 ? newQty : 0;
+  var card = document.getElementById('card_' + itemId);
+  if (card) { if (newQty <= 0) card.classList.remove('in-cart'); else card.classList.add('in-cart'); }
+  updateCartUI();
+  syncCartItem(itemId, newQty < 0 ? 0 : newQty);
+}
+function updateCartUI() {
+  var items = Object.entries(cart);
+  var count = items.reduce(function(s,e) { return s+e[1].qty; }, 0);
+  var total = items.reduce(function(s,e) { return s+e[1].price*e[1].qty; }, 0);
+  var pill  = document.getElementById('cartPill');
+  document.getElementById('cartCount').textContent    = count;
+  document.getElementById('cartPillText').textContent = count === 1 ? '1 ' + t('item') : count + ' ' + t('items');
+  document.getElementById('cartPillTotal').textContent = count > 0 ? ' — ₹' + total : '';
+  if (count > 0) pill.classList.add('visible'); else pill.classList.remove('visible');
+}
+async function syncCartItem(itemId, qty, modifiers) {
+  if (!SESSION_ID) return;
+  var item = cart[itemId];
+  try {
+    var res = await fetch(API_BASE + '/api/order-ui/cart-item/' + SESSION_ID, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        menu_item_id: itemId,
+        quantity:     qty || 0,
+        name:         item ? (item.name || item.display_name || '') : '',
+        price:        item ? item.price : 0,
+        notes:        item ? item.notes : null,
+        modifiers:    modifiers || (item ? item.modifiers : [])
+      })
+    });
+    if (!res.ok && res.status !== 409) { var errData = await res.json().catch(function(){return {};}); console.error('syncCartItem error', res.status, errData); }
+    if (res.status === 409) lockCartAfterOrder();
+  } catch(e) { console.error('syncCartItem failed', e); }
+}
+function lockCartAfterOrder() {
+  document.querySelectorAll('.qty-btn, .add-btn, .place-order-btn').forEach(function(btn) {
+    btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed';
+  });
+  var btn = document.getElementById('placeOrderBtn');
+  if (btn) { btn.textContent = '✅ Order Placed'; btn.style.background = '#22c55e'; btn.disabled = true; }
+  showToast(t('order_locked'));
+}
+
+// ══════════════════════════════════════════════
+// ADDRESS
+// ══════════════════════════════════════════════
+function onAddressInput() {
+  var val = document.getElementById('deliveryAddress').value.trim();
+  var btn = document.getElementById('placeOrderBtn');
+  if (val.length > 5) {
+    btn.disabled = false; btn.style.opacity = '1';
+    document.getElementById('addressHint').style.display = 'none';
+    document.getElementById('deliveryAddress').style.borderColor = '#22c55e';
+  } else { btn.disabled = true; btn.style.opacity = '0.5'; }
+}
+function selectPastAddress(addr) {
+  document.getElementById('deliveryAddress').value = addr;
+  document.querySelectorAll('.past-addr-chip').forEach(function(el) { el.classList.remove('selected'); });
+  event.target.classList.add('selected');
+  onAddressInput();
+}
+async function loadPastAddresses() {
+  try {
+    var res  = await fetch(API_BASE + '/api/order-ui/past-addresses/' + SESSION_ID);
+    var data = await res.json();
+    if (!data.addresses || !data.addresses.length) return;
+    var container = document.getElementById('pastAddresses');
+    container.innerHTML =
+      '<div style="font-size:11px;color:#888;margin-bottom:4px">' + t('recent_addresses') + '</div>' +
+      data.addresses.map(function(addr) {
+        return '<div class="past-addr-chip" onclick="selectPastAddress(\'' + addr.replace(/'/g,"\\'") + '\')">📍 ' + addr + '</div>';
+      }).join('') +
+      '<div style="font-size:11px;color:#888;margin-top:6px;margin-bottom:2px">' + t('new_address') + '</div>';
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════
+// LOCK UI
+// ══════════════════════════════════════════════
+function lockUI(billNumber) {
+  document.querySelectorAll('.qty-btn, .add-btn').forEach(function(b) {
+    b.disabled = true; b.style.opacity = '0.4'; b.style.pointerEvents = 'none';
+  });
+  var btn = document.getElementById('placeOrderBtn');
+  btn.disabled = true; btn.style.background = '#22c55e'; btn.style.opacity = '1';
+  btn.textContent = billNumber ? '✅ Order Placed #' + billNumber : '✅ Order Placed';
+}
+
+// ══════════════════════════════════════════════
+// PLACE ORDER
+// ══════════════════════════════════════════════
+async function placeOrder(skipAddressCheck) {
+  if (Object.keys(cart).length === 0) { showToast(t('add_items_first')); return; }
+  var btn = document.getElementById('placeOrderBtn');
+  btn.classList.add('loading'); btn.textContent = t('placing_order');
+  try {
+    var addrEl     = document.getElementById('deliveryAddress');
+    var address    = addrEl ? addrEl.value.trim() : '';
+    var isDelivery = document.getElementById('addressSection').style.display !== 'none';
+    if (isDelivery && address.length < 6 && !skipAddressCheck) {
+      document.getElementById('addressHint').style.display = 'block';
+      if (addrEl) { addrEl.focus(); addrEl.style.borderColor = '#e53e3e'; }
+      btn.textContent = t('place_order'); btn.classList.remove('loading'); return;
+    }
+    if (isDelivery && address) {
+      await fetch(API_BASE + '/api/order-ui/address/' + SESSION_ID, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address })
+      });
+    }
+
+    // payment_mode: dine_in=cod (pay to waiter), delivery/takeaway=user selected
+    var payMode = sessionMode === 'dine_in' ? 'cod' : selectedPaymentMode;
+
+    var res  = await fetch(API_BASE + '/api/order-ui/place-order/' + SESSION_ID, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_mode: payMode })
+    });
+    var data = await res.json();
+    if (res.status === 410) { showToast(t('session_expired')); btn.textContent = t('place_order'); btn.classList.remove('loading'); return; }
+    if (data.success) {
+      closeCart();
+      document.getElementById('cartPill').classList.remove('visible');
+
+      // Online + Paytm MID configured → redirect to payment
+      if (payMode === 'online' && data.payment_url) {
+        showToast('✅ Order placed! Redirecting to payment...');
+        cart = {}; updateCartUI(); renderMenu(); lockUI(data.bill_number);
+        setTimeout(function() { window.location.href = data.payment_url; }, 1500);
+        return;
+      }
+      // Online + Paytm MID not configured yet
+      if (payMode === 'online' && data.payment_status === 'payment_pending') {
+        showToast('✅ Order placed! Complete payment to confirm.');
+        cart = {}; updateCartUI(); renderMenu(); lockUI(data.bill_number);
+        btn.textContent = '⏳ Awaiting Payment'; btn.style.background = '#f59e0b';
+        btn.classList.remove('loading'); btn.disabled = true;
+        return;
+      }
+      // COD or dine-in — confirmed immediately
+      showToast('✅ ' + t('order_placed') + data.bill_number);
+      if (sessionMode !== 'dine_in') {
+        cart = {}; updateCartUI(); renderMenu(); lockUI(data.bill_number);
+      } else {
+        cart = {}; updateCartUI(); renderMenu();
+        btn.textContent = t('place_order'); btn.classList.remove('loading');
+      }
+    } else { throw new Error(data.error || 'Failed'); }
+  } catch(e) {
+    showToast(t('order_failed'));
+    btn.textContent = t('place_order'); btn.classList.remove('loading');
+  }
+}
+
+// ══════════════════════════════════════════════
+// CART DRAWER
+// ══════════════════════════════════════════════
+function openCart()  { document.getElementById('cartDrawer').classList.add('open'); document.getElementById('drawerOverlay').classList.add('open'); renderCartDrawer(); }
+function closeCart() { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('open'); }
+function renderCartDrawer() {
+  var items     = Object.entries(cart);
+  var total     = items.reduce(function(s,e) { return s+e[1].price*e[1].qty; }, 0);
+  var container = document.getElementById('cartItems');
+  document.getElementById('cartDrawerTitle').innerHTML = t('your_cart');
+  if (!items.length) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">' + t('cart_empty') + '</div>';
+    document.getElementById('cartTotalRow').style.display = 'none'; return;
+  }
+  container.innerHTML = items.map(function(e) {
+    var id = e[0]; var item = e[1];
+    return '<div class="cart-item-row">' +
+      '<div><div class="cart-item-name">' + (item.display_name || item.name) + '</div><div class="cart-item-price">₹' + item.price + ' ' + t('each') + '</div></div>' +
+      '<div class="cart-item-qty">' +
+      '<button class="qty-btn minus" onclick="changeQty(\'' + id + '\',\'' + item.name.replace(/'/g,"\\'") + '\',' + item.price + ',-1);renderCartDrawer()">−</button>' +
+      '<span>' + item.qty + '</span>' +
+      '<button class="qty-btn plus" onclick="changeQty(\'' + id + '\',\'' + item.name.replace(/'/g,"\\'") + '\',' + item.price + ',1);renderCartDrawer()">+</button>' +
+      '</div></div>';
+  }).join('');
+  document.getElementById('cartTotal').textContent = '₹' + total;
+  document.getElementById('cartTotalRow').style.display = 'flex';
+}
+
+// ══════════════════════════════════════════════
+// POPULAR
+// ══════════════════════════════════════════════
+function renderPopular() {
+  var popular = allItems.filter(function(i) { return i.tags && i.tags.some(function(t) { return t.tag_code === 'popular'; }); });
+  if (!popular.length) popular = allItems.filter(function(i) { return i.popularity_score > 0 || i.owner_popularity_tier >= 2; }).slice(0,4);
+  if (!popular.length) return;
+  document.getElementById('popularSection').style.display = 'block';
+  document.getElementById('popularItems').innerHTML = popular.slice(0,4).map(function(item) {
+    var safeName = item.name.replace(/'/g,"\\'");
+    return '<div class="popular-chip" onclick="addItem(\'' + item.id + '\',\'' + safeName + '\',' + item.price + ')">' +
+      '<div class="popular-chip-name">' + item.name + '</div>' +
+      '<div class="popular-chip-price">₹' + item.price + '</div>' +
+      '<div class="popular-chip-add">+ Add</div></div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// UPSELL
+// ══════════════════════════════════════════════
+var _upsellItem = null;
+var _skipAddressCheck = false;
+async function startUpsell(skipAddr) {
+  _skipAddressCheck = skipAddr || false;
+  var addrEl     = document.getElementById('deliveryAddress');
+  var address    = addrEl ? addrEl.value.trim() : '';
+  var isDelivery = document.getElementById('addressSection').style.display !== 'none';
+  if (isDelivery && address.length < 6 && !skipAddr) {
+    document.getElementById('addressHint').style.display = 'block';
+    if (addrEl) { addrEl.focus(); addrEl.style.borderColor = '#e53e3e'; } return;
+  }
+  if (Object.keys(cart).length === 0) { showToast(t('add_items_first')); return; }
+  var cartNames = Object.values(cart).map(function(i) { return i.name; });
+  showUpsellModal('loading', null);
+  try {
+    var res  = await fetch(API_BASE + '/api/order-ui/upsell/' + SESSION_ID, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cartItems: cartNames })
+    });
+    var data = await res.json();
+    if (data.suggestion && data.itemId) {
+      _upsellItem = { id: data.itemId, name: data.suggestion, price: data.price };
+      showUpsellModal(data.message, _upsellItem);
+    } else { hideUpsellModal(); showConfirmModal(_skipAddressCheck); }
+  } catch(e) { hideUpsellModal(); await placeOrder(_skipAddressCheck); }
+}
+function showUpsellModal(msg, item) {
+  document.getElementById('upsellOverlay').style.opacity = '1';
+  document.getElementById('upsellOverlay').style.pointerEvents = 'all';
+  document.getElementById('upsellModal').style.transform = 'translateX(-50%) translateY(0)';
+  if (item) {
+    document.getElementById('upsellMsg').textContent     = msg;
+    document.getElementById('upsellLoading').style.display = 'none';
+    document.getElementById('upsellItemName').textContent  = item.name;
+    document.getElementById('upsellItemPrice').textContent = '₹' + item.price;
+    document.getElementById('upsellItem').style.display    = 'block';
+  } else if (msg === 'loading') {
+    document.getElementById('upsellMsg').textContent       = '';
+    document.getElementById('upsellLoading').style.display = 'block';
+    document.getElementById('upsellItem').style.display    = 'none';
+  } else {
+    document.getElementById('upsellMsg').textContent       = msg || 'Ready to place your order?';
+    document.getElementById('upsellLoading').style.display = 'none';
+    document.getElementById('upsellItem').style.display    = 'none';
+  }
+}
+function hideUpsellModal() {
+  document.getElementById('upsellOverlay').style.opacity = '0';
+  document.getElementById('upsellOverlay').style.pointerEvents = 'none';
+  document.getElementById('upsellModal').style.transform = 'translateX(-50%) translateY(100%)';
+  _upsellItem = null;
+}
+async function addUpsellItem() {
+  if (!_upsellItem) return;
+  var item   = _upsellItem;
+  var newQty = cart[item.id] ? cart[item.id].qty + 1 : 1;
+  try {
+    await fetch(API_BASE + '/api/order-ui/cart-item/' + SESSION_ID, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ menu_item_id: item.id, quantity: newQty, name: item.name, price: item.price })
+    });
+  } catch(e) { console.error('Upsell save failed', e); }
+  try {
+    var res  = await fetch(API_BASE + '/api/order-ui/cart/' + SESSION_ID);
+    var data = await res.json();
+    if (data.items) { cart = {}; data.items.forEach(function(i) { cart[i.menu_item_id] = { qty: i.quantity, notes: i.notes||'', name: i.name, price: i.price }; }); }
+  } catch(e) {}
+  renderMenu(); updateCartUI(); showToast('✅ ' + item.name + ' added!');
+  hideUpsellModal(); showConfirmModal(_skipAddressCheck);
+}
+async function skipUpsell()        { hideUpsellModal(); showConfirmModal(_skipAddressCheck); }
+async function confirmAfterUpsell(){ hideUpsellModal(); showConfirmModal(_skipAddressCheck); }
+
+// ══════════════════════════════════════════════
+// NOTES
+// ══════════════════════════════════════════════
+var _notesItemId = null;
+function openNotes(itemId) {
+  _notesItemId = itemId;
+  var item = cart[itemId];
+  if (!item) return;
+  document.getElementById('notesItemName').textContent  = item.name;
+  document.getElementById('notesTextarea').value = item.notes || '';
+  document.getElementById('notesModal').style.display = 'block';
+  setTimeout(function() { document.getElementById('notesTextarea').focus(); }, 300);
+}
+function closeNotes() { document.getElementById('notesModal').style.display = 'none'; _notesItemId = null; }
+function addNoteHint(hint) { var ta = document.getElementById('notesTextarea'); ta.value = ta.value.trim() ? ta.value.trim() + ', ' + hint : hint; }
+function saveNotes() {
+  if (!_notesItemId || !cart[_notesItemId]) { closeNotes(); return; }
+  cart[_notesItemId].notes = document.getElementById('notesTextarea').value.trim();
+  updateCartUI(); syncCartItem(_notesItemId, cart[_notesItemId].qty); closeNotes(); showToast(t('note_saved'));
+}
+
+// ══════════════════════════════════════════════
+// ORDER CONFIRMATION
+// ══════════════════════════════════════════════
+var _confirmSkipAddr = false;
+function showConfirmModal(skipAddr) {
+  _confirmSkipAddr = skipAddr || false;
+  var items = Object.entries(cart);
+  if (!items.length) return;
+  var total = 0;
+  var html  = items.map(function(e) {
+    var id = e[0], item = e[1];
+    total += item.price * item.qty;
+    var noteHtml = item.notes ? '<div class="confirm-item-note">📝 ' + item.notes + '</div>' : '';
+    var dispName = item.display_name || item.name;
+    return '<div class="confirm-item"><div class="confirm-item-name">' + dispName + '<div style="font-size:12px;color:#9b8b72;font-weight:400">x' + item.qty + '</div>' + noteHtml + '</div><div class="confirm-item-price">₹' + (item.price*item.qty) + '</div></div>';
+  }).join('');
+  document.getElementById('confirmItems').innerHTML = html;
+  document.getElementById('confirmTotal').textContent = '₹' + total;
+  var addrEl  = document.getElementById('deliveryAddress');
+  var addr    = addrEl ? addrEl.value.trim() : '';
+  var addrBox = document.getElementById('confirmAddr');
+  if (addr)                         { addrBox.style.display = 'block'; addrBox.innerHTML = '📍 Delivering to: <strong>' + addr + '</strong>'; }
+  else if (sessionMode === 'dine_in')  { addrBox.style.display = 'block'; addrBox.innerHTML = '🍽️ Dine-in order'; }
+  else if (sessionMode === 'takeaway') { addrBox.style.display = 'block'; addrBox.innerHTML = '🏃 Takeaway — collect at counter'; }
+  else { addrBox.style.display = 'none'; }
+  document.getElementById('confirmModal').style.display = 'block';
+}
+function closeConfirm() { document.getElementById('confirmModal').style.display = 'none'; }
+async function closeConfirmOpenCart() {
+  closeConfirm();
+  try {
+    var res  = await fetch(API_BASE + '/api/order-ui/cart/' + SESSION_ID);
+    var data = await res.json();
+    if (data.items && data.items.length > 0) {
+      var prevDisplay = {};
+      Object.keys(cart).forEach(function(id) { prevDisplay[id] = cart[id].display_name; });
+      cart = {};
+      data.items.forEach(function(i) { cart[i.menu_item_id] = { qty:i.quantity, notes:i.notes||'', name:i.name, price:i.price, display_name:prevDisplay[i.menu_item_id]||i.name }; });
+    }
+    renderMenu(); updateCartUI();
+  } catch(e) {}
+  openCart();
+}
+async function confirmAndPlace() {
+  var btn = document.getElementById('confirmPlaceBtn');
+  btn.textContent = t('placing_order'); btn.disabled = true;
+  closeConfirm(); await placeOrder(_confirmSkipAddr);
+  btn.textContent = t('place_order'); btn.disabled = false;
+}
+
+// ══════════════════════════════════════════════
+// LANGUAGE
+// ══════════════════════════════════════════════
+var LANGUAGES = [
+  { code:'en',      flag:'🇬🇧', name:'English',    native:'English'   },
+  { code:'hi',      flag:'🇮🇳', name:'Hindi',      native:'हिन्दी'     },
+  { code:'mr',      flag:'🇮🇳', name:'Marathi',    native:'मराठी'      },
+  { code:'hi_LATN', flag:'🇮🇳', name:'Hinglish',   native:'Hinglish'  },
+  { code:'ta',      flag:'🇮🇳', name:'Tamil',      native:'தமிழ்'      },
+  { code:'te',      flag:'🇮🇳', name:'Telugu',     native:'తెలుగు'     },
+  { code:'gu',      flag:'🇮🇳', name:'Gujarati',   native:'ગુજરાતી'    },
+  { code:'ml',      flag:'🇮🇳', name:'Malayalam',  native:'മലയാളം'     },
+  { code:'kn',      flag:'🇮🇳', name:'Kannada',    native:'ಕನ್ನಡ'      },
+  { code:'ru',      flag:'🇷🇺', name:'Russian',    native:'Русский'   },
+  { code:'zh',      flag:'🇨🇳', name:'Chinese',    native:'中文'       },
+  { code:'de',      flag:'🇩🇪', name:'German',     native:'Deutsch'   },
+  { code:'fr',      flag:'🇫🇷', name:'French',     native:'Français'  },
+  { code:'es',      flag:'🇪🇸', name:'Spanish',    native:'Español'   },
+];
+var selectedLang = localStorage.getItem('buddy_lang') || 'en';
+function getLang() { return LANGUAGES.find(function(l) { return l.code === selectedLang; }) || LANGUAGES[0]; }
+function openLangDrawer() {
+  var grid = document.getElementById('langGrid');
+  grid.innerHTML = LANGUAGES.map(function(l) {
+    var sel = l.code === selectedLang ? ' selected' : '';
+    return '<button class="lang-option' + sel + '" onclick="selectLang(\'' + l.code + '\')">' +
+      '<span class="flag">' + l.flag + '</span>' +
+      '<span class="label"><span>' + l.name + '</span><span class="native">' + l.native + '</span></span>' +
+      '</button>';
+  }).join('');
+  document.getElementById('langDrawer').style.display = 'block';
+}
+function closeLangDrawer() { document.getElementById('langDrawer').style.display = 'none'; }
+function updateUIStrings() {
+  var si = document.getElementById('searchInput');   if (si) si.placeholder = t('search_placeholder');
+  var po = document.getElementById('placeOrderBtn'); if (po && !po.disabled && po.textContent.indexOf('#') === -1) po.textContent = t('place_order');
+  var ct = document.getElementById('cartDrawerTitle'); if (ct) ct.innerHTML = t('your_cart');
+  var ctl = document.getElementById('cartTotalLabel'); if (ctl) ctl.textContent = t('total');
+  var al = document.getElementById('addrLabel');      if (al) al.textContent = t('delivery_address');
+  var da = document.getElementById('deliveryAddress'); if (da && !da.value) da.placeholder = t('address_placeholder');
+  var ah = document.getElementById('addressHint');    if (ah) ah.textContent = t('address_required');
+  var mb = document.getElementById('modeBadge');
+  if (mb) {
+    if (sessionMode === 'dine_in')       mb.textContent = t('mode_table') + ' ' + sessionTable;
+    else if (sessionMode === 'takeaway') mb.textContent = t('mode_takeaway');
+    else                                 mb.textContent = t('mode_delivery');
+  }
+  var ut  = document.getElementById('upsellTitle');       if (ut)  ut.textContent  = t('upsell_title');
+  var ult = document.getElementById('upsellLoadingText'); if (ult) ult.textContent = t('upsell_loading');
+  var us  = document.getElementById('upsellSkipBtn');     if (us)  us.textContent  = t('skip');
+  var up  = document.getElementById('upsellPlaceBtn');    if (up)  up.textContent  = t('place_order');
+  var cot = document.getElementById('confirmTitle');      if (cot) cot.textContent = '✅ ' + t('confirm_order');
+  var cs  = document.getElementById('confirmSubtitle');   if (cs)  cs.textContent  = t('review_order');
+  var cp  = document.getElementById('confirmPlaceBtn');   if (cp)  cp.textContent  = t('confirm_place');
+  var ce  = document.getElementById('confirmEditBtn');    if (ce)  ce.textContent  = t('edit_cart');
+  var nt  = document.getElementById('notesTitle');        if (nt)  nt.textContent  = t('special_instructions');
+  var ns  = document.getElementById('notesSaveBtn');      if (ns)  ns.textContent  = t('save');
+  var h1  = document.getElementById('hint_spicy');        if (h1)  h1.textContent  = t('note_extra_spicy');
+  var h2  = document.getElementById('hint_onions');       if (h2)  h2.textContent  = t('note_no_onions');
+  var h3  = document.getElementById('hint_oil');          if (h3)  h3.textContent  = t('note_less_oil');
+  var h4  = document.getElementById('hint_garlic');       if (h4)  h4.textContent  = t('note_no_garlic');
+  var h5  = document.getElementById('hint_welldone');     if (h5)  h5.textContent  = t('note_well_done');
+  var h6  = document.getElementById('hint_sauce');        if (h6)  h6.textContent  = t('note_extra_sauce');
+  var ldt = document.getElementById('langDrawerTitle');   if (ldt) ldt.textContent = t('choose_language');
+  var lt  = document.getElementById('loadingText');       if (lt)  lt.textContent  = t('loading');
+  buildFilterChips();
+}
+function selectLang(code) {
+  selectedLang = code;
+  localStorage.setItem('buddy_lang', code);
+  var lang = getLang();
+  document.getElementById('langBtn').textContent = lang.flag + ' ' + lang.code.toUpperCase();
+  closeLangDrawer();
+  fetch(API_BASE + '/api/order-ui/menu/' + SESSION_ID + '?lang=' + code)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var prevOrig = {};
+      allItems.forEach(function(i) { prevOrig[i.id] = i.orig_name || i.name; });
+      allItems = (data.items || []).map(function(item) { item.orig_name = prevOrig[item.id] || item.name; return item; });
+      categories   = data.categories || [];
+      allModifiers = data.modifiers  || [];
+      Object.keys(cart).forEach(function(id) {
+        var ni = allItems.find(function(i) { return i.id === id; });
+        if (ni) cart[id].display_name = ni.name;
+      });
+      updateUIStrings();
+      buildCategoryTabs();
+      renderMenu();
+      renderPopular();
+      updateCartUI();
+      loadPastAddresses();
+      showToast(lang.flag + ' ' + t('lang_changed') + ' ' + lang.name);
+    })
+    .catch(function(e) { console.error('Menu reload failed', e); });
+}
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+// ══════════════════════════════════════════════
+// START
+// ══════════════════════════════════════════════
+init();
+</script>
+<!-- Modifier Modal -->
+<div id="modifierModal" style="display:none;position:fixed;inset:0;z-index:500">
+  <div onclick="closeModifierModal()" style="position:absolute;inset:0;background:rgba(0,0,0,0.5)"></div>
+  <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:24px 24px 0 0;padding:24px 20px 32px;box-sizing:border-box">
+    <div style="width:40px;height:4px;background:#ede8df;border-radius:2px;margin:0 auto 16px"></div>
+    <div id="modItemName" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px"></div>
+    <div id="modItemPrice" style="font-size:14px;color:#9b8b72;margin-bottom:16px"></div>
+    <div id="modExtrasLabel" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#9b8b72;margin-bottom:4px">Add extras (optional)</div>
+    <div id="modOptions"></div>
+    <button id="modConfirmBtn" onclick="confirmModifiers()" style="width:100%;padding:14px;background:#1a1207;border:none;border-radius:12px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:16px">Add to Cart ₹<span id="modTotal">0</span></button>
+    <button id="modSkipBtn" onclick="skipModifiers()" style="width:100%;padding:10px;background:none;border:none;color:#9b8b72;font-size:13px;cursor:pointer;margin-top:6px">Add without extras</button>
+  </div>
+</div>
+</body>
+</html>
+
